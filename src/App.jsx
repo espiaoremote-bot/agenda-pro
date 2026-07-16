@@ -143,8 +143,26 @@ console.log("Horários ocupados:", horariosOcupados);
 </select>
 
 <button
-  onClick={() => {
-const novoPedido = {
+onClick={() => {
+
+    if (!nome || !whatsapp || !servico || !data || !horario) {
+      setMensagem("Preencha todos os campos.");
+      return;
+    }
+
+    const horarioJaExiste = pedidos.some(
+      (item) =>
+        item.data === data &&
+        item.horario === horario &&
+        item.status !== "Cancelado"
+    );
+
+    if (horarioJaExiste) {
+      setMensagem("Esse horário já está ocupado.");
+      return;
+    }
+
+    const novoPedido = {
   id: Date.now(),
   nome,
   whatsapp,
