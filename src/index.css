@@ -1,0 +1,53 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+}
+
+.card {
+  background: white;
+  padding: 40px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+button {
+  padding: 12px 25px;
+  margin: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}.btn {
+  padding: 12px 30px;
+  margin: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.entrar {
+  background: #2563eb;
+  color: white;
+}
+
+.cadastrar {
+  background: #16a34a;
+  color: white;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+}
+
+.agenda-card {
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 12px;
+}
