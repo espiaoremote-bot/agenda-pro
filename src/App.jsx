@@ -188,6 +188,11 @@ localStorage.setItem(
 
 setMensagem("Pedido enviado! Aguarde a confirmação.");
 setMensagemProfissional("Novo pedido recebido!");
+setNome("");
+setWhatsapp("");
+setServico("");
+setData("");
+setHorario("");
   }}
 >
   Enviar pedido
