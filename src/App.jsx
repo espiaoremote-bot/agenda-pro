@@ -249,6 +249,13 @@ setMensagemProfissional("Novo pedido recebido!");
 {pedido.status === "Agendado" && (
   <button
     onClick={() => {
+
+if (pedido) {
+  setMensagem("Você já enviou um pedido.");
+  return;
+}
+
+console.log("CLIQUEI NO BOTÃO", Date.now());
       const novosPedidos = pedidos.map((item, i) =>
         i === index
 ? { 
