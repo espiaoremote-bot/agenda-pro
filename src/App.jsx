@@ -146,6 +146,7 @@ if (senha === "cafe") {
 <input
   placeholder="Nome"
   value={nome}
+  maxLength="20"
   onChange={(e) => {
     const somenteLetras = e.target.value.replace(/[0-9]/g, "");
     setNome(somenteLetras);
