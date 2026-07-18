@@ -104,7 +104,7 @@ console.log("Horários ocupados:", horariosOcupados);
 onClick={async () => {
 if (senha === "cafe") {
  setMensagemLogin("");
- 
+
  setTela("profissional");
  setSenha("");
 } else {
@@ -164,17 +164,17 @@ onChange={(e) => {
     numero = numero.slice(0, 11);
   }
 
-  if (numero.length <= 3) {
+  if (numero.length <= 2) {
     setWhatsapp(numero);
   } 
   else if (numero.length <= 7) {
     setWhatsapp(
-      `(${numero.slice(0,3)}) ${numero.slice(3)}`
+      `(${numero.slice(0,2)}) ${numero.slice(2)}`
     );
   }
   else {
     setWhatsapp(
-      `(${numero.slice(0,3)}) ${numero.slice(3,8)}-${numero.slice(8)}`
+      `(${numero.slice(0,2)}) ${numero.slice(2,7)}-${numero.slice(7)}`
     );
   }
 }}
