@@ -104,8 +104,10 @@ console.log("Horários ocupados:", horariosOcupados);
 onClick={async () => {
 if (senha === "cafe") {
  setMensagemLogin("");
-  setTela("profissional");
-  setSenha("");
+ setMensagemProfissional("");
+ setMensagemErroProfissional("");
+ setTela("profissional");
+ setSenha("");
 } else {
   setMensagemLogin("Senha incorreta!");
 }
@@ -269,6 +271,7 @@ setPedidos([
 setMensagem("Agendamento realizado com sucesso! ❤️");
 setTipoMensagem("sucesso");
 setMensagemProfissional("Novo pedido recebido!");
+setMensagemErroProfissional("");
 
 
 setNome("");
@@ -372,7 +375,7 @@ onClick={async () => {
         JSON.stringify(novosPedidos)
       );
       setMensagemProfissional("");
-      setMensagemErroProfissional("Agendamento excluído!✅");
+      setMensagemErroProfissional("Agendamento excluído!");
     }}
   >
     Excluir agendamento
@@ -382,7 +385,10 @@ onClick={async () => {
 {pedido.status === "Agendado" && (
   <button
 onClick={async () => {
-  console.log("CLIQUEI EM CANCELAR", pedido.id);
+  
+  setMensagemProfissional("");
+setMensagemErroProfissional("");
+  
   const { error } = await supabase
     .from("agendamentos")
     .update({
@@ -408,7 +414,7 @@ onClick={async () => {
 
   setPedidos(data);
 setMensagemProfissional("");
-setMensagemErroProfissional("Agendamento cancelado!✅");
+setMensagemErroProfissional("Agendamento cancelado!");
 }}
   >
     Cancelar agendamento
@@ -419,9 +425,10 @@ setMensagemErroProfissional("Agendamento cancelado!✅");
 
 
 
-            <button
+<button
   onClick={() => {
     setMensagemProfissional("");
+    setMensagemErroProfissional("");
     setTela("inicio");
   }}
 >
