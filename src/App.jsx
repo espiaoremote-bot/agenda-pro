@@ -13,6 +13,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
   const [tela, setTela] = useState("inicio");
   const [senha, setSenha] = useState("");
 const [mensagem, setMensagem] = useState("");
+const [tipoMensagem, setTipoMensagem] = useState("");
 const [mensagemProfissional, setMensagemProfissional] = useState("");
 const [mensagemLogin, setMensagemLogin] = useState("");
 const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
@@ -135,8 +136,8 @@ if (senha === "cafe") {
 
     <h1>Agendar horário</h1>
 
-    {mensagem && (
-  <p style={{ color: "red" }}>
+{mensagem && (
+  <p style={{ color: tipoMensagem === "erro" ? "red" : "green" }}>
     {mensagem}
   </p>
 )}
@@ -219,6 +220,7 @@ onClick={async () => {
 
     if (!nome || !whatsapp || !servico || !data || !horario) {
       setMensagem("Preencha todos os campos.");
+      setTipoMensagem("erro");
       return;
     }
 
@@ -231,6 +233,7 @@ onClick={async () => {
 
     if (horarioJaExiste) {
       setMensagem("Esse horário já está ocupado.");
+      setTipoMensagem("erro");
       return;
     }
 
@@ -264,6 +267,7 @@ setPedidos([
 ]);
 
 setMensagem("Agendamento realizado com sucesso! ❤️");
+setTipoMensagem("sucesso");
 setMensagemProfissional("Novo pedido recebido!");
 
 
@@ -293,6 +297,7 @@ Enviar pedido
 <button
   onClick={async () => {
     setMensagem("");
+    setTipoMensagem("");
     setTela("inicio");
   }}
 >
@@ -310,9 +315,9 @@ Enviar pedido
             <p>Acesse sua agenda e pedidos</p>
             <h2>📅 Agenda de horários</h2>
 
-{mensagemErroProfissional && (
+{mensagemProfissional && (
   <p style={{ color: "red" }}>
-    {mensagemErroProfissional}
+    {mensagemProfissional}
   </p>
 )}
 {console.log("RENDER PROFISSIONAL", pedidos)}
@@ -397,7 +402,7 @@ onClick={async () => {
   }
 
   setPedidos(data);
-  setMensagemProfissional("Agendamento cancelado!");
+  setMensagemErroProfissional("Agendamento cancelado!");
 }}
   >
     Cancelar agendamento
@@ -408,9 +413,14 @@ onClick={async () => {
 
 
 
-            <button onClick={() => setTela("inicio")}>
-              Voltar
-            </button>
+            <button
+  onClick={() => {
+    setMensagemProfissional("");
+    setTela("inicio");
+  }}
+>
+  Voltar
+</button>
           </div>
         )}
 
