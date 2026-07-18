@@ -153,11 +153,29 @@ if (senha === "cafe") {
 <input
   placeholder="WhatsApp"
   value={whatsapp}
-  maxLength="11"
-  onChange={(e) => {
-    const apenasNumeros = e.target.value.replace(/\D/g, "");
-    setWhatsapp(apenasNumeros);
-  }}
+  maxLength="15"
+
+onChange={(e) => {
+  let numero = e.target.value.replace(/\D/g, "");
+
+  if (numero.length > 11) {
+    numero = numero.slice(0, 11);
+  }
+
+  if (numero.length <= 3) {
+    setWhatsapp(numero);
+  } 
+  else if (numero.length <= 7) {
+    setWhatsapp(
+      `(${numero.slice(0,3)}) ${numero.slice(3)}`
+    );
+  }
+  else {
+    setWhatsapp(
+      `(${numero.slice(0,3)}) ${numero.slice(3,8)}-${numero.slice(8)}`
+    );
+  }
+}}
 />
 
   <select
@@ -220,24 +238,19 @@ onClick={async () => {
 
   console.log("CLIQUEI NO BOTÃO ENVIAR");
 
-    if (!nome || !whatsapp || !servico || !data || !horario) {
-      setMensagem("Preencha todos os campos.");
-      setTipoMensagem("erro");
-      return;
-    }
+if (!nome || !whatsapp || !servico || !data || !horario) {
+  setMensagem("Preencha todos os campos.");
+  setTipoMensagem("erro");
+  return;
+}
 
-    const horarioJaExiste = pedidos.some(
-      (item) =>
-        item.data === data &&
-        item.horario === horario &&
-        item.status !== "Cancelado"
-    );
+const numeroLimpo = whatsapp.replace(/\D/g, "");
 
-    if (horarioJaExiste) {
-      setMensagem("Esse horário já está ocupado.");
-      setTipoMensagem("erro");
-      return;
-    }
+if (numeroLimpo.length !== 11) {
+  setMensagem("Digite um WhatsApp válido com 11 números.");
+  setTipoMensagem("erro");
+  return;
+}
 
 
 
@@ -385,7 +398,7 @@ onClick={async () => {
 {pedido.status === "Agendado" && (
   <button
 onClick={async () => {
-  
+
   setMensagemProfissional("");
 setMensagemErroProfissional("");
   
