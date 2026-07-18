@@ -371,8 +371,8 @@ onClick={async () => {
         "pedidos",
         JSON.stringify(novosPedidos)
       );
-
-      setMensagemErroProfissional("Agendamento excluído!");
+      setMensagemProfissional("");
+      setMensagemErroProfissional("Agendamento excluído!✅");
     }}
   >
     Excluir agendamento
@@ -407,7 +407,8 @@ onClick={async () => {
   }
 
   setPedidos(data);
-  setMensagemErroProfissional("Agendamento cancelado!");
+setMensagemProfissional("");
+setMensagemErroProfissional("Agendamento cancelado!✅");
 }}
   >
     Cancelar agendamento
@@ -418,10 +419,9 @@ onClick={async () => {
 
 
 
-<button
+            <button
   onClick={() => {
     setMensagemProfissional("");
-    setMensagemErroProfissional("");
     setTela("inicio");
   }}
 >
