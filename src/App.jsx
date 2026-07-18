@@ -320,6 +320,11 @@ Enviar pedido
     {mensagemProfissional}
   </p>
 )}
+{mensagemErroProfissional && (
+  <p style={{ color: "red" }}>
+    {mensagemErroProfissional}
+  </p>
+)}
 {console.log("RENDER PROFISSIONAL", pedidos)}
 
 {pedidos.map((pedido, index) => (
@@ -413,9 +418,10 @@ onClick={async () => {
 
 
 
-            <button
+<button
   onClick={() => {
     setMensagemProfissional("");
+    setMensagemErroProfissional("");
     setTela("inicio");
   }}
 >
