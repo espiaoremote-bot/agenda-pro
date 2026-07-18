@@ -15,6 +15,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 const [mensagem, setMensagem] = useState("");
 const [mensagemProfissional, setMensagemProfissional] = useState("");
 const [mensagemLogin, setMensagemLogin] = useState("");
+const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
 const [pedidos, setPedidos] = useState([]);
@@ -135,7 +136,7 @@ if (senha === "cafe") {
     <h1>Agendar horário</h1>
 
     {mensagem && (
-  <p style={{ color: "green" }}>
+  <p style={{ color: "red" }}>
     {mensagem}
   </p>
 )}
@@ -262,7 +263,7 @@ setPedidos([
   pedidoSalvo
 ]);
 
-setMensagem("Pedido enviado! Aguarde a confirmação.");
+setMensagem("Agendamento realizado com sucesso! ❤️");
 setMensagemProfissional("Novo pedido recebido!");
 
 
@@ -308,9 +309,10 @@ Enviar pedido
 
             <p>Acesse sua agenda e pedidos</p>
             <h2>📅 Agenda de horários</h2>
-{mensagemProfissional && (
-  <p style={{ color: "green" }}>
-    {mensagemProfissional}
+
+{mensagemErroProfissional && (
+  <p style={{ color: "red" }}>
+    {mensagemErroProfissional}
   </p>
 )}
 {console.log("RENDER PROFISSIONAL", pedidos)}
@@ -360,7 +362,7 @@ onClick={async () => {
         JSON.stringify(novosPedidos)
       );
 
-      setMensagemProfissional("Agendamento excluído!");
+      setMensagemErroProfissional("Agendamento excluído!");
     }}
   >
     Excluir agendamento
@@ -395,7 +397,7 @@ onClick={async () => {
   }
 
   setPedidos(data);
-  setMensagem("Agendamento cancelado!");
+  setMensagemProfissional("Agendamento cancelado!");
 }}
   >
     Cancelar agendamento
