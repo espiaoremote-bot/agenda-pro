@@ -316,7 +316,7 @@ Enviar pedido
             <h2>📅 Agenda de horários</h2>
 
 {mensagemProfissional && (
-  <p style={{ color: "red" }}>
+  <p style={{ color: "green" }}>
     {mensagemProfissional}
   </p>
 )}
