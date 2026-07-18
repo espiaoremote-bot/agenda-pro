@@ -104,8 +104,7 @@ console.log("Horários ocupados:", horariosOcupados);
 onClick={async () => {
 if (senha === "cafe") {
  setMensagemLogin("");
- setMensagemProfissional("");
- setMensagemErroProfissional("");
+ 
  setTela("profissional");
  setSenha("");
 } else {
@@ -147,7 +146,10 @@ if (senha === "cafe") {
 <input
   placeholder="Nome"
   value={nome}
-  onChange={(e) => setNome(e.target.value)}
+  onChange={(e) => {
+    const somenteLetras = e.target.value.replace(/[0-9]/g, "");
+    setNome(somenteLetras);
+  }}
 />
 
 <input
