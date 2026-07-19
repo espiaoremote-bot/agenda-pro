@@ -188,3 +188,68 @@
   border-radius: 10px;
   margin-top: 15px;
 }
+
+.react-calendar__tile {
+  position: relative;
+}
+
+.coracao {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -45%);
+  font-size: 45px;
+  color: #4caf50;
+  z-index: 0;
+}
+
+.react-calendar__tile abbr {
+  position: relative;
+  z-index: 1;
+}
+.react-calendar__tile {
+  position: relative;
+}
+
+.dia-agendado {
+  position: relative;
+  color: white !important;
+  z-index: 1;
+}
+
+.dia-agendado::before {
+  content: "♥";
+  position: absolute;
+  font-size: 42px;
+  color: #4caf50;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -55%);
+  z-index: -1;
+}
+
+.react-calendar__tile abbr {
+  position: relative;
+  z-index: 2;
+}
+
+.react-calendar__tile {
+  position: relative;
+}
+
+.dia-verde::after {
+  content: "❤";
+  color: rgb(5, 143, 7);
+  font-size: 10px;
+  margin-left: 3px;
+  display: inline-block;
+}
+
+
+.dia-vermelho::after {
+  content: "❤";
+  color: red;
+  font-size: 10px;
+  margin-left: 3px;
+  display: inline-block;
+}

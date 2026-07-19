@@ -1,5 +1,8 @@
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
+import "./App.css";
 
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
@@ -20,6 +23,7 @@ const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
 const [pedidos, setPedidos] = useState([]);
+const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
@@ -64,6 +68,13 @@ const horariosOcupados = pedidos
 
 console.log("Pedidos:", pedidos);
 console.log("Horários ocupados:", horariosOcupados);
+
+const dataSelecionadaFormatada = dataSelecionada
+  .toLocaleDateString("sv-SE");
+
+const pedidosDoDia = pedidos.filter(
+  (pedido) => pedido.data === dataSelecionadaFormatada
+);
   return (
     <div className="card">
 
@@ -212,9 +223,10 @@ onChange={(e) => {
   </option>
 
 </select>
-    <input
+<input
   type="date"
   value={data}
+  min={new Date().toLocaleDateString("sv-SE")}
   onChange={(e) => setData(e.target.value)}
 />
 
@@ -243,6 +255,14 @@ onClick={async () => {
 
 if (!nome || !whatsapp || !servico || !data || !horario) {
   setMensagem("Preencha todos os campos.");
+  setTipoMensagem("erro");
+  return;
+}
+
+const hoje = new Date().toLocaleDateString("sv-SE");
+
+if (data < hoje) {
+  setMensagem("Não é possível agendar uma data que já passou.");
   setTipoMensagem("erro");
   return;
 }
@@ -334,6 +354,40 @@ Enviar pedido
             <p>Acesse sua agenda e pedidos</p>
             <h2>📅 Agenda de horários</h2>
 
+<Calendar
+  onChange={setDataSelecionada}
+  value={dataSelecionada}
+
+tileClassName={({ date, view }) => {
+  if (view === "month") {
+
+    const dataFormatada = date.toLocaleDateString("sv-SE");
+
+    const temAgendado = pedidos.some(
+      (pedido) =>
+        pedido.data === dataFormatada &&
+        pedido.status === "Agendado"
+    );
+
+    const temCancelado = pedidos.some(
+      (pedido) =>
+        pedido.data === dataFormatada &&
+        pedido.status === "Cancelado"
+    );
+
+    if (temAgendado) {
+      return "dia-verde";
+    }
+
+    if (temCancelado) {
+      return "dia-vermelho";
+    }
+  }
+
+  return null;
+}}
+/>
+
 {mensagemProfissional && (
   <p style={{ color: "green" }}>
     {mensagemProfissional}
@@ -346,7 +400,11 @@ Enviar pedido
 )}
 {console.log("RENDER PROFISSIONAL", pedidos)}
 
-{pedidos.map((pedido, index) => (
+{pedidosDoDia.length === 0 && (
+  <p>Nenhum agendamento para este dia.</p>
+)}
+
+{pedidosDoDia.map((pedido) => (
      <div className="agenda-card" key={pedido.id}>
 
       <h3>📌 Horário marcado</h3>
@@ -456,5 +514,6 @@ setMensagemErroProfissional("Agendamento cancelado!");
     </div>
   );
 }
+
 
 export default App;
