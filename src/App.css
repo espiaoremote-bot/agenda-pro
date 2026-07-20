@@ -898,3 +898,43 @@ button {
 button:hover {
   transform: scale(1.03);
 }
+.admin-header {
+  padding: 35px !important;
+  border-radius: 25px !important;
+  text-align: center !important;
+  margin-bottom: 30px !important;
+}
+
+.admin-header h1 {
+  font-size: 32px !important;
+  letter-spacing: 0.5px;
+}
+
+.profissional-card {
+  padding: 25px !important;
+  border-radius: 22px !important;
+  margin-top: 20px !important;
+}
+
+.agenda-card {
+  padding: 25px !important;
+  border-radius: 22px !important;
+}
+@media (max-width: 600px) {
+
+  .resumo-dashboard {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .resumo-card {
+    width: 100%;
+    max-width: 350px;
+  }
+
+  .admin-header {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+}
