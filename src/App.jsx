@@ -755,10 +755,11 @@ setEditarSenha("");
 )}
 
 {tela === "profissional" && (
-        <div>
+  <div className="profissional-container">
           
 <div
-  style={{
+ 
+ style={{
     background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
     color: "white",
     padding: "25px",
