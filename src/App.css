@@ -834,3 +834,22 @@ body,
   background: #f8fafc !important;
   border: none !important;
 }
+
+@media (max-width: 600px) {
+
+  .card {
+    width: 100%;
+    padding: 15px;
+    box-sizing: border-box;
+  }
+
+  .resumo-dashboard {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .resumo-card {
+    width: 100%;
+  }
+
+}
