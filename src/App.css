@@ -853,3 +853,48 @@ body,
   }
 
 }
+/* ===== AJUSTE FINAL DO VISUAL ===== */
+
+body,
+#root {
+  background: #f8fafc !important;
+}
+
+/* Painéis principais */
+.login-card,
+.profissional-card,
+.agenda-card,
+.resumo-card,
+.cliente-card {
+  border: none !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.10);
+}
+
+/* Perfil ADM */
+.admin-header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  border-radius: 22px;
+  box-shadow: 0 10px 25px rgba(37,99,235,0.25);
+}
+
+/* Perfil profissional */
+.resumo-card h3,
+.agenda-card h3 {
+  color: #2563eb;
+}
+
+/* Botões principais */
+.btn-login,
+.btn-voltar {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: white !important;
+}
+
+/* Remove rosa restante */
+button {
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.03);
+}
