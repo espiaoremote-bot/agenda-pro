@@ -16,6 +16,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
   
   const [tela, setTela] = useState("inicio");
   const [senha, setSenha] = useState("");
+  const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [mensagem, setMensagem] = useState("");
 const [tipoMensagem, setTipoMensagem] = useState("");
 const [mensagemProfissional, setMensagemProfissional] = useState("");
@@ -47,10 +48,11 @@ useEffect(() => {
   async function carregarPedidos() {
     console.log("TESTANDO SUPABASE:", supabase);
 
-    const { data, error } = await supabase
-      .from("agendamentos")
-      .select("*")
-      .order("id", { ascending: false });
+const { data, error } = await supabase
+  .from("agendamentos")
+  .select("*")
+  .eq("profissional_id", profissionalLogado?.id)
+  .order("id", { ascending: false });
 
     if (error) {
       console.error(error);
@@ -119,10 +121,8 @@ const pedidosDoDia = pedidos.filter(
   Área Profissional
 </h1>
 
-<p>
- <p className="login-descricao">
-  Gerencie seus agendamentos com facilidade
-</p>
+<p className="login-descricao">
+  Gerencie seus agendamentos com facilidade,
 </p>
 
 
@@ -137,14 +137,30 @@ const pedidosDoDia = pedidos.filter(
 
 <button className="btn-login"
 onClick={async () => {
-if (senha === "cafe") {
- setMensagemLogin("");
 
- setTela("profissional");
- setSenha("");
-} else {
+const { data, error } = await supabase
+  .from("profissionais")
+  .select("*")
+  .eq("senha", senha)
+  .single();
+
+  console.log("RETORNO LOGIN:", data);
+console.log("ERRO LOGIN:", error);
+
+
+if (error || !data) {
   setMensagemLogin("Senha incorreta!");
+  return;
 }
+
+
+setProfissionalLogado(data);
+
+setMensagemLogin("");
+
+setTela("profissional");
+
+setSenha("");
   }}
 >
   Entrar
@@ -332,7 +348,8 @@ const { data: pedidoSalvo, error } = await supabase
       servico,
       data,
       horario,
-      status: "Agendado"
+      status: "Agendado",
+      profissional_id: profissionalLogado?.id ?? 1,
     }
   ])
   .select()
@@ -408,9 +425,13 @@ Enviar pedido
   }}
 >
 
-  <p style={{ marginTop: "10px" }}>
-    Área Profissional
-  </p>
+<p style={{ marginTop: "10px" }}>
+  Área Profissional
+</p>
+
+<h2>
+  Olá, {profissionalLogado?.nome} 👋
+</h2>
 
   <small>
     Gerencie seus agendamentos com facilidade
@@ -582,10 +603,12 @@ setMensagemErroProfissional("");
     return;
   }
 
-  const { data, error: erroBusca } = await supabase
-    .from("agendamentos")
-    .select("*")
-    .order("id", { ascending: false });
+const { data, error: erroBusca } = await supabase
+  .from("agendamentos")
+  .select("*")
+  .eq("profissional_id", profissionalLogado.id)
+  .order("id", { ascending: false });
+
 
   if (erroBusca) {
     console.error(erroBusca);
