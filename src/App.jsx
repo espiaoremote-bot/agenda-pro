@@ -14,9 +14,25 @@ function App() {
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
   
-  const [tela, setTela] = useState("inicio");
-  const [senha, setSenha] = useState("");
-  const [profissionalLogado, setProfissionalLogado] = useState(null);
+const [tela, setTela] = useState("inicio");
+
+const [senha, setSenha] = useState("");
+
+const [profissionalLogado, setProfissionalLogado] = useState(null);
+
+const [profissionais, setProfissionais] = useState([]);
+const [totalAgendamentos, setTotalAgendamentos] = useState(0);
+const [mostrarSenha, setMostrarSenha] = useState(false);
+const [novoNome, setNovoNome] = useState("");
+
+const [novaSenha, setNovaSenha] = useState("");
+const [profissionalEditando, setProfissionalEditando] = useState(null);
+
+const [editarNome, setEditarNome] = useState("");
+
+const [editarSenha, setEditarSenha] = useState("");
+
+
 const [mensagem, setMensagem] = useState("");
 const [tipoMensagem, setTipoMensagem] = useState("");
 const [mensagemProfissional, setMensagemProfissional] = useState("");
@@ -50,9 +66,14 @@ const profissionalId = Number(params.get("profissional"));
 
 console.log("Profissional pelo link:", profissionalId);
 useEffect(() => {
-  async function carregarPedidos() {
-    console.log("TESTANDO SUPABASE:", supabase);
 
+  async function carregarPedidos() {
+        if (!profissionalLogado?.id) {
+      console.log("SEM PROFISSIONAL LOGADO AINDA");
+      return;
+    }
+    console.log("TESTANDO SUPABASE:", supabase);
+ 
 const { data, error } = await supabase
   .from("agendamentos")
   .select("*")
@@ -158,12 +179,20 @@ if (error || !data) {
   return;
 }
 
+if (!data.ativo) {
+  setMensagemLogin("Este profissional está desativado.");
+  return;
+}
 
 setProfissionalLogado(data);
 
 setMensagemLogin("");
 
-setTela("profissional");
+if (data.tipo === "super_admin") {
+  setTela("admin");
+} else {
+  setTela("profissional");
+}
 
 setSenha("");
   }}
@@ -413,19 +442,329 @@ Enviar pedido
 
 </div>
 )}
+{tela === "admin" && (
+  <div>
 
+    <div className="admin-header">
+
+      <p>
+        Painel Administrativo
+      </p>
+
+      <h1>
+        👑 Olá, {profissionalLogado?.nome}
+      </h1>
+
+      <small>
+        Gerencie profissionais e configurações
+      </small>
+
+    </div>
+    <h3>Profissionais cadastrados</h3>
+    <div className="resumo-dashboard">
+
+  <div className="resumo-card">
+    <h3>👥 Profissionais</h3>
+    <p>{profissionais.length}</p>
+  </div>
+
+
+  <div className="resumo-card">
+    <h3>🟢 Ativos</h3>
+    <p>
+      {
+        profissionais.filter(
+          (p) => p.ativo
+        ).length
+      }
+    </p>
+  </div>
+
+
+  <div className="resumo-card">
+    <h3>📅 Agendamentos</h3>
+    <p>{totalAgendamentos}</p>
+  </div>
+
+</div>
+    <div className="admin-secao">
+    
+
+<button
+  onClick={async () => {
+
+    const { data, error } = await supabase
+      .from("profissionais")
+      .select("*");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setProfissionais(data); 
+    const { count } = await supabase
+  .from("agendamentos")
+  .select("*", { count: "exact", head: true });
+
+setTotalAgendamentos(count);
+
+  }}
+>
+  Carregar profissionais
+</button>
+
+
+{profissionais.map((profissional) => (
+  <div 
+    key={profissional.id}
+    className="profissional-card"
+  >
+
+ <div className="profissional-info">
+
+<p>
+  👤 {profissional.nome}
+</p>
+
+<p>
+  🆔 ID: {profissional.id}
+</p>
+
+<p>
+  Status: {profissional.ativo ? "🟢 Ativo" : "🔴 Inativo"}
+</p>
+
+</div>
+
+    <p>
+      ID: {profissional.id}
+    </p>
+
+    <p>
+  Status: {profissional.ativo ? "🟢 Ativo" : "🔴 Inativo"}
+</p>
+
+<p>
+  Link:
+  <br />
+
+  http://localhost:5173/?profissional={profissional.id}
+</p>
+
+<button
+  onClick={() => {
+
+    const link = `http://localhost:5173/?profissional=${profissional.id}`;
+
+    window.open(link, "_blank");
+
+  }}
+>
+  🔗 Abrir agenda
+</button>
+<button
+  onClick={() => {
+
+    const link = `http://localhost:5173/?profissional=${profissional.id}`;
+
+    navigator.clipboard.writeText(link);
+
+    alert("Link copiado!");
+
+  }}
+>
+  📋 Copiar link
+</button>
+
+<button
+  onClick={async () => {
+
+    const { error } = await supabase
+      .from("profissionais")
+      .update({
+        ativo: !profissional.ativo
+      })
+      .eq("id", profissional.id);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("profissionais")
+      .select("*");
+
+    setProfissionais(data);
+
+  }}
+>
+  {profissional.ativo ? "Desativar" : "Ativar"}
+</button>
+<button
+  className="btn-editar"
+  onClick={() => {
+
+    setProfissionalEditando(profissional);
+
+    setEditarNome(profissional.nome);
+
+    setEditarSenha(profissional.senha);
+
+    setMostrarSenha(false);
+
+  }}
+>
+  ✏️ Editar
+</button>
+ {profissionalEditando?.id === profissional.id && (
+  <div style={{ marginTop: "10px" }}>
+
+    <input
+      placeholder="Novo nome"
+      value={editarNome}
+      onChange={(e) => setEditarNome(e.target.value)}
+    />
+
+<input
+  type={mostrarSenha ? "text" : "password"}
+  placeholder="Nova senha"
+  value={editarSenha}
+  onChange={(e) => setEditarSenha(e.target.value)}
+/>
+
+<button
+  onClick={() => setMostrarSenha(!mostrarSenha)}
+>
+  {mostrarSenha ? "🙈 Esconder senha" : "👁️ Ver senha"}
+</button>
+
+<button
+  onClick={async () => {
+
+    const { error } = await supabase
+      .from("profissionais")
+      .update({
+        nome: editarNome,
+        senha: editarSenha,
+      })
+      .eq("id", profissional.id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao atualizar.");
+      return;
+    }
+
+    const { data } = await supabase
+      .from("profissionais")
+      .select("*");
+
+    setProfissionais(data);
+
+    setProfissionalEditando(null);
+
+    setEditarNome("");
+setEditarSenha("");
+
+    alert("Profissional atualizado com sucesso!");
+
+  }}
+>
+  Salvar
+</button>
+
+</div>
+)}
+  </div>
+  
+))}
+</div>
+    <p>
+      Painel administrativo
+    </p>
+
+
+    <h3>Cadastrar profissional</h3>
+
+    <input
+      placeholder="Nome do profissional"
+      value={novoNome}
+      onChange={(e) => setNovoNome(e.target.value)}
+    />
+
+
+    <input
+      placeholder="Senha"
+      type="password"
+      value={novaSenha}
+      onChange={(e) => setNovaSenha(e.target.value)}
+    />
+
+
+    <button
+      onClick={async () => {
+
+        if (!novoNome || !novaSenha) {
+          alert("Preencha nome e senha");
+          return;
+        }
+
+
+        const { error } = await supabase
+          .from("profissionais")
+          .insert([
+            {
+              nome: novoNome,
+              senha: novaSenha,
+              tipo: "profissional",
+              ativo: true
+            }
+          ]);
+
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao cadastrar");
+          return;
+        }
+
+
+        alert("Profissional criado com sucesso!");
+
+        setNovoNome("");
+        setNovaSenha("");
+
+      }}
+    >
+      Criar profissional
+    </button>
+
+
+    <br /><br />
+
+
+    <button
+      onClick={() => setTela("inicio")}
+    >
+      Sair
+    </button>
+
+  </div>
+)}
 
 {tela === "profissional" && (
         <div>
           
-          <div
+<div
   style={{
-    background: "linear-gradient(135deg, #ec4899, #db2777)",
+    background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
     color: "white",
     padding: "25px",
     borderRadius: "18px",
     marginBottom: "25px",
-    boxShadow: "0 10px 25px rgba(236,72,153,0.3)",
+    boxShadow: "0 10px 25px rgba(37,99,235,0.3)",
     textAlign: "center",
   }}
 >

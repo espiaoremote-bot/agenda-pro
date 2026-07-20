@@ -192,7 +192,7 @@
 
 .agenda-card h3 {
   margin-top: 0;
-  color: #db2777;
+  color: #2563eb;
   font-size: 24px;
 }
 
@@ -269,7 +269,7 @@
 
 .resumo-card h3 {
   margin: 0;
-  color: #db2777 !important;
+  color: #2563eb !important;
 }
 
 .resumo-card p {
@@ -286,17 +286,11 @@
 }
 
 
-.agenda-card {
-  background: white;
-  border-radius: 18px;
-  padding: 20px;
-  margin-top: 15px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-}
+
 
 .agenda-card h3 {
   margin-top: 0;
-  color: #db2777;
+  color: #2563eb;
   font-size: 24px;
 }
 
@@ -314,7 +308,7 @@
 
 .agenda-card h3 {
   margin-top: 0;
-  color: #db2777;
+  color: #2563eb;
   font-size: 24px;
 }
 
@@ -323,8 +317,9 @@
   font-size: 16px;
 }
 .horario-card {
-  background: #db2777 !important;
+  background:#2563eb!important;
   color: white !important;
+  
   padding: 12px !important;
   border-radius: 12px;
   text-align: center;
@@ -527,7 +522,7 @@
 }
 .btn-login {
   width: 100%;
-  background: #ec4899;
+  background: #2563eb;
   color: white;
   border: none;
   padding: 12px;
@@ -538,8 +533,8 @@
 .btn-voltar {
   width: 100%;
   background: white;
-  color: #ec4899;
-  border: 2px solid #ec4899;
+  color: #2563eb;
+  border: 2px solid #2563eb;
   padding: 12px;
   border-radius: 12px;
   margin-top: 12px;
@@ -578,3 +573,189 @@
   display: block;
   margin-bottom: 12px;
 }
+.profissional-card {
+  background: #eff6ff;
+
+}
+
+.profissional-card h3 {
+  margin-top: 0;
+  color: #2563eb;
+}
+
+.profissional-info {
+  margin-bottom: 15px;
+}
+
+.profissional-info p {
+  margin: 8px 0;
+}
+
+.profissional-botoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profissional-botoes button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-copiar {
+  background: #bfdbfe
+}
+
+.btn-abrir {
+  background: #bfdbfe
+}
+
+.btn-editar {
+  background: #fde68a;
+}
+
+.btn-status {
+  background: #bfdbfe;
+}
+.admin-header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  padding: 25px;
+  border-radius: 18px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(37,99,235,0.3);
+  text-align: center;
+}
+
+.admin-header p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.admin-header h1 {
+  margin: 10px 0;
+}
+
+.admin-header small {
+  opacity: 0.9;
+}
+.admin-botoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.admin-botoes button {
+  border: none;
+  padding: 10px 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.admin-botoes button:hover {
+  transform: scale(1.05);
+}
+
+.btn-ativar {
+  background: #bfdbfe;
+  color: #1e40af;
+}
+
+.btn-editar {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.btn-copiar {
+  background: #bbf7d0;
+  color: #166534;
+}
+
+.btn-agenda {
+  background: #ddd6fe;
+  color: #5b21b6;
+}
+.profissional-card {
+  background: white;
+  padding: 20px;
+  border-radius: 18px;
+  margin-top: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+
+.profissional-info p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+
+.profissional-card button {
+  margin: 5px;
+}
+
+.btn-login {
+  background: #2563eb;
+  color:white;
+}
+
+.btn-voltar {
+  background:white;
+  color:#2563eb;
+  border:2px solid #2563eb;
+}
+
+.btn-login {
+  width: 100%;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-voltar {
+  width: 100%;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+body,
+#root {
+  background: white !important;
+}
+.login-card,
+.profissional-card,
+.agenda-card,
+.resumo-card,
+.cliente-card {
+  border: 1px solid #e5e7eb !important;
+}
+
+body,
+#root {
+  background: #f8fafc !important;
+}
+
+.agenda-card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+
