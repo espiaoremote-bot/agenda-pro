@@ -509,7 +509,7 @@
 
 
 .cliente-card button:first-of-type {
-  background: linear-gradient(135deg, #ec4899, #db2777);
+background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 .login-card {
   background: white;
@@ -620,28 +620,7 @@
 .btn-status {
   background: #bfdbfe;
 }
-.admin-header {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: white;
-  padding: 25px;
-  border-radius: 18px;
-  margin-bottom: 25px;
-  box-shadow: 0 10px 25px rgba(37,99,235,0.3);
-  text-align: center;
-}
 
-.admin-header p {
-  margin: 0;
-  font-size: 16px;
-}
-
-.admin-header h1 {
-  margin: 10px 0;
-}
-
-.admin-header small {
-  opacity: 0.9;
-}
 .admin-botoes {
   display: flex;
   gap: 10px;
@@ -758,4 +737,100 @@ body,
   box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 
+.perfil-admin {
+  background: linear-gradient(135deg, #1976d2, #2196f3);
+  border-radius: 20px;
+  padding: 25px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  margin-bottom: 25px;
+}
 
+.perfil-admin img {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+}
+
+.perfil-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.perfil-info h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.perfil-info span {
+  margin-top: 5px;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.admin-header {
+  background: linear-gradient(135deg, #1976d2, #2196f3);
+  color: white;
+  padding: 30px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-header p {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+.admin-header h1 {
+  margin: 12px 0;
+  font-size: 28px;
+}
+
+.admin-header small {
+  opacity: 0.9;
+}
+.admin-header {
+  background: linear-gradient(135deg, #1976d2, #2196f3) !important;
+  color: white !important;
+  padding: 30px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-header p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.admin-header h1 {
+  margin: 12px 0;
+  font-size: 28px;
+}
+
+.admin-header small {
+  opacity: 0.9;
+}
+
+body,
+#root {
+  background: #f8fafc !important;
+  border: none !important;
+}
