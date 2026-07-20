@@ -4,6 +4,7 @@ import "react-calendar/dist/Calendar.css";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 import "./App.css";
+import "./styles.css";
 
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
@@ -19,6 +20,7 @@ const [tela, setTela] = useState("inicio");
 const [senha, setSenha] = useState("");
 
 const [profissionalLogado, setProfissionalLogado] = useState(null);
+const [profissionalCliente, setProfissionalCliente] = useState(null);
 
 const [profissionais, setProfissionais] = useState([]);
 const [totalAgendamentos, setTotalAgendamentos] = useState(0);
@@ -62,34 +64,54 @@ const [whatsapp, setWhatsapp] = useState("");
 const [data, setData] = useState("");
 const params = new URLSearchParams(window.location.search);
 
-const profissionalId = Number(params.get("profissional"));
+const profissionalIdLink = Number(params.get("profissional"));
 
-console.log("Profissional pelo link:", profissionalId);
+console.log("Profissional pelo link:", profissionalIdLink);
+
+useEffect(() => {
+
+  if (profissionalIdLink) {
+    setProfissionalCliente(profissionalIdLink);
+    setTela("cliente");
+  }
+
+}, []);
 useEffect(() => {
 
   async function carregarPedidos() {
-        if (!profissionalLogado?.id) {
-      console.log("SEM PROFISSIONAL LOGADO AINDA");
+
+
+    const idProfissional = profissionalLogado?.id || profissionalCliente;
+
+
+    if (!idProfissional) {
+      console.log("SEM PROFISSIONAL AINDA");
       return;
     }
-    console.log("TESTANDO SUPABASE:", supabase);
- 
-const { data, error } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", profissionalLogado?.id)
-  .order("id", { ascending: false });
+
+
+    const { data, error } = await supabase
+      .from("agendamentos")
+      .select("*")
+      .eq("profissional_id", idProfissional)
+      .order("id", { ascending: false });
+
 
     if (error) {
       console.error(error);
       return;
     }
 
+
     setPedidos(data);
+
   }
 
+
   carregarPedidos();
-}, [tela, profissionalLogado]);
+
+
+}, [tela, profissionalLogado, profissionalCliente]);
 const horariosOcupados = pedidos
   .filter((item) => item.status !== "Cancelado")
   .filter((item) => item.data === data)
@@ -120,10 +142,19 @@ const pedidosDoDia = pedidos.filter(
 
     <p>Escolha como deseja entrar:</p>
 
-    <button
-      className="btn entrar"
-      onClick={() => setTela("cliente")}
-    >
+<button
+  className="btn entrar"
+  onClick={() => {
+
+    if (!profissionalIdLink) {
+      alert("Entre pelo link do profissional.");
+      return;
+    }
+
+    setTela("cliente");
+
+  }}
+>
       💅 Sou cliente
     </button>
 
@@ -383,7 +414,7 @@ const { data: pedidoSalvo, error } = await supabase
       data,
       horario,
       status: "Agendado",
-      profissional_id: profissionalId,
+      profissional_id: profissionalCliente,
     }
   ])
   .select()
@@ -521,7 +552,7 @@ setTotalAgendamentos(count);
     className="profissional-card"
   >
 
- <div className="profissional-info">
+<div className="profissional-info">
 
 <p>
   👤 {profissional.nome}
@@ -536,14 +567,6 @@ setTotalAgendamentos(count);
 </p>
 
 </div>
-
-    <p>
-      ID: {profissional.id}
-    </p>
-
-    <p>
-  Status: {profissional.ativo ? "🟢 Ativo" : "🔴 Inativo"}
-</p>
 
 <p>
   Link:
@@ -732,6 +755,11 @@ setEditarSenha("");
 
 
         alert("Profissional criado com sucesso!");
+        const { data } = await supabase
+.from("profissionais")
+.select("*");
+
+setProfissionais(data);
 
         setNovoNome("");
         setNovaSenha("");
