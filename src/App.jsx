@@ -1,4 +1,5 @@
 import Calendar from "react-calendar";
+import { FaWhatsapp } from "react-icons/fa";
 import "react-calendar/dist/Calendar.css";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
@@ -80,38 +81,61 @@ const pedidosDoDia = pedidos.filter(
 
 {tela === "inicio" && (
   <div>
-   <h1>Agenda Pro</h1>
 
-    <p>Escolha uma opção</p>
+   
 
-<button
-  className="btn entrar"
-  onClick={() => setTela("cliente")}
->
-  Sou cliente
-</button>
+    <h2>
+      Sua agenda organizada
+      <br />
+      de forma simples e rápida
+    </h2>
 
-<button
-  className="btn cadastrar"
- onClick={() => setTela("login")}
->
-  Sou profissional
-</button>
+    <p>Escolha como deseja entrar:</p>
+
+    <button
+      className="btn entrar"
+      onClick={() => setTela("cliente")}
+    >
+      💅 Sou cliente
+    </button>
+
+    <button
+      className="btn cadastrar"
+      onClick={() => setTela("login")}
+    >
+      💼 Sou profissional
+    </button>
+
   </div>
 )}
 {tela === "login" && (
-<div>
+<div className="login-card">
 
-<h1>Login Profissional</h1>
+<div className="login-icone">
+  💼
+</div>
+
+<h1 className="login-titulo">
+  Área Profissional
+</h1>
+
+<p>
+ <p className="login-descricao">
+  Gerencie seus agendamentos com facilidade
+</p>
+</p>
+
+
 
 <input
+  className="input-login"
   type="password"
   placeholder="Digite a senha"
   value={senha}
   onChange={(e) => setSenha(e.target.value)}
 />
 
-<button
+<button className="btn-login"
 onClick={async () => {
 if (senha === "cafe") {
  setMensagemLogin("");
@@ -126,7 +150,7 @@ if (senha === "cafe") {
   Entrar
 </button>
 
-<button
+<button className="btn-voltar"
   onClick={async () => {
    setMensagemLogin("");
     setTela("inicio");
@@ -135,7 +159,7 @@ if (senha === "cafe") {
   Voltar
 </button>
 {mensagemLogin && (
-  <p style={{ color: "red" }}>
+  <p className="erro-login">
     {mensagemLogin}
   </p>
 )}
@@ -144,9 +168,21 @@ if (senha === "cafe") {
 )}
 
 {tela === "cliente" && (
-<div>
+<div className="cliente-card">
 
-    <h1>Agendar horário</h1>
+  <div className="cliente-topo">
+
+  <div className="cliente-icone">
+    💅
+  </div>
+
+  <h1>Agendar horário</h1>
+
+  <p>
+    Escolha o melhor horário para você
+  </p>
+
+</div>
 
 {mensagem && (
   <p style={{ color: tipoMensagem === "erro" ? "red" : "green" }}>
@@ -154,8 +190,10 @@ if (senha === "cafe") {
   </p>
 )}
 
+<label>Nome</label>
+
 <input
-  placeholder="Nome"
+  placeholder="Digite seu nome"
   value={nome}
   maxLength="20"
   onChange={(e) => {
@@ -164,8 +202,10 @@ if (senha === "cafe") {
   }}
 />
 
+<label>WhatsApp</label>
+
 <input
-  placeholder="WhatsApp"
+  placeholder="(00) 00000-0000"
   value={whatsapp}
   maxLength="15"
 
@@ -191,8 +231,11 @@ onChange={(e) => {
   }
 }}
 />
+<label>
+  Serviço
+</label>
 
-  <select
+<select
   value={servico}
   onChange={(e) => setServico(e.target.value)}
 >
@@ -223,13 +266,16 @@ onChange={(e) => {
   </option>
 
 </select>
+
+<label>Data</label>
+
 <input
   type="date"
   value={data}
   min={new Date().toLocaleDateString("sv-SE")}
   onChange={(e) => setData(e.target.value)}
 />
-
+<label>Horário</label>
   <select
   value={horario}
   onChange={(e) => setHorario(e.target.value)}
@@ -349,9 +395,57 @@ Enviar pedido
 
 {tela === "profissional" && (
         <div>
-          <h1>Área Profissional</h1>
+          
+          <div
+  style={{
+    background: "linear-gradient(135deg, #ec4899, #db2777)",
+    color: "white",
+    padding: "25px",
+    borderRadius: "18px",
+    marginBottom: "25px",
+    boxShadow: "0 10px 25px rgba(236,72,153,0.3)",
+    textAlign: "center",
+  }}
+>
 
-            <p>Acesse sua agenda e pedidos</p>
+  <p style={{ marginTop: "10px" }}>
+    Área Profissional
+  </p>
+
+  <small>
+    Gerencie seus agendamentos com facilidade
+  </small>
+
+</div>
+
+<div className="resumo-dashboard">
+
+  <div className="resumo-card">
+    <h3>📅 Hoje</h3>
+    <p>
+      {
+        pedidos.filter(
+          (pedido) =>
+            pedido.data === new Date().toLocaleDateString("sv-SE") &&
+            pedido.status === "Agendado"
+        ).length
+      } horários
+    </p>
+  </div>
+
+
+  <div className="resumo-card">
+    <h3>🟢 Ativos</h3>
+    <p>
+      {
+        pedidos.filter(
+          (pedido) => pedido.status === "Agendado"
+        ).length
+      } marcados
+    </p>
+  </div>
+
+</div>
             <h2>📅 Agenda de horários</h2>
 
 <Calendar
@@ -375,13 +469,13 @@ tileClassName={({ date, view }) => {
         pedido.status === "Cancelado"
     );
 
-    if (temAgendado) {
-      return "dia-verde";
-    }
+if (temAgendado) {
+  return "dia-agendado";
+}
 
-    if (temCancelado) {
-      return "dia-vermelho";
-    }
+if (temCancelado) {
+  return "dia-cancelado";
+}
   }
 
   return null;
@@ -407,17 +501,29 @@ tileClassName={({ date, view }) => {
 {pedidosDoDia.map((pedido) => (
      <div className="agenda-card" key={pedido.id}>
 
-      <h3>📌 Horário marcado</h3>
-      <p>Nome: {pedido.nome}</p>
-<p>WhatsApp: {pedido.whatsapp}</p>
-<p>Serviço: {pedido.servico}</p>
-<p>Data: {pedido.data}</p>
-<p>⏰ Horário: {pedido.horario}</p>
+<h3 className="horario-card">
+  ⏰ {pedido.horario}
+</h3>
+
+
+<div className="info-agendamento">
+
+<p>👩🏻 {pedido.nome}</p>
+
+<p>
+  <FaWhatsapp />
+  {pedido.whatsapp}
+</p>
+
+<p>💅 {pedido.servico}</p>
+
+<p>📅 {pedido.data}</p>
 
 <p>
   Status: {pedido.status === "Agendado" ? "🟢 Agendado" : "🔴 Cancelado"}
 </p>
 
+</div>
 {pedido.status === "Cancelado" && (
   <p>
     Cancelado em: {pedido.datacancelamento}

@@ -183,10 +183,22 @@
   }
 }
 .agenda-card {
-  border: 1px solid #ccc;
-  padding: 15px;
-  border-radius: 10px;
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
   margin-top: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.agenda-card h3 {
+  margin-top: 0;
+  color: #db2777;
+  font-size: 24px;
+}
+
+.info-agendamento p {
+  margin: 8px 0;
+  font-size: 16px;
 }
 
 .react-calendar__tile {
@@ -210,23 +222,7 @@
 .react-calendar__tile {
   position: relative;
 }
-
-.dia-agendado {
-  position: relative;
-  color: white !important;
-  z-index: 1;
-}
-
-.dia-agendado::before {
-  content: "♥";
-  position: absolute;
-  font-size: 42px;
-  color: #4caf50;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -55%);
-  z-index: -1;
-}
+ 
 
 .react-calendar__tile abbr {
   position: relative;
@@ -237,7 +233,7 @@
   position: relative;
 }
 
-.dia-verde::after {
+.dia-agendado::after {
   content: "❤";
   color: rgb(5, 143, 7);
   font-size: 10px;
@@ -245,11 +241,340 @@
   display: inline-block;
 }
 
-
-.dia-vermelho::after {
+.dia-cancelado::after {
   content: "❤";
   color: red;
   font-size: 10px;
   margin-left: 3px;
   display: inline-block;
+}
+
+
+.resumo-dashboard {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+  width: 100%;
+}
+
+.resumo-card {
+  flex: 1;
+  background: #ffffff !important;
+  padding: 18px;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  text-align: center;
+  color: #333 !important;
+}
+
+.resumo-card h3 {
+  margin: 0;
+  color: #db2777 !important;
+}
+
+.resumo-card p {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333 !important;
+}
+.resumo-card p {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333 !important;
+}
+
+
+.agenda-card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.agenda-card h3 {
+  margin-top: 0;
+  color: #db2777;
+  font-size: 24px;
+}
+
+.info-agendamento p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+.agenda-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.agenda-card h3 {
+  margin-top: 0;
+  color: #db2777;
+  font-size: 24px;
+}
+
+.info-agendamento p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+.horario-card {
+  background: #db2777 !important;
+  color: white !important;
+  padding: 12px !important;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.info-agendamento {
+  color: #333;
+}
+
+.info-agendamento p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.info-agendamento svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.cliente-card {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  width: 100%;
+  max-width: 450px;
+}
+
+.cliente-card h1 {
+  color: #db2777;
+  text-align: center;
+}
+
+.cliente-card input,
+.cliente-card select {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.cliente-card button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #db2777;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cliente-card button:hover {
+  opacity: 0.9;
+}
+.cliente-card {
+  background: white;
+  padding: 30px;
+  border-radius: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  width: 90%;
+  max-width: 450px;
+  margin: 30px auto;
+}
+.cliente-topo {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.cliente-icone {
+  font-size: 45px;
+  margin-bottom: 10px;
+}
+
+.cliente-topo h1 {
+  margin: 0;
+  color: #db2777;
+}
+
+.cliente-topo p {
+  color: #666;
+  margin-top: 8px;
+  font-size: 15px;
+}
+.cliente-card label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+.cliente-topo {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.cliente-icone {
+  font-size: 45px;
+  margin-bottom: 10px;
+}
+
+.cliente-topo h1 {
+  margin: 0;
+  color: #db2777;
+}
+
+.cliente-topo p {
+  color: #777;
+  margin-top: 8px;
+}
+.cliente-card label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+.cliente-card label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #555;
+}
+.cliente-card input[type="date"] {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+.cliente-topo {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.cliente-icone {
+  font-size: 45px;
+  margin-bottom: 10px;
+}
+
+.cliente-topo h1 {
+  margin: 0;
+  color: #db2777;
+  font-size: 30px;
+}
+
+.cliente-topo p {
+  color: #777;
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+
+.cliente-card label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+
+.cliente-card select,
+.cliente-card input {
+  background: #fafafa;
+}
+
+
+.cliente-card button {
+  margin-top: 20px;
+}
+
+
+.cliente-card button:first-of-type {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+}
+.login-card {
+  background: white;
+  padding: 35px;
+  border-radius: 22px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  max-width: 350px;
+  margin: auto;
+}
+.btn-login {
+  width: 100%;
+  background: #ec4899;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.btn-voltar {
+  width: 100%;
+  background: white;
+  color: #ec4899;
+  border: 2px solid #ec4899;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.login-icone {
+  font-size: 50px;
+  margin-bottom: 10px;
+}
+.login-titulo {
+  margin-bottom: 8px;
+  font-size: 28px;
+}
+
+.login-descricao {
+  color: #777;
+  margin-bottom: 25px;
+}
+.input-login {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+.erro-login {
+  color: red;
+  margin-top: 15px;
+  font-size: 15px;
+}
+.login-card label {
+  display: block;
+  margin-bottom: 12px;
 }
