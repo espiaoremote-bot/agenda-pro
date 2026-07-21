@@ -126,11 +126,11 @@ const dataSelecionadaFormatada = dataSelecionada
 const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
-  return (
-    <div className="card">
+return (
+  <div>
 
 {tela === "inicio" && (
-  <div>
+  <div className="card">
 
    
 
@@ -146,12 +146,7 @@ const pedidosDoDia = pedidos.filter(
   className="btn entrar"
   onClick={() => {
 
-    if (!profissionalCliente) {
-      alert("Entre pelo link do profissional.");
-      return;
-    }
-
-    setTela("cliente");
+setTela("cliente");
 
   }}
 >
@@ -474,7 +469,8 @@ Enviar pedido
 </div>
 )}
 {tela === "admin" && (
-  <div>
+  <div className="admin-area">
+    <div className="admin-card">
 
     <div className="admin-header">
 
@@ -779,6 +775,7 @@ setProfissionais(data);
       Sair
     </button>
 
+    </div>
   </div>
 )}
 
