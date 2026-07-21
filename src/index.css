@@ -61,3 +61,8 @@ button {
   margin-top: 20px;
   border-radius: 12px;
 }
+.card {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}

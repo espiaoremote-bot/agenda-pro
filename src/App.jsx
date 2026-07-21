@@ -146,7 +146,7 @@ const pedidosDoDia = pedidos.filter(
   className="btn entrar"
   onClick={() => {
 
-    if (!profissionalIdLink) {
+    if (!profissionalCliente) {
       alert("Entre pelo link do profissional.");
       return;
     }
@@ -155,8 +155,8 @@ const pedidosDoDia = pedidos.filter(
 
   }}
 >
-      💅 Sou cliente
-    </button>
+  💅 Sou cliente
+</button>
 
     <button
       className="btn cadastrar"

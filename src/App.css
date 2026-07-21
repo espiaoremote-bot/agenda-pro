@@ -113,6 +113,13 @@ body,
   padding:30px;
 }
 
+.login-card,
+.cliente-card,
+.profissional-container {
+  border: 2px solid #db2777;
+  border-radius: 22px;
+}
+
 
 .cliente-topo {
   text-align:center;
@@ -280,6 +287,12 @@ body,
   margin-bottom:30px;
 }
 
+.admin-card {
+  border: 2px solid #60a5fa !important;
+  border-radius: 22px;
+  padding: 20px;
+}
+
 
 .admin-header h1 {
   font-size:32px;
@@ -387,16 +400,70 @@ button {
   border-color: #ddd !important;
   box-shadow: none !important;
 }
+.admin-card {
+  border: 2px solid #60a5fa;
+  border-radius: 22px;
+  padding: 20px;
+}
+
+.btn {
+  width:100%;
+  padding:12px;
+  margin-top:15px;
+  border:none !important;
+  border-radius:12px;
+  color:white !important;
+  cursor:pointer;
+  font-size:16px;
+}
+
+button.btn.entrar,
+button.btn.cadastrar {
+  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  color:white !important;
+}
+/* ================================
+   TELA INICIAL
+================================ */
+
 .card {
+  border: 2px solid #db2777;
+  border-radius: 22px;
+  padding: 30px;
+  background:white;
+  box-shadow:0 8px 25px rgba(0,0,0,0.10);
+}
+/* ================================
+   CORREÇÃO ADMIN
+================================ */
+
+.admin-card {
+  border: 2px solid #60a5fa !important;
+  border-radius: 22px !important;
+  box-shadow: none !important;
+}
+/* ================================
+   TELA INICIAL ROSA
+================================ */
+
+.card {
+  border: 2px solid #ec4899 !important;
+  border-radius: 22px;
+  padding: 30px;
+  background:white;
+  box-shadow:0 8px 25px rgba(0,0,0,0.10);
+}
+
+
+/* ================================
+   TIRAR BORDA ROSA DO ADMIN
+================================ */
+
+.card.admin-pai {
   border: none !important;
   box-shadow: none !important;
-  outline: none !important;
 }
-.card {
-  border: 2px solid var(--azul);
-  border-radius: 22px;
-}
-.card {
+
+.admin-card {
   border: 2px solid #60a5fa !important;
-  border-radius: 22px;
 }

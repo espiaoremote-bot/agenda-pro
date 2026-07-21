@@ -31,9 +31,109 @@
   background: #2563eb;
   color:white;
 }
+.btn-voltar {
+  width: 100%;
+  background: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.cliente-card {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  width: 100%;
+  max-width: 450px;
+}
+.cliente-topo {
+  text-align: center;
+  margin-bottom: 25px;
+}
 
+.cliente-icone {
+  font-size: 45px;
+  margin-bottom: 10px;
+}
 
+.cliente-topo h1 {
+  margin: 0;
+  color: #db2777;
+}
 
+.cliente-topo p {
+  color: #666;
+  margin-top: 8px;
+  font-size: 15px;
+}
+.admin-header {
+  background: linear-gradient(135deg, #1976d2, #2196f3);
+  color: white;
+  padding: 30px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-header p {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+.admin-header h1 {
+  margin: 12px 0;
+  font-size: 28px;
+}
+
+.admin-header small {
+  opacity: 0.9;
+}
+.admin-header {
+  background: linear-gradient(135deg, #1976d2, #2196f3) !important;
+  color: white !important;
+  padding: 30px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-header p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.admin-header h1 {
+  margin: 12px 0;
+  font-size: 28px;
+}
+
+.admin-header small {
+  opacity: 0.9;
+}
+.profissional-card {
+  background: #eff6ff;
+
+}
+
+.profissional-card h3 {
+  margin-top: 0;
+  color: #2563eb;
+}
 
 /* =====================================
    CLIENTE
@@ -70,3 +170,122 @@
 /* =====================================
    RESPONSIVIDADE
 ===================================== */
+
+
+.admin-card {
+  border: 2px solid #60a5fa;
+  border-radius: 22px;
+  padding: 20px;
+}
+
+
+/* BOTÕES ROSA */
+.btn.entrar,
+.btn.cadastrar,
+.btn-voltar {
+  background: linear-gradient(135deg,#ec4899,#db2777);
+  color:white;
+  border:none;
+  border-radius:12px;
+}
+/* BOTÕES INICIAIS ROSA */
+
+.btn.entrar,
+.btn.cadastrar,
+.btn-voltar {
+  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  color:white !important;
+  border:none !important;
+  border-radius:12px;
+}
+
+button.btn.entrar,
+button.btn.cadastrar {
+  background: #db2777 !important;
+  background-image: none !important;
+  color: white !important;
+  border: none !important;
+}
+
+button.btn.entrar:hover,
+button.btn.cadastrar:hover {
+  background: #ec4899 !important;
+}
+
+/* ==========================
+   BOTÕES TELA INICIAL
+========================== */
+
+button.btn.entrar,
+button.btn.cadastrar {
+  width:100%;
+  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  color:white !important;
+  border:none !important;
+  padding:12px !important;
+  border-radius:12px !important;
+  font-size:16px;
+  cursor:pointer;
+}
+
+
+button.btn.entrar:hover,
+button.btn.cadastrar:hover {
+  background: linear-gradient(135deg,#db2777,#ec4899) !important;
+}
+/* ================================
+   BORDAS DOS PERFIS
+================================ */
+
+.cliente-card,
+.profissional-container {
+  border: 2px solid #ec4899;
+  border-radius: 22px;
+}
+
+
+/* ================================
+   BOTÃO ENTRAR ÁREA PROFISSIONAL
+================================ */
+
+.btn-login {
+  width:100%;
+  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  color:white !important;
+  border:none !important;
+  padding:12px;
+  border-radius:12px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+
+.btn-login:hover {
+  background: linear-gradient(135deg,#db2777,#ec4899) !important;
+}
+/* ================================
+   BORDA ROSA DOS PERFIS
+================================ */
+
+.cliente-card {
+  border: 2px solid #ec4899 !important;
+  border-radius: 22px;
+}
+
+
+.profissional-container {
+  border: 2px solid #ec4899 !important;
+  border-radius: 22px;
+}
+
+/* ================================
+   CARD TELA INICIAL
+================================ */
+
+.card {
+  border: 2px solid #ec4899 !important;
+  border-radius: 22px;
+  padding: 30px;
+  background:white;
+  box-shadow:0 8px 25px rgba(0,0,0,0.10);
+}
