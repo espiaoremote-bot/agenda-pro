@@ -1265,13 +1265,13 @@ pedido.status === "Agendado"
 </p>
 
 </div>
-{pedido.status === "Cancelado" && (
+{(pedido.status === "Cancelado" || pedido.status === "Concluído") && (
   <p>
     Cancelado em: {pedido.datacancelamento}
   </p>
 )}
 
-{pedido.status === "Cancelado" && (
+{(pedido.status === "Cancelado" || pedido.status === "Concluído") && (
   <button
 onClick={async () => {
 
