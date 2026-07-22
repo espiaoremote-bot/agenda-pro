@@ -544,24 +544,7 @@ button.btn.cadastrar {
    TELA INICIAL CENTRALIZADA
 ================================ */
 
-.inicio-card {
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  text-align:center;
-  padding:20px;
-  box-sizing:border-box;
-}
 
-.inicio-card h2 {
-  margin-bottom:15px;
-}
-
-.inicio-card p {
-  margin-bottom:20px;
-}
 .inicio-container {
   min-height:100vh;
   display:flex;
@@ -576,4 +559,28 @@ button.btn.cadastrar {
 .inicio-container .btn {
   width:90%;
   max-width:350px;
+}
+.inicio-botoes {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:15px;
+}
+
+
+.inicio-botoes .btn {
+  width:90%;
+  max-width:350px;
+}
+.inicio-container {
+  min-height:100vh !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+  align-items:center !important;
+  text-align:center !important;
+}
+body {
+  background: lime !important;
 }

@@ -319,11 +319,7 @@ button.btn.cadastrar:hover {
 .profissional-header small {
   color:white;
 }
-.profissional-header {
-  background: red !important;
-  color: yellow !important;
-  padding: 40px !important;
-}
+
 
 /* ÁREA PROFISSIONAL */
 .profissional-header {
@@ -342,19 +338,8 @@ button.btn.cadastrar:hover {
   color: white !important;
 }
 
-.profissional-header {
-  background: red !important;
-  color: white !important;
-  padding: 25px;
-  border-radius: 22px;
-  margin-bottom: 25px;
-  text-align: center;
-}
 
-.profissional-header {
-  background: red !important;
-  color: white !important;
-}
+
 
 body,
 #root {
