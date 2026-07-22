@@ -515,6 +515,29 @@ if (horarioExistente) {
 
   return;
 }
+const { data: horarioExistente, error: erroBusca } = await supabase
+  .from("agendamentos")
+  .select("*")
+  .eq("profissional_id", profissionalCliente)
+  .eq("data", data)
+  .eq("horario", horario)
+  .eq("status", "Agendado")
+  .maybeSingle();
+
+
+if (erroBusca) {
+  console.error(erroBusca);
+  return;
+}
+
+
+if (horarioExistente) {
+
+  setMensagem("Esse horário já foi reservado. Escolha outro.");
+  setTipoMensagem("erro");
+
+  return;
+}
 
 
 const { data: pedidoSalvo, error } = await supabase
