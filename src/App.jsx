@@ -12,6 +12,7 @@ console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
 
 
+
 function App() {
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
@@ -43,6 +44,7 @@ const [mensagemLogin, setMensagemLogin] = useState("");
 const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
+const [statusProfissional, setStatusProfissional] = useState("Disponível");
 useEffect(() => {
 
 async function atualizarStatusCliente(){
@@ -268,12 +270,12 @@ const horariosOcupados = pedidos
     if (item.data !== data) return false;
 
     // continua bloqueando agendamentos ativos
-    if (
-      item.status === "Agendado" &&
-      item.horario_liberado === false
-    ) {
-      return true;
-    }
+if (
+  item.status === "Agendado" &&
+  item.horario_liberado !== true
+) {
+  return true;
+}
 
     return false;
 
@@ -418,23 +420,24 @@ setSenha("");
   <p>
     Escolha o melhor horário para você
   </p>
-
+<p>
+{
+pedidos.some(
+(pedido) =>
+pedido.profissional_id === profissionalCliente &&
+pedido.status === "Agendado" &&
+pedido.horario_liberado === false
+)
+?
+"🔴 Em atendimento"
+:
+"🟢 Disponível"
+}
+</p>
 </div>
 
 
-<div className="legenda-status">
 
-  <div>
-    <span className="bolinha-verde"></span>
-    Disponível
-  </div>
-
-  <div>
-    <span className="bolinha-vermelha"></span>
-    Ocupado
-  </div>
-
-</div>
 
 {mensagem && (
   <p style={{ color: tipoMensagem === "erro" ? "red" : "green" }}>
@@ -536,13 +539,23 @@ onChange={(e) => {
     Escolha o horário
   </option>
 
-{horariosDisponiveis
-  .filter((hora) => !horariosOcupados.includes(hora))
-  .map((hora) => (
-    <option key={hora} value={hora}>
-      {hora}
-    </option>
-  ))}
+{horariosDisponiveis.map((hora) => {
+
+const ocupado = horariosOcupados.includes(hora);
+
+return (
+<option
+  key={hora}
+  value={hora}
+  disabled={ocupado}
+>
+  {ocupado ? "🔴 " : "🟢 "}
+  {hora}
+  {ocupado ? " Ocupado" : " Disponível"}
+</option>
+)
+
+})}
 
 </select>
 
@@ -659,11 +672,11 @@ Enviar pedido
 Status:
 
 {
-pedido.status === "Agendado"
-? "🟢 Agendado"
+pedido.status === "Agendado" && pedido.horario_liberado === false
+? "🔴 Em atendimento"
 : pedido.status === "Cancelado"
 ? "🔴 Cancelado"
-: "✅ Concluído"
+: "🟢 Disponível"
 }
 
 </p>

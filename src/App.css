@@ -146,10 +146,18 @@ body,
 
 .legenda-status {
   display:flex;
-  gap:20px;
-  justify-content:flex-start;
-  margin:15px 0 20px;
+  justify-content:center;
+  align-items:center;
+  gap:35px;
+  margin:20px 0;
   font-size:14px;
+}
+
+.legenda-status div {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
 }
 
 .legenda-status div {
@@ -213,17 +221,14 @@ body,
 ===================================== */
 
 .profissional-container {
-  width:100%;
+  width:90%;
   max-width:1000px;
-  margin:auto;
+  margin:30px auto;
 }
 .profissional-container .react-calendar {
   margin:20px auto;
 }
-
-.profissional-container .react-calendar {
-  margin:20px auto;
-}
+ 
 
 
 .resumo-dashboard {
@@ -518,4 +523,20 @@ button.btn.cadastrar {
 .admin-area .card,
 .admin-area .admin-card {
   border: none !important;
+}
+
+.config-horarios {
+  background:white;
+  padding:20px;
+  border-radius:20px;
+  margin:20px 0;
+  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+}
+
+.config-horarios label {
+  display:inline-flex;
+  width:90px;
+  margin:5px;
+  gap:5px;
+  align-items:center;
 }
