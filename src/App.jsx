@@ -501,31 +501,7 @@ const { data: horarioExistente, error: erroBusca } = await supabase
   .eq("status", "Agendado")
   .maybeSingle();
 
-
-if (erroBusca) {
-  console.error(erroBusca);
-  return;
-}
-
-
-if (horarioExistente) {
-
-  setMensagem("Esse horário já foi reservado. Escolha outro.");
-  setTipoMensagem("erro");
-
-  return;
-}
-const { data: horarioExistente, error: erroBusca } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", profissionalCliente)
-  .eq("data", data)
-  .eq("horario", horario)
-  .eq("status", "Agendado")
-  .maybeSingle();
-
-
-if (erroBusca) {
+  if (erroBusca) {
   console.error(erroBusca);
   return;
 }
@@ -557,6 +533,13 @@ const { data: pedidoSalvo, error } = await supabase
   .single();
 
 if (error) {
+
+  if (error.code === "23505") {
+    setMensagem("Esse horário acabou de ser reservado por outra pessoa.");
+    setTipoMensagem("erro");
+    return;
+  }
+
   console.error(error);
   return;
 }
