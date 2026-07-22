@@ -267,11 +267,15 @@ const horariosOcupados = pedidos
 
     if (item.data !== data) return false;
 
-    if (item.horario_liberado === true) return false;
+    // continua bloqueando agendamentos ativos
+    if (
+      item.status === "Agendado" &&
+      item.horario_liberado === false
+    ) {
+      return true;
+    }
 
-    const dataHoraAgendamento = new Date(`${item.data}T${item.horario}:00`);
-
-    return dataHoraAgendamento >= agora;
+    return false;
 
   })
   .map((item) => item.horario);
