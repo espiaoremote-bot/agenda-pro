@@ -142,6 +142,38 @@ body,
   color:#777;
 }
 
+/* LEGENDA DE STATUS DO CLIENTE */
+
+.legenda-status {
+  display:flex;
+  gap:20px;
+  justify-content:flex-start;
+  margin:15px 0 20px;
+  font-size:14px;
+}
+
+.legenda-status div {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.bolinha-verde,
+.bolinha-vermelha {
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  display:inline-block;
+}
+
+.bolinha-verde {
+  background:green;
+}
+
+.bolinha-vermelha {
+  background:red;
+}
+
 
 .cliente-card label {
   display:block;
@@ -202,7 +234,7 @@ body,
 
 
 .resumo-card h3 {
-  color:var(--azul);
+  color:#db2777;
 }
 
 
@@ -447,7 +479,7 @@ button.btn.cadastrar {
 ================================ */
 
 .card {
-  border: 2px solid #ec4899 !important;
+  border: none;
   border-radius: 22px;
   padding: 30px;
   background:white;
@@ -466,4 +498,17 @@ button.btn.cadastrar {
 
 .admin-card {
   border: 2px solid #60a5fa !important;
+}
+
+/* TELA INICIAL COM BORDA ROSA */
+.card:has(.btn.entrar) {
+  border: 2px solid #ec4899 !important;
+}
+
+
+/* ADMIN SEM BORDA ROSA */
+.admin-area,
+.admin-area .card,
+.admin-area .admin-card {
+  border: none !important;
 }

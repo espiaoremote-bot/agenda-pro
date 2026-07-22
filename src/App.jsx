@@ -43,6 +43,42 @@ const [mensagemLogin, setMensagemLogin] = useState("");
 const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
+useEffect(() => {
+
+async function atualizarStatusCliente(){
+
+if(!pedido?.id) return;
+
+
+const { data, error } = await supabase
+.from("agendamentos")
+.select("*")
+.eq("id", pedido.id)
+.single();
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setPedido(data);
+
+
+}
+
+
+const intervalo = setInterval(
+atualizarStatusCliente,
+5000
+);
+
+
+return () => clearInterval(intervalo);
+
+
+}, [pedido]);
 const [pedidos, setPedidos] = useState([]);
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
@@ -342,7 +378,9 @@ setSenha("");
 {tela === "cliente" && (
 <div className="cliente-card">
 
-  <div className="cliente-topo">
+
+
+<div className="cliente-topo">
 
   <div className="cliente-icone">
     💅
@@ -353,6 +391,21 @@ setSenha("");
   <p>
     Escolha o melhor horário para você
   </p>
+
+</div>
+
+
+<div className="legenda-status">
+
+  <div>
+    <span className="bolinha-verde"></span>
+    Disponível
+  </div>
+
+  <div>
+    <span className="bolinha-vermelha"></span>
+    Ocupado
+  </div>
 
 </div>
 
@@ -574,8 +627,17 @@ Enviar pedido
     <p>Serviço: {pedido.servico}</p>
     <p>Data: {pedido.data}</p>
     <p>Horário: {pedido.horario}</p>
- <p>
-  Status: {pedido.status === "Agendado" ? "🟢" : "🔴"} {pedido.status}
+<p>
+Status:
+
+{
+pedido.status === "Agendado"
+? "🟢 Agendado"
+: pedido.status === "Cancelado"
+? "🔴 Cancelado"
+: "✅ Concluído"
+}
+
 </p>
 </div>
 )}
@@ -921,6 +983,31 @@ setProfissionais(data);
   </small>
 
 </div>
+<div className="link-profissional">
+
+<h3>
+🔗 Meu link de agendamento
+</h3>
+
+<p>
+http://localhost:5173/?profissional={profissionalLogado?.id}
+</p>
+
+<button
+onClick={() => {
+
+const link = `http://localhost:5173/?profissional=${profissionalLogado?.id}`;
+
+navigator.clipboard.writeText(link);
+
+alert("Link copiado!");
+
+}}
+>
+📋 Copiar link
+</button>
+
+</div>
 <div className="config-horarios">
 
 <h3>⚙️ Meus horários de atendimento</h3>
@@ -1093,7 +1180,16 @@ if (temCancelado) {
 <p>📅 {pedido.data}</p>
 
 <p>
-  Status: {pedido.status === "Agendado" ? "🟢 Agendado" : "🔴 Cancelado"}
+Status:
+
+{
+pedido.status === "Agendado"
+? "🟢 Agendado"
+: pedido.status === "Cancelado"
+? "🔴 Cancelado"
+: "✅ Concluído"
+}
+
 </p>
 
 </div>
@@ -1134,13 +1230,56 @@ onClick={async () => {
     Excluir agendamento
   </button>
 )}
-
 {pedido.status === "Agendado" && (
-  <button
+
+<>
+
+<button
+onClick={async () => {
+
+
+const { error } = await supabase
+.from("agendamentos")
+.update({
+  status: "Concluído"
+})
+.eq("id", pedido.id);
+
+
+if(error){
+  console.error(error);
+  return;
+}
+
+
+const { data, error: erroBusca } = await supabase
+.from("agendamentos")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.order("id", { ascending:false });
+
+
+if(erroBusca){
+  console.error(erroBusca);
+  return;
+}
+
+
+setPedidos(data);
+
+setMensagemProfissional("Trabalho concluído!");
+
+}}
+>
+✅ Finalizar trabalho
+</button>
+
+
+<button
 onClick={async () => {
 
   setMensagemProfissional("");
-setMensagemErroProfissional("");
+  setMensagemErroProfissional("");
   
   const { error } = await supabase
     .from("agendamentos")
@@ -1150,31 +1289,39 @@ setMensagemErroProfissional("");
     })
     .eq("id", pedido.id);
 
-  if (error) {
+
+  if(error){
     console.error(error);
     return;
   }
 
+
 const { data, error: erroBusca } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", profissionalLogado.id)
-  .order("id", { ascending: false });
+.from("agendamentos")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.order("id", { ascending:false });
 
 
-  if (erroBusca) {
-    console.error(erroBusca);
-    return;
-  }
+if(erroBusca){
+console.error(erroBusca);
+return;
+}
 
-  setPedidos(data);
-setMensagemProfissional("");
+
+setPedidos(data);
+
 setMensagemErroProfissional("Agendamento cancelado!");
+
 }}
-  >
-    Cancelar agendamento
-  </button>
+>
+❌ Cancelar agendamento
+</button>
+
+</>
+
 )}
+
     </div>
 ))}
 
