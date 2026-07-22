@@ -933,11 +933,12 @@ setEditarSenha("");
           .from("profissionais")
           .insert([
             {
-              nome: novoNome,
-              senha: novaSenha,
-              tipo: "profissional",
-              ativo: true
-            }
+ nome: novoNome,
+ senha: novaSenha,
+ tipo: "profissional",
+ ativo: true,
+ status_atendimento: "Disponível"
+}
           ]);
 
 

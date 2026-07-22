@@ -518,12 +518,7 @@ button.btn.cadastrar {
 }
 
 
-/* ADMIN SEM BORDA ROSA */
-.admin-area,
-.admin-area .card,
-.admin-area .admin-card {
-  border: none !important;
-}
+
 
 .config-horarios {
   background:white;
