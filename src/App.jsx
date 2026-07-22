@@ -44,51 +44,15 @@ const [mensagemLogin, setMensagemLogin] = useState("");
 const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
-const [statusProfissional, setStatusProfissional] = useState("Disponível");
-useEffect(() => {
-
-async function atualizarStatusCliente(){
-
-if(!pedido?.id) return;
-
-
-const { data, error } = await supabase
-.from("agendamentos")
-.select("*")
-.eq("id", pedido.id)
-.single();
-
-
-if(error){
-console.error(error);
-return;
-}
-
-
-setPedido(data);
-
-
-}
-
-
-const intervalo = setInterval(
-atualizarStatusCliente,
-5000
-);
-
-
-return () => clearInterval(intervalo);
-
-
-}, [pedido]);
 const [pedidos, setPedidos] = useState([]);
+
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 const [horariosSelecionados, setHorariosSelecionados] = useState([]);
-
+const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 useEffect(() => {
 
 async function carregarHorariosProfissional(){
@@ -98,7 +62,7 @@ if(!profissionalLogado) return;
 
 const { data, error } = await supabase
 .from("profissionais")
-.select("horarios_disponiveis")
+.select("horarios_disponiveis, status_atendimento")
 .eq("id", profissionalLogado.id)
 .single();
 
@@ -114,6 +78,11 @@ data.horarios_disponiveis || []
 );
 
 
+setStatusAtendimento(
+data.status_atendimento || "Disponível"
+);
+
+
 }
 
 
@@ -121,6 +90,7 @@ carregarHorariosProfissional();
 
 
 }, [profissionalLogado]);
+
 
 
 const listaHorarios = [
@@ -184,7 +154,7 @@ useEffect(() => {
 
     const { data, error } = await supabase
       .from("profissionais")
-      .select("horarios_disponiveis")
+      .select("horarios_disponiveis, status_atendimento")
       .eq("id", idProfissional)
       .single();
 
@@ -203,7 +173,9 @@ console.log("HORÁRIOS DO PROFISSIONAL:", data.horarios_disponiveis);
 setHorariosDisponiveis(
  data.horarios_disponiveis || []
 );
-
+setStatusAtendimento(
+ data.status_atendimento || "Disponível"
+);
   }
 
   carregarHorarios();
@@ -261,7 +233,7 @@ useEffect(() => {
   carregarPedidos();
 
 
-}, [tela, profissionalLogado, profissionalCliente]);
+}, [tela, profissionalLogado, profissionalCliente, pedido]);
 const agora = new Date();
 
 const horariosOcupados = pedidos
@@ -282,8 +254,9 @@ if (
   })
   .map((item) => item.horario);
 
-console.log("Pedidos:", pedidos);
+
 console.log("Horários ocupados:", horariosOcupados);
+console.log("PEDIDOS DETALHADOS:", pedidos);
 
 const dataSelecionadaFormatada = dataSelecionada
   .toLocaleDateString("sv-SE");
@@ -420,16 +393,14 @@ setSenha("");
   <p>
     Escolha o melhor horário para você
   </p>
+
+  {console.log("PROFISSIONAL CLIENTE:", profissionalCliente)}
+
 <p>
 {
-pedidos.some(
-(pedido) =>
-pedido.profissional_id === profissionalCliente &&
-pedido.status === "Agendado" &&
-pedido.horario_liberado === false
-)
+statusAtendimento === "Ocupado"
 ?
-"🔴 Em atendimento"
+"🔴 Ocupado"
 :
 "🟢 Disponível"
 }
@@ -1049,6 +1020,48 @@ alert("Link copiado!");
 </button>
 
 </div>
+
+<button
+onClick={async () => {
+
+const novoStatus =
+statusAtendimento === "Disponível"
+? "Ocupado"
+: "Disponível";
+
+
+const { error } = await supabase
+.from("profissionais")
+.update({
+  status_atendimento: novoStatus
+})
+.eq("id", profissionalLogado.id);
+
+
+if(error){
+ console.error(error);
+ return;
+}
+
+
+setStatusAtendimento(novoStatus);
+
+setProfissionalLogado({
+ ...profissionalLogado,
+ status_atendimento: novoStatus
+});
+
+}}
+>
+{
+statusAtendimento === "Disponível"
+?
+"🟢 Disponível"
+:
+"🔴 Ocupado"
+}
+
+</button>
 <button
   className="btn-config-horarios"
   onClick={() =>
@@ -1322,11 +1335,21 @@ if(erroBusca){
   console.error(erroBusca);
   return;
 }
-
+console.log("PEDIDOS DETALHADOS:", pedidos);
+console.table(pedidos);
 
 setPedidos(data);
 
 setMensagemProfissional("Trabalho concluído!");
+await supabase
+.from("profissionais")
+.update({
+ status_atendimento: "Disponível"
+})
+.eq("id", profissionalLogado.id);
+
+
+setStatusAtendimento("Disponível");
 
 }}
 >
