@@ -14,9 +14,10 @@
 body,
 #root {
   background: var(--fundo);
-  min-height: 100vh;
+  min-height:100vh;
+  height:100%;
   margin:0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:Arial, Helvetica, sans-serif;
 }
 
 
@@ -560,4 +561,19 @@ button.btn.cadastrar {
 
 .inicio-card p {
   margin-bottom:20px;
+}
+.inicio-container {
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.inicio-container .btn {
+  width:90%;
+  max-width:350px;
 }
