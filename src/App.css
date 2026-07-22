@@ -107,10 +107,11 @@ body,
 ===================================== */
 
 .cliente-card {
-  width:90%;
-  max-width:380px;
-  margin:15px auto;
+  width: 85%;
+  max-width: 380px;
+  margin:20px auto;
   padding:15px;
+  box-sizing:border-box;
 }
 
 .login-card,
@@ -399,10 +400,12 @@ button:hover {
 
 @media(max-width:600px){
 
-    .login-card,
+.login-card,
 .cliente-card {
-  margin:20px auto;
-  padding:20px;
+  width:85%;
+  margin:15px auto;
+  padding:15px;
+  box-sizing:border-box;
 }
 
   .resumo-dashboard {
