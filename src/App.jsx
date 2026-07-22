@@ -84,7 +84,7 @@ const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
-
+const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 const [horariosSelecionados, setHorariosSelecionados] = useState([]);
 
 useEffect(() => {
@@ -122,6 +122,16 @@ carregarHorariosProfissional();
 
 
 const listaHorarios = [
+  "00:00",
+  "00:30",
+  "01:00",
+  "01:30",
+  "02:00",
+  "02:30",
+  "03:00",
+  "03:30",
+  "04:00",
+  "04:30",
   "05:00",
   "05:30",
   "06:00",
@@ -158,7 +168,8 @@ const listaHorarios = [
   "21:30",
   "22:00",
   "22:30",
-  "23:00"
+  "23:00",
+  "23:30"
 ];
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 useEffect(() => {
@@ -212,6 +223,7 @@ useEffect(() => {
   }
 
 }, []);
+
 useEffect(() => {
 
   async function carregarPedidos() {
@@ -248,9 +260,20 @@ useEffect(() => {
 
 
 }, [tela, profissionalLogado, profissionalCliente]);
+const agora = new Date();
+
 const horariosOcupados = pedidos
-  .filter((item) => item.status !== "Cancelado")
-  .filter((item) => item.data === data)
+  .filter((item) => {
+
+    if (item.data !== data) return false;
+
+    if (item.horario_liberado === true) return false;
+
+    const dataHoraAgendamento = new Date(`${item.data}T${item.horario}:00`);
+
+    return dataHoraAgendamento >= agora;
+
+  })
   .map((item) => item.horario);
 
 console.log("Pedidos:", pedidos);
@@ -571,17 +594,18 @@ if (horarioExistente) {
 
 const { data: pedidoSalvo, error } = await supabase
   .from("agendamentos")
-  .insert([
-    {
-      nome,
-      whatsapp,
-      servico,
-      data,
-      horario,
-      status: "Agendado",
-      profissional_id: profissionalCliente,
-    }
-  ])
+.insert([
+{
+  nome,
+  whatsapp,
+  servico,
+  data,
+  horario,
+  status: "Agendado",
+  horario_liberado: false,
+  profissional_id: profissionalCliente,
+}
+])
   .select()
   .single();
 
@@ -990,7 +1014,7 @@ setProfissionais(data);
 </h3>
 
 <p>
-http://localhost:5173/?profissional={profissionalLogado?.id}
+
 </p>
 
 <button
@@ -1008,9 +1032,23 @@ alert("Link copiado!");
 </button>
 
 </div>
+<button
+  className="btn-config-horarios"
+  onClick={() =>
+    setMostrarConfiguracaoHorarios(!mostrarConfiguracaoHorarios)
+  }
+>
+  {mostrarConfiguracaoHorarios
+    ? "❌ Fechar horários"
+    : "⚙️ Configurar horários"}
+</button>
+
+
+{mostrarConfiguracaoHorarios && (
+
 <div className="config-horarios">
 
-<h3>⚙️ Meus horários de atendimento</h3>
+<h3>⏰ Meus horários de atendimento</h3>
 
 <div>
 
@@ -1054,6 +1092,9 @@ hora
 </div>
 
 </div>
+
+)}
+
 <button
 onClick={async () => {
 
@@ -1241,7 +1282,8 @@ onClick={async () => {
 const { error } = await supabase
 .from("agendamentos")
 .update({
-  status: "Concluído"
+  status: "Concluído",
+  horario_liberado: true
 })
 .eq("id", pedido.id);
 
