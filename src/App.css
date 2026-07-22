@@ -108,9 +108,9 @@ body,
 
 .cliente-card {
   width:90%;
-  max-width:420px;
-  margin:20px auto;
-  padding:20px;
+  max-width:380px;
+  margin:15px auto;
+  padding:15px;
 }
 
 .login-card,
@@ -128,13 +128,14 @@ body,
 
 
 .cliente-icone {
-  font-size:45px;
+  font-size:35px;
 }
 
 
 .cliente-topo h1 {
   color:var(--rosa);
   margin:0;
+  font-size:24px;
 }
 
 
@@ -185,8 +186,8 @@ body,
 
 .cliente-card label {
   display:block;
-  margin-top:15px;
-  margin-bottom:6px;
+  margin-top:8px;
+  margin-bottom:4px;
   font-weight:bold;
   color:#555;
 }
@@ -195,8 +196,8 @@ body,
 .cliente-card input,
 .cliente-card select {
   width:100%;
-  padding:9px;
-  border-radius:10px;
+  padding:7px;
+  border-radius:8px;
   border:1px solid #ddd;
   box-sizing:border-box;
   background:#fafafa;
@@ -205,15 +206,15 @@ body,
 
 .cliente-card button {
   width:100%;
-  margin-top:20px;
-  padding:12px;
+  margin-top:10px;
+  padding:9px;
   border:none;
-  border-radius:12px;
+  border-radius:10px;
   background:linear-gradient(135deg,#ec4899,#db2777);
   color:white;
   cursor:pointer;
+  font-size:14px;
 }
-
 
 
 /* =====================================
