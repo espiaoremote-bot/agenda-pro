@@ -539,3 +539,25 @@ button.btn.cadastrar {
   gap:5px;
   align-items:center;
 }
+/* ================================
+   TELA INICIAL CENTRALIZADA
+================================ */
+
+.inicio-card {
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.inicio-card h2 {
+  margin-bottom:15px;
+}
+
+.inicio-card p {
+  margin-bottom:20px;
+}
