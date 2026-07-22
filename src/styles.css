@@ -1,22 +1,6 @@
-/* =====================================
-   GERAL
-===================================== */
-
-
-
-
-
-/* =====================================
-   TELA INICIAL
-===================================== */
-
-
-
-
-
-/* =====================================
-   LOGIN
-===================================== */
+body {
+  background: black !important;
+}
 .btn-login {
   width: 100%;
   background: #2563eb;
@@ -132,7 +116,7 @@
 
 .profissional-card h3 {
   margin-top: 0;
-  color: #2563eb;
+  color: #db2777;
 }
 
 /* =====================================
@@ -288,4 +272,100 @@ button.btn.cadastrar:hover {
   padding: 30px;
   background:white;
   box-shadow:0 8px 25px rgba(0,0,0,0.10);
+}
+/* ================================
+   CORREÇÃO ÁREA PROFISSIONAL
+================================ */
+
+.profissional-container > div:first-child {
+  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  color: white !important;
+}
+
+.profissional-container > div:first-child h2,
+.profissional-container > div:first-child p,
+.profissional-container > div:first-child small {
+  color: white !important;
+}
+.profissional-container {
+  background: white !important;
+}
+
+/* ÁREA PROFISSIONAL */
+
+.profissional-container {
+  background:white;
+}
+
+.profissional-container > div:first-child {
+  background:linear-gradient(135deg,#ec4899,#db2777);
+  color:white;
+}
+/* CABEÇALHO PROFISSIONAL ROSA */
+
+.profissional-header {
+  background: linear-gradient(135deg,#ec4899,#db2777);
+  color:white;
+  padding:25px;
+  border-radius:18px;
+  margin-bottom:25px;
+  text-align:center;
+  box-shadow:0 10px 25px rgba(219,39,119,0.3);
+}
+
+
+.profissional-header h2,
+.profissional-header p,
+.profissional-header small {
+  color:white;
+}
+.profissional-header {
+  background: red !important;
+  color: yellow !important;
+  padding: 40px !important;
+}
+
+/* ÁREA PROFISSIONAL */
+.profissional-header {
+  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  color: white !important;
+  padding: 25px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.profissional-header h2,
+.profissional-header p,
+.profissional-header small {
+  color: white !important;
+}
+
+.profissional-header {
+  background: red !important;
+  color: white !important;
+  padding: 25px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.profissional-header {
+  background: red !important;
+  color: white !important;
+}
+
+body,
+#root {
+  background: #f8fafc !important;
+}
+.horario-card {
+  color: white !important;
+  background: #2563eb;
+  padding: 10px 15px;
+  border-radius: 12px;
+  display: inline-block;
+  font-size: 22px;
+  font-weight: bold;
 }

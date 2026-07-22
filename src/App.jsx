@@ -6,6 +6,7 @@ import { supabase } from "./supabaseClient";
 import "./App.css";
 import "./styles.css";
 
+
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
@@ -47,19 +48,118 @@ const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
-const horariosDisponiveis = [
+
+const [horariosSelecionados, setHorariosSelecionados] = useState([]);
+
+useEffect(() => {
+
+async function carregarHorariosProfissional(){
+
+if(!profissionalLogado) return;
+
+
+const { data, error } = await supabase
+.from("profissionais")
+.select("horarios_disponiveis")
+.eq("id", profissionalLogado.id)
+.single();
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setHorariosSelecionados(
+data.horarios_disponiveis || []
+);
+
+
+}
+
+
+carregarHorariosProfissional();
+
+
+}, [profissionalLogado]);
+
+
+const listaHorarios = [
+  "05:00",
+  "05:30",
+  "06:00",
+  "06:30",
+  "07:00",
+  "07:30",
+  "08:00",
+  "08:30",
   "09:00",
   "09:30",
   "10:00",
   "10:30",
   "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
   "13:00",
   "13:30",
   "14:00",
   "14:30",
   "15:00",
-  "15:30"
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00"
 ];
+const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+useEffect(() => {
+
+  async function carregarHorarios() {
+
+    const idProfissional = profissionalCliente;
+
+    if (!idProfissional) return;
+
+    const { data, error } = await supabase
+      .from("profissionais")
+      .select("horarios_disponiveis")
+      .eq("id", idProfissional)
+      .single();
+
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+
+console.log(
+"HORÁRIOS DO PROFISSIONAL:",
+data.horarios_disponiveis
+);
+console.log("HORÁRIOS DO PROFISSIONAL:", data.horarios_disponiveis);
+setHorariosDisponiveis(
+ data.horarios_disponiveis || []
+);
+
+  }
+
+  carregarHorarios();
+
+}, [profissionalCliente]);
 const [whatsapp, setWhatsapp] = useState("");
 const [data, setData] = useState("");
 const params = new URLSearchParams(window.location.search);
@@ -130,9 +230,7 @@ return (
   <div>
 
 {tela === "inicio" && (
-  <div className="card">
-
-   
+  <div>
 
     <h2>
       Sua agenda organizada
@@ -142,16 +240,14 @@ return (
 
     <p>Escolha como deseja entrar:</p>
 
-<button
-  className="btn entrar"
-  onClick={() => {
-
-setTela("cliente");
-
-  }}
->
-  💅 Sou cliente
-</button>
+    <button
+      className="btn entrar"
+      onClick={() => {
+        setTela("cliente");
+      }}
+    >
+      💅 Sou cliente
+    </button>
 
     <button
       className="btn cadastrar"
@@ -396,7 +492,29 @@ if (numeroLimpo.length !== 11) {
   setTipoMensagem("erro");
   return;
 }
+const { data: horarioExistente, error: erroBusca } = await supabase
+  .from("agendamentos")
+  .select("*")
+  .eq("profissional_id", profissionalCliente)
+  .eq("data", data)
+  .eq("horario", horario)
+  .eq("status", "Agendado")
+  .maybeSingle();
 
+
+if (erroBusca) {
+  console.error(erroBusca);
+  return;
+}
+
+
+if (horarioExistente) {
+
+  setMensagem("Esse horário já foi reservado. Escolha outro.");
+  setTipoMensagem("erro");
+
+  return;
+}
 
 
 const { data: pedidoSalvo, error } = await supabase
@@ -475,7 +593,7 @@ Enviar pedido
     <div className="admin-header">
 
 <p>
-  TESTE ADM 123
+  
 </p>
 
       <h1>
@@ -782,18 +900,7 @@ setProfissionais(data);
 {tela === "profissional" && (
   <div className="profissional-container">
           
-<div
- 
- style={{
-    background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-    color: "white",
-    padding: "25px",
-    borderRadius: "18px",
-    marginBottom: "25px",
-    boxShadow: "0 10px 25px rgba(37,99,235,0.3)",
-    textAlign: "center",
-  }}
->
+<div className="profissional-header">
 
 <p style={{ marginTop: "10px" }}>
   Área Profissional
@@ -808,7 +915,76 @@ setProfissionais(data);
   </small>
 
 </div>
+<div className="config-horarios">
 
+<h3>⚙️ Meus horários de atendimento</h3>
+
+<div>
+
+{listaHorarios.map((hora) => (
+
+<label key={hora}>
+
+<input
+type="checkbox"
+checked={horariosSelecionados.includes(hora)}
+
+onChange={() => {
+
+if (horariosSelecionados.includes(hora)) {
+
+setHorariosSelecionados(
+horariosSelecionados.filter(
+(item) => item !== hora
+)
+);
+
+} else {
+
+setHorariosSelecionados([
+...horariosSelecionados,
+hora
+]);
+
+}
+
+}}
+
+/>
+
+{hora}
+
+</label>
+
+))}
+
+</div>
+
+</div>
+<button
+onClick={async () => {
+
+const { error } = await supabase
+.from("profissionais")
+.update({
+  horarios_disponiveis: horariosSelecionados
+})
+.eq("id", profissionalLogado.id);
+
+
+if(error){
+  console.error(error);
+  alert("Erro ao salvar horários");
+  return;
+}
+
+
+alert("Horários salvos com sucesso!");
+
+}}
+>
+Salvar horários
+</button>
 <div className="resumo-dashboard">
 
   <div className="resumo-card">
@@ -1007,12 +1183,12 @@ setMensagemErroProfissional("Agendamento cancelado!");
 >
   Voltar
 </button>
-          </div>
-        )}
 
-    </div>
-  );
+  </div>
+)}
+
+  </div>
+);
 }
-
 
 export default App;
