@@ -354,3 +354,15 @@ body,
   font-size: 22px;
   font-weight: bold;
 }
+.inicio-botoes {
+  display:flex !important;
+  flex-direction:row !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:20px !important;
+}
+
+.inicio-botoes .btn {
+  width:250px !important;
+  height:55px !important;
+}
