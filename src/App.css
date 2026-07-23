@@ -609,4 +609,112 @@ button.btn.cadastrar {
     width:90%;
   }
 
+}/* ================================
+   NOVA TELA INICIAL
+================================ */
+
+
+.inicio-container {
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  background:#f8fafc;
+}
+
+
+.inicio-card {
+
+  width:90%;
+  max-width:420px;
+
+  background:white;
+
+  padding:40px 30px;
+
+  border-radius:30px;
+
+  text-align:center;
+
+  box-shadow:
+  0 15px 35px rgba(0,0,0,0.12);
+
+}
+
+
+.inicio-logo {
+
+  font-size:65px;
+
+  margin-bottom:15px;
+
+}
+
+
+.inicio-card h1 {
+
+  font-size:30px;
+
+  color:#333;
+
+  line-height:1.3;
+
+  margin-bottom:15px;
+
+}
+
+
+.inicio-card p {
+
+  color:#777;
+
+  font-size:16px;
+
+  margin-bottom:30px;
+
+}
+
+
+.inicio-botoes {
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:15px;
+
+}
+
+
+.inicio-botoes .btn {
+
+  height:55px;
+
+  border-radius:15px;
+
+  font-size:17px;
+
+  font-weight:bold;
+
+}
+
+
+.btn.entrar,
+.btn.cadastrar {
+
+  background:linear-gradient(135deg,#ec4899,#db2777);
+
+  color:white;
+
+  border:none;
+
+}
+
+
+.btn.entrar:hover,
+.btn.cadastrar:hover {
+
+  transform:scale(1.03);
+
 }

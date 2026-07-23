@@ -4,19 +4,41 @@ import "react-calendar/dist/Calendar.css";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 import "./App.css";
+import "./styles.css";
+
 
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
 
 
+
 function App() {
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
   
-  const [tela, setTela] = useState("inicio");
-  const [senha, setSenha] = useState("");
-  const [profissionalLogado, setProfissionalLogado] = useState(null);
+const [tela, setTela] = useState("inicio");
+
+const [senha, setSenha] = useState("");
+
+const [profissionalLogado, setProfissionalLogado] = useState(null);
+const [profissionalCliente, setProfissionalCliente] = useState(null);
+const [servicos, setServicos] = useState([]);
+const [novoServico, setNovoServico] = useState("");
+const [meusServicos, setMeusServicos] = useState([]);
+const [profissionais, setProfissionais] = useState([]);
+const [totalAgendamentos, setTotalAgendamentos] = useState(0);
+const [mostrarSenha, setMostrarSenha] = useState(false);
+const [novoNome, setNovoNome] = useState("");
+
+const [novaSenha, setNovaSenha] = useState("");
+const [profissionalEditando, setProfissionalEditando] = useState(null);
+
+const [editarNome, setEditarNome] = useState("");
+
+const [editarSenha, setEditarSenha] = useState("");
+
+
 const [mensagem, setMensagem] = useState("");
 const [tipoMensagem, setTipoMensagem] = useState("");
 const [mensagemProfissional, setMensagemProfissional] = useState("");
@@ -25,57 +47,265 @@ const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
 const [pedidos, setPedidos] = useState([]);
+
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
-const horariosDisponiveis = [
+const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
+const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
+const [horariosSelecionados, setHorariosSelecionados] = useState([]);
+const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
+useEffect(() => {
+
+async function carregarHorariosProfissional(){
+
+if(!profissionalLogado) return;
+
+
+const { data, error } = await supabase
+.from("profissionais")
+.select("horarios_disponiveis, status_atendimento")
+.eq("id", profissionalLogado.id)
+.single();
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setHorariosSelecionados(
+data.horarios_disponiveis || []
+);
+
+
+setStatusAtendimento(
+data.status_atendimento || "Disponível"
+);
+
+
+}
+
+
+carregarHorariosProfissional();
+
+
+}, [profissionalLogado]);
+
+
+
+const listaHorarios = [
+  "00:00",
+  "00:30",
+  "01:00",
+  "01:30",
+  "02:00",
+  "02:30",
+  "03:00",
+  "03:30",
+  "04:00",
+  "04:30",
+  "05:00",
+  "05:30",
+  "06:00",
+  "06:30",
+  "07:00",
+  "07:30",
+  "08:00",
+  "08:30",
   "09:00",
   "09:30",
   "10:00",
   "10:30",
   "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
   "13:00",
   "13:30",
   "14:00",
   "14:30",
   "15:00",
-  "15:30"
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
+  "23:30"
 ];
-const [whatsapp, setWhatsapp] = useState("");
-const [data, setData] = useState("");
-const params = new URLSearchParams(window.location.search);
-
-const profissionalId = Number(params.get("profissional"));
-
-console.log("Profissional pelo link:", profissionalId);
+const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 useEffect(() => {
-  async function carregarPedidos() {
-    console.log("TESTANDO SUPABASE:", supabase);
 
-const { data, error } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", profissionalLogado?.id)
-  .order("id", { ascending: false });
+  async function carregarHorarios() {
+
+    const idProfissional = profissionalCliente;
+
+    if (!idProfissional) return;
+
+    const { data, error } = await supabase
+      .from("profissionais")
+      .select("horarios_disponiveis, status_atendimento")
+      .eq("id", idProfissional)
+      .single();
+
 
     if (error) {
       console.error(error);
       return;
     }
 
-    setPedidos(data);
+
+console.log(
+"HORÁRIOS DO PROFISSIONAL:",
+data.horarios_disponiveis
+);
+console.log("HORÁRIOS DO PROFISSIONAL:", data.horarios_disponiveis);
+setHorariosDisponiveis(
+ data.horarios_disponiveis || []
+);
+setStatusAtendimento(
+ data.status_atendimento || "Disponível"
+);
   }
 
+  carregarHorarios();
+
+}, [profissionalCliente]);
+const [whatsapp, setWhatsapp] = useState("");
+const [data, setData] = useState("");
+const params = new URLSearchParams(window.location.search);
+
+const profissionalIdLink = Number(params.get("profissional"));
+
+console.log("Profissional pelo link:", profissionalIdLink);
+
+useEffect(() => {
+
+  if (profissionalIdLink) {
+    setProfissionalCliente(profissionalIdLink);
+    setTela("cliente");
+  }
+
+}, []);
+
+useEffect(() => {
+
+  async function carregarPedidos() {
+
+
+    const idProfissional = profissionalLogado?.id || profissionalCliente;
+
+
+    if (!idProfissional) {
+      console.log("SEM PROFISSIONAL AINDA");
+      return;
+    }
+
+
+    const { data, error } = await supabase
+      .from("agendamentos")
+      .select("*")
+      .eq("profissional_id", idProfissional)
+      .order("id", { ascending: false });
+
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+
+    setPedidos(data);
+
+  }
+
+
   carregarPedidos();
-}, [tela, profissionalLogado]);
+
+
+}, [tela, profissionalLogado, profissionalCliente, pedido]);
+useEffect(() => {
+  async function carregarServicos() {
+    const { data, error } = await supabase
+      .from("servicos")
+      .select("*")
+      .order("nome");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setServicos(data);
+  }
+
+  carregarServicos();
+}, []);
+
+useEffect(() => {
+
+  async function carregarMeusServicos() {
+
+    if (!profissionalLogado) return;
+
+
+    const { data, error } = await supabase
+      .from("servicos")
+      .select("*")
+      .eq("profissional_id", profissionalLogado.id)
+      .order("id", { ascending: false });
+
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+
+    setMeusServicos(data);
+
+  }
+
+
+  carregarMeusServicos();
+
+}, [profissionalLogado]);
+const agora = new Date();
+
 const horariosOcupados = pedidos
-  .filter((item) => item.status !== "Cancelado")
-  .filter((item) => item.data === data)
+  .filter((item) => {
+
+    if (item.data !== data) return false;
+
+    // continua bloqueando agendamentos ativos
+if (
+  item.status === "Agendado" &&
+  item.horario_liberado !== true
+) {
+  return true;
+}
+
+    return false;
+
+  })
   .map((item) => item.horario);
 
-console.log("Pedidos:", pedidos);
+
 console.log("Horários ocupados:", horariosOcupados);
+console.log("PEDIDOS DETALHADOS:", pedidos);
 
 const dataSelecionadaFormatada = dataSelecionada
   .toLocaleDateString("sv-SE");
@@ -83,13 +313,11 @@ const dataSelecionadaFormatada = dataSelecionada
 const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
-  return (
-    <div className="card">
-
-{tela === "inicio" && (
+return (
   <div>
 
-   
+{tela === "inicio" && (
+  <div className="inicio-container">
 
     <h2>
       Sua agenda organizada
@@ -97,21 +325,27 @@ const pedidosDoDia = pedidos.filter(
       de forma simples e rápida
     </h2>
 
-    <p>Escolha como deseja entrar:</p>
+<p>Escolha como deseja entrar:</p>
 
-    <button
-      className="btn entrar"
-      onClick={() => setTela("cliente")}
-    >
-      💅 Sou cliente
-    </button>
+<div className="inicio-botoes">
 
-    <button
-      className="btn cadastrar"
-      onClick={() => setTela("login")}
-    >
-      💼 Sou profissional
-    </button>
+<button
+  className="btn entrar"
+  onClick={() => {
+    setTela("cliente");
+  }}
+>
+  💅 Sou cliente
+</button>
+
+<button
+  className="btn cadastrar"
+  onClick={() => setTela("login")}
+>
+  💼 Sou profissional
+</button>
+
+</div>
 
   </div>
 )}
@@ -158,12 +392,20 @@ if (error || !data) {
   return;
 }
 
+if (!data.ativo) {
+  setMensagemLogin("Este profissional está desativado.");
+  return;
+}
 
 setProfissionalLogado(data);
 
 setMensagemLogin("");
 
-setTela("profissional");
+if (data.tipo === "super_admin") {
+  setTela("admin");
+} else {
+  setTela("profissional");
+}
 
 setSenha("");
   }}
@@ -191,7 +433,9 @@ setSenha("");
 {tela === "cliente" && (
 <div className="cliente-card">
 
-  <div className="cliente-topo">
+
+
+<div className="cliente-topo">
 
   <div className="cliente-icone">
     💅
@@ -203,7 +447,21 @@ setSenha("");
     Escolha o melhor horário para você
   </p>
 
+  {console.log("PROFISSIONAL CLIENTE:", profissionalCliente)}
+
+<p>
+{
+statusAtendimento === "Ocupado"
+?
+"🔴 Ocupado"
+:
+"🟢 Disponível"
+}
+</p>
 </div>
+
+
+
 
 {mensagem && (
   <p style={{ color: tipoMensagem === "erro" ? "red" : "green" }}>
@@ -260,31 +518,25 @@ onChange={(e) => {
   value={servico}
   onChange={(e) => setServico(e.target.value)}
 >
-  <option value="">Escolha o serviço</option>
-
-  <option value="Manicure Simples">
-    Manicure Simples
+  <option value="">
+    Escolha o serviço
   </option>
 
-  <option value="Pedicure Simples">
-    Pedicure Simples
-  </option>
-
-  <option value="Esmaltação em Gel">
-    Esmaltação em Gel
-  </option>
-
-  <option value="Manicure + Esmaltação em Gel">
-    Manicure + Esmaltação em Gel
-  </option>
-
-  <option value="Pedicure + Esmaltação em Gel">
-    Pedicure + Esmaltação em Gel
-  </option>
-
-  <option value="Postiça realista">
-    Postiça realista
-  </option>
+  {servicos
+    .filter(
+      (item) => 
+      item.profissional_id === profissionalCliente &&
+      item.ativo
+    )
+    .map((item) => (
+      <option 
+        key={item.id}
+        value={item.nome}
+      >
+        {item.nome}
+      </option>
+    ))
+  }
 
 </select>
 
@@ -305,18 +557,30 @@ onChange={(e) => {
     Escolha o horário
   </option>
 
-{horariosDisponiveis
-  .filter((hora) => !horariosOcupados.includes(hora))
-  .map((hora) => (
-    <option key={hora} value={hora}>
-      {hora}
-    </option>
-  ))}
+{horariosDisponiveis.map((hora) => {
+
+const ocupado = horariosOcupados.includes(hora);
+
+return (
+<option
+  key={hora}
+  value={hora}
+  disabled={ocupado}
+>
+  {ocupado ? "🔴 " : "🟢 "}
+  {hora}
+  {ocupado ? " Ocupado" : " Disponível"}
+</option>
+)
+
+})}
 
 </select>
 
 <button
 onClick={async () => {
+
+  
 
   console.log("CLIQUEI NO BOTÃO ENVIAR");
 
@@ -341,26 +605,55 @@ if (numeroLimpo.length !== 11) {
   setTipoMensagem("erro");
   return;
 }
+const { data: horarioExistente, error: erroBusca } = await supabase
+  .from("agendamentos")
+  .select("*")
+  .eq("profissional_id", profissionalCliente)
+  .eq("data", data)
+  .eq("horario", horario)
+  .eq("status", "Agendado")
+  .maybeSingle();
 
+  if (erroBusca) {
+  console.error(erroBusca);
+  return;
+}
+
+
+if (horarioExistente) {
+
+  setMensagem("Esse horário já foi reservado. Escolha outro.");
+  setTipoMensagem("erro");
+
+  return;
+}
 
 
 const { data: pedidoSalvo, error } = await supabase
   .from("agendamentos")
-  .insert([
-    {
-      nome,
-      whatsapp,
-      servico,
-      data,
-      horario,
-      status: "Agendado",
-      profissional_id: profissionalId,
-    }
-  ])
+.insert([
+{
+  nome,
+  whatsapp,
+  servico,
+  data,
+  horario,
+  status: "Agendado",
+  horario_liberado: false,
+  profissional_id: profissionalCliente,
+}
+])
   .select()
   .single();
 
 if (error) {
+
+  if (error.code === "23505") {
+    setMensagem("Esse horário acabou de ser reservado por outra pessoa.");
+    setTipoMensagem("erro");
+    return;
+  }
+
   console.error(error);
   return;
 }
@@ -395,8 +688,17 @@ Enviar pedido
     <p>Serviço: {pedido.servico}</p>
     <p>Data: {pedido.data}</p>
     <p>Horário: {pedido.horario}</p>
- <p>
-  Status: {pedido.status === "Agendado" ? "🟢" : "🔴"} {pedido.status}
+<p>
+Status:
+
+{
+pedido.status === "Agendado" && pedido.horario_liberado === false
+? "🔴 Em atendimento"
+: pedido.status === "Cancelado"
+? "🔴 Cancelado"
+: "🟢 Disponível"
+}
+
 </p>
 </div>
 )}
@@ -413,22 +715,322 @@ Enviar pedido
 
 </div>
 )}
+{tela === "admin" && (
+  <div className="admin-area">
+    <div className="admin-card">
+
+    <div className="admin-header">
+
+<p>
+  
+</p>
+
+      <h1>
+        👑 Olá, {profissionalLogado?.nome}
+      </h1>
+
+      <small>
+        Gerencie profissionais e configurações
+      </small>
+
+    </div>
+    <h3>Profissionais cadastrados</h3>
+    <div className="resumo-dashboard">
+
+  <div className="resumo-card">
+    <h3>👥 Profissionais</h3>
+    <p>{profissionais.length}</p>
+  </div>
 
 
-{tela === "profissional" && (
-        <div>
-          
-          <div
-  style={{
-    background: "linear-gradient(135deg, #ec4899, #db2777)",
-    color: "white",
-    padding: "25px",
-    borderRadius: "18px",
-    marginBottom: "25px",
-    boxShadow: "0 10px 25px rgba(236,72,153,0.3)",
-    textAlign: "center",
+  <div className="resumo-card">
+    <h3>🟢 Ativos</h3>
+    <p>
+      {
+        profissionais.filter(
+          (p) => p.ativo
+        ).length
+      }
+    </p>
+  </div>
+
+
+  <div className="resumo-card">
+    <h3>📅 Agendamentos</h3>
+    <p>{totalAgendamentos}</p>
+  </div>
+
+</div>
+    <div className="admin-secao">
+    
+
+<button
+  onClick={async () => {
+
+    const { data, error } = await supabase
+      .from("profissionais")
+      .select("*");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setProfissionais(data); 
+    const { count } = await supabase
+  .from("agendamentos")
+  .select("*", { count: "exact", head: true });
+
+setTotalAgendamentos(count);
+
   }}
 >
+  Carregar profissionais
+</button>
+
+
+{profissionais.map((profissional) => (
+  <div 
+    key={profissional.id}
+    className="profissional-card"
+  >
+
+<div className="profissional-info">
+
+<p>
+  👤 {profissional.nome}
+</p>
+
+<p>
+  🆔 ID: {profissional.id}
+</p>
+
+<p>
+  Status: {profissional.ativo ? "🟢 Ativo" : "🔴 Inativo"}
+</p>
+
+</div>
+
+<p>
+  Link:
+  <br />
+
+  http://localhost:5173/?profissional={profissional.id}
+</p>
+
+<button
+  onClick={() => {
+
+    const link = `http://localhost:5173/?profissional=${profissional.id}`;
+
+    window.open(link, "_blank");
+
+  }}
+>
+  🔗 Abrir agenda
+</button>
+<button
+  onClick={() => {
+
+    const link = `http://localhost:5173/?profissional=${profissional.id}`;
+
+    navigator.clipboard.writeText(link);
+
+    alert("Link copiado!");
+
+  }}
+>
+  📋 Copiar link
+</button>
+
+<button
+  onClick={async () => {
+
+    const { error } = await supabase
+      .from("profissionais")
+      .update({
+        ativo: !profissional.ativo
+      })
+      .eq("id", profissional.id);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("profissionais")
+      .select("*");
+
+    setProfissionais(data);
+
+  }}
+>
+  {profissional.ativo ? "Desativar" : "Ativar"}
+</button>
+<button
+  className="btn-editar"
+  onClick={() => {
+
+    setProfissionalEditando(profissional);
+
+    setEditarNome(profissional.nome);
+
+    setEditarSenha(profissional.senha);
+
+    setMostrarSenha(false);
+
+  }}
+>
+  ✏️ Editar
+</button>
+ {profissionalEditando?.id === profissional.id && (
+  <div style={{ marginTop: "10px" }}>
+
+    <input
+      placeholder="Novo nome"
+      value={editarNome}
+      onChange={(e) => setEditarNome(e.target.value)}
+    />
+
+<input
+  type={mostrarSenha ? "text" : "password"}
+  placeholder="Nova senha"
+  value={editarSenha}
+  onChange={(e) => setEditarSenha(e.target.value)}
+/>
+
+<button
+  onClick={() => setMostrarSenha(!mostrarSenha)}
+>
+  {mostrarSenha ? "🙈 Esconder senha" : "👁️ Ver senha"}
+</button>
+
+<button
+  onClick={async () => {
+
+    const { error } = await supabase
+      .from("profissionais")
+      .update({
+        nome: editarNome,
+        senha: editarSenha,
+      })
+      .eq("id", profissional.id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao atualizar.");
+      return;
+    }
+
+    const { data } = await supabase
+      .from("profissionais")
+      .select("*");
+
+    setProfissionais(data);
+
+    setProfissionalEditando(null);
+
+    setEditarNome("");
+setEditarSenha("");
+
+    alert("Profissional atualizado com sucesso!");
+
+  }}
+>
+  Salvar
+</button>
+
+</div>
+)}
+  </div>
+  
+))}
+</div>
+    <p>
+      Painel administrativo
+    </p>
+
+
+    <h3>Cadastrar profissional</h3>
+
+    <input
+      placeholder="Nome do profissional"
+      value={novoNome}
+      onChange={(e) => setNovoNome(e.target.value)}
+    />
+
+
+    <input
+      placeholder="Senha"
+      type="password"
+      value={novaSenha}
+      onChange={(e) => setNovaSenha(e.target.value)}
+    />
+
+
+    <button
+      onClick={async () => {
+
+        if (!novoNome || !novaSenha) {
+          alert("Preencha nome e senha");
+          return;
+        }
+
+
+        const { error } = await supabase
+          .from("profissionais")
+          .insert([
+            {
+ nome: novoNome,
+ senha: novaSenha,
+ tipo: "profissional",
+ ativo: true,
+ status_atendimento: "Disponível"
+}
+          ]);
+
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao cadastrar");
+          return;
+        }
+
+
+        alert("Profissional criado com sucesso!");
+        const { data } = await supabase
+.from("profissionais")
+.select("*");
+
+setProfissionais(data);
+
+        setNovoNome("");
+        setNovaSenha("");
+
+      }}
+    >
+      Criar profissional
+    </button>
+
+
+    <br /><br />
+
+
+    <button
+      onClick={() => setTela("inicio")}
+    >
+      Sair
+    </button>
+
+    </div>
+  </div>
+)}
+
+{tela === "profissional" && (
+  <div className="profissional-container">
+          
+<div className="profissional-header">
 
 <p style={{ marginTop: "10px" }}>
   Área Profissional
@@ -444,6 +1046,222 @@ Enviar pedido
 
 </div>
 
+<div className="config-servicos">
+
+<h3>
+💅 Meus serviços
+</h3>
+
+<button
+onClick={() => {
+  setMostrarConfiguracaoServicos(
+    !mostrarConfiguracaoServicos
+  );
+}}
+>
+{
+mostrarConfiguracaoServicos
+?
+"❌ Fechar serviços"
+:
+"⚙️ Configurar serviços"
+}
+</button>
+
+
+{mostrarConfiguracaoServicos && (
+
+<div>
+
+<input
+placeholder="Nome do serviço"
+value={novoServico}
+onChange={(e) =>
+setNovoServico(e.target.value)
+}
+/>
+
+
+<button
+onClick={async () => {
+
+  console.log("CLIQUEI ADICIONAR SERVIÇO");
+
+if(!novoServico){
+alert("Digite o nome do serviço");
+return;
+}
+
+
+const { error } = await supabase
+.from("servicos")
+.insert([
+{
+nome: novoServico,
+profissional_id: profissionalLogado.id,
+ativo:true
+}
+]);
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setNovoServico("");
+
+const { data } = await supabase
+.from("servicos")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.order("id", { ascending: false });
+
+setMeusServicos(data);
+
+alert("Serviço criado!");
+
+}}
+>
+Adicionar serviço
+</button>
+
+
+</div>
+
+)}
+
+</div>
+
+<button
+onClick={async () => {
+
+const novoStatus =
+statusAtendimento === "Disponível"
+? "Ocupado"
+: "Disponível";
+
+
+const { error } = await supabase
+.from("profissionais")
+.update({
+  status_atendimento: novoStatus
+})
+.eq("id", profissionalLogado.id);
+
+
+if(error){
+ console.error(error);
+ return;
+}
+
+
+setStatusAtendimento(novoStatus);
+
+setProfissionalLogado({
+ ...profissionalLogado,
+ status_atendimento: novoStatus
+});
+
+}}
+>
+{
+statusAtendimento === "Disponível"
+?
+"🟢 Disponível"
+:
+"🔴 Ocupado"
+}
+
+</button>
+<button
+  className="btn-config-horarios"
+  onClick={() =>
+    setMostrarConfiguracaoHorarios(!mostrarConfiguracaoHorarios)
+  }
+>
+  {mostrarConfiguracaoHorarios
+    ? "❌ Fechar horários"
+    : "⚙️ Configurar horários"}
+</button>
+
+
+{mostrarConfiguracaoHorarios && (
+
+<div className="config-horarios">
+
+<h3>⏰ Meus horários de atendimento</h3>
+
+<div>
+
+{listaHorarios.map((hora) => (
+
+<label key={hora}>
+
+<input
+type="checkbox"
+checked={horariosSelecionados.includes(hora)}
+
+onChange={() => {
+
+if (horariosSelecionados.includes(hora)) {
+
+setHorariosSelecionados(
+horariosSelecionados.filter(
+(item) => item !== hora
+)
+);
+
+} else {
+
+setHorariosSelecionados([
+...horariosSelecionados,
+hora
+]);
+
+}
+
+}}
+
+/>
+
+{hora}
+
+</label>
+
+))}
+
+</div>
+
+</div>
+
+)}
+
+<button
+onClick={async () => {
+
+const { error } = await supabase
+.from("profissionais")
+.update({
+  horarios_disponiveis: horariosSelecionados
+})
+.eq("id", profissionalLogado.id);
+
+
+if(error){
+  console.error(error);
+  alert("Erro ao salvar horários");
+  return;
+}
+
+
+alert("Horários salvos com sucesso!");
+
+}}
+>
+Salvar horários
+</button>
 <div className="resumo-dashboard">
 
   <div className="resumo-card">
@@ -546,17 +1364,26 @@ if (temCancelado) {
 <p>📅 {pedido.data}</p>
 
 <p>
-  Status: {pedido.status === "Agendado" ? "🟢 Agendado" : "🔴 Cancelado"}
+Status:
+
+{
+pedido.status === "Agendado"
+? "🟢 Agendado"
+: pedido.status === "Cancelado"
+? "🔴 Cancelado"
+: "✅ Concluído"
+}
+
 </p>
 
 </div>
-{pedido.status === "Cancelado" && (
+{(pedido.status === "Cancelado" || pedido.status === "Concluído") && (
   <p>
     Cancelado em: {pedido.datacancelamento}
   </p>
 )}
 
-{pedido.status === "Cancelado" && (
+{(pedido.status === "Cancelado" || pedido.status === "Concluído") && (
   <button
 onClick={async () => {
 
@@ -587,13 +1414,67 @@ onClick={async () => {
     Excluir agendamento
   </button>
 )}
-
 {pedido.status === "Agendado" && (
-  <button
+
+<>
+
+<button
+onClick={async () => {
+
+
+const { error } = await supabase
+.from("agendamentos")
+.update({
+  status: "Concluído",
+  horario_liberado: true
+})
+.eq("id", pedido.id);
+
+
+if(error){
+  console.error(error);
+  return;
+}
+
+
+const { data, error: erroBusca } = await supabase
+.from("agendamentos")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.order("id", { ascending:false });
+
+
+if(erroBusca){
+  console.error(erroBusca);
+  return;
+}
+console.log("PEDIDOS DETALHADOS:", pedidos);
+console.table(pedidos);
+
+setPedidos(data);
+
+setMensagemProfissional("Trabalho concluído!");
+await supabase
+.from("profissionais")
+.update({
+ status_atendimento: "Disponível"
+})
+.eq("id", profissionalLogado.id);
+
+
+setStatusAtendimento("Disponível");
+
+}}
+>
+✅ Finalizar trabalho
+</button>
+
+
+<button
 onClick={async () => {
 
   setMensagemProfissional("");
-setMensagemErroProfissional("");
+  setMensagemErroProfissional("");
   
   const { error } = await supabase
     .from("agendamentos")
@@ -603,31 +1484,39 @@ setMensagemErroProfissional("");
     })
     .eq("id", pedido.id);
 
-  if (error) {
+
+  if(error){
     console.error(error);
     return;
   }
 
+
 const { data, error: erroBusca } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", profissionalLogado.id)
-  .order("id", { ascending: false });
+.from("agendamentos")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.order("id", { ascending:false });
 
 
-  if (erroBusca) {
-    console.error(erroBusca);
-    return;
-  }
+if(erroBusca){
+console.error(erroBusca);
+return;
+}
 
-  setPedidos(data);
-setMensagemProfissional("");
+
+setPedidos(data);
+
 setMensagemErroProfissional("Agendamento cancelado!");
+
 }}
-  >
-    Cancelar agendamento
-  </button>
+>
+❌ Cancelar agendamento
+</button>
+
+</>
+
 )}
+
     </div>
 ))}
 
@@ -642,12 +1531,12 @@ setMensagemErroProfissional("Agendamento cancelado!");
 >
   Voltar
 </button>
-          </div>
-        )}
 
-    </div>
-  );
+  </div>
+)}
+
+  </div>
+);
 }
-
 
 export default App;
