@@ -115,12 +115,7 @@ body,
   box-sizing:border-box;
 }
 
-.login-card,
-.cliente-card,
-.profissional-container {
-  border: 2px solid #db2777;
-  border-radius: 22px;
-}
+
 
 
 .cliente-topo {
@@ -517,10 +512,7 @@ button.btn.cadastrar {
   border: 2px solid #60a5fa !important;
 }
 
-/* TELA INICIAL COM BORDA ROSA */
-.card:has(.btn.entrar) {
-  border: 2px solid #ec4899 !important;
-}
+
 
 
 
@@ -717,4 +709,35 @@ button.btn.cadastrar {
 
   transform:scale(1.03);
 
+}
+
+.inicio-card {
+  border: 2px solid #db2777 !important;
+  border-radius: 22px;
+}
+.inicio-card {
+  border: 2px solid #db2777 !important;
+  border-radius: 22px !important;
+}
+
+/* TELA INICIAL IGUAL LOGIN */
+
+.inicio-container {
+  min-height:100vh !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  background:#fff5fa !important;
+}
+
+
+.inicio-card {
+  width:90% !important;
+  max-width:400px !important;
+  background:white !important;
+  padding:40px 30px !important;
+  border-radius:22px !important;
+  box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
+  text-align:center !important;
+  border:none !important;
 }

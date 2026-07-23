@@ -217,15 +217,7 @@ button.btn.entrar:hover,
 button.btn.cadastrar:hover {
   background: linear-gradient(135deg,#db2777,#ec4899) !important;
 }
-/* ================================
-   BORDAS DOS PERFIS
-================================ */
 
-.cliente-card,
-.profissional-container {
-  border: 2px solid #ec4899;
-  border-radius: 22px;
-}
 
 
 /* ================================
@@ -247,27 +239,14 @@ button.btn.cadastrar:hover {
 .btn-login:hover {
   background: linear-gradient(135deg,#db2777,#ec4899) !important;
 }
-/* ================================
-   BORDA ROSA DOS PERFIS
-================================ */
 
-.cliente-card {
-  border: 2px solid #ec4899 !important;
-  border-radius: 22px;
-}
-
-
-.profissional-container {
-  border: 2px solid #ec4899 !important;
-  border-radius: 22px;
-}
 
 /* ================================
    CARD TELA INICIAL
 ================================ */
 
 .card {
-  border: 2px solid #ec4899 !important;
+
   border-radius: 22px;
   padding: 30px;
   background:white;
@@ -281,7 +260,10 @@ button.btn.cadastrar:hover {
   background: linear-gradient(135deg,#ec4899,#db2777) !important;
   color: white !important;
 }
-
+.inicio-card {
+  border: 2px solid #db2777 !important;
+  border-radius: 22px;
+}
 .profissional-container > div:first-child h2,
 .profissional-container > div:first-child p,
 .profissional-container > div:first-child small {
@@ -531,19 +513,139 @@ body,
 #root {
   background: #fff5fa !important;
 }
-/* ================================
-   REMOVER BORDAS DOS CARDS
-================================ */
 
 .cliente-card,
 .profissional-container,
 .login-card,
 .inicio-card {
-  border: none !important;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.10);
 }
+/* ================================
+   AJUSTE TELA INICIAL BOUTIQUE
+================================ */
+
+.inicio-container {
+  min-height:100vh !important;
+  background:#fff5fa !important;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+
+.inicio-card {
+  background:white;
+  width:90%;
+  max-width:420px;
+  padding:40px 30px;
+  border-radius:30px;
+  box-shadow:0 15px 40px rgba(219,39,119,0.15);
+}
+
+
+/* tirar qualquer borda antiga */
+.inicio-card,
+.card {
+  border:none !important;
+}
+
+.inicio-card {
+  border: 2px solid #db2777 !important;
+  border-radius: 22px !important;
+}
+
+/* ================================
+   REMOVER TODAS AS BORDAS
+================================ */
+
+.login-card,
 .cliente-card,
 .profissional-container,
-.login-card,
+.profissional-card,
+.agenda-card,
+.resumo-card,
+.inicio-card,
+.card,
+.admin-card {
+  border: none !important;
+}
+
+/* ================================
+   TELA INICIAL MESMO ESTILO LOGIN
+================================ */
+
+.inicio-container {
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#fff5fa;
+}
+
+
 .inicio-card {
-  box-shadow: 0 15px 35px rgba(0,0,0,0.10);
+  width:90%;
+  max-width:400px;
+  background:white;
+  padding:40px 30px;
+  border-radius:22px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.10);
+  text-align:center;
+  border:none !important;
+}
+
+
+.inicio-card h1 {
+  color:#222;
+}
+
+
+.inicio-card p {
+  color:#777;
+}
+
+
+.inicio-botoes .btn {
+  width:100%;
+  height:55px;
+  border-radius:12px;
+}
+/* CORREÇÃO FINAL */
+
+body,
+#root {
+  background:#fff5fa !important;
+}
+
+
+.inicio-card,
+.login-card {
+  width:90% !important;
+  max-width:400px !important;
+  background:white !important;
+  padding:40px 30px !important;
+  border-radius:22px !important;
+  box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
+  border:none !important;
+  text-align:center !important;
+}
+
+
+.inicio-container {
+  min-height:100vh !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+}
+
+
+.inicio-botoes {
+  display:flex !important;
+  flex-direction:column !important;
+  gap:15px !important;
+}
+
+
+.inicio-botoes .btn {
+  width:100% !important;
 }
