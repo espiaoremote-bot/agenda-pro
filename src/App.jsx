@@ -52,8 +52,9 @@ const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
-const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
+
+const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 const [horariosSelecionados, setHorariosSelecionados] = useState([]);
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 useEffect(() => {
@@ -814,33 +815,10 @@ setTotalAgendamentos(count);
 <p>
   Link:
   <br />
-  https://seu-projeto.vercel.app/?profissional={profissional.id}
+
+  {window.location.origin}/?profissional={profissional.id}
 </p>
 
-<button
-  onClick={() => {
-
-    const link = `https://seu-projeto.vercel.app/?profissional=${profissional.id}`;
-
-    window.open(link, "_blank");
-
-  }}
->
-  🔗 Abrir agenda
-</button>
-<button
-  onClick={() => {
-
-    const link = `http://localhost:5173/?profissional=${profissional.id}`;
-
-    navigator.clipboard.writeText(link);
-
-    alert("Link copiado!");
-
-  }}
->
-  📋 Copiar link
-</button>
 
 <button
   onClick={async () => {
@@ -867,6 +845,39 @@ setTotalAgendamentos(count);
 >
   {profissional.ativo ? "Desativar" : "Ativar"}
 </button>
+<button
+  onClick={async () => {
+
+    const confirmar = window.confirm(
+      "Deseja realmente excluir este profissional?"
+    );
+
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("profissionais")
+      .delete()
+      .eq("id", profissional.id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao excluir profissional.");
+      return;
+    }
+
+    const novosProfissionais = profissionais.filter(
+      (item) => item.id !== profissional.id
+    );
+
+    setProfissionais(novosProfissionais);
+
+    alert("Profissional excluído com sucesso!");
+
+  }}
+>
+  🗑️ Excluir perfil
+</button>
+
 <button
   className="btn-editar"
   onClick={() => {
@@ -1038,18 +1049,47 @@ setProfissionais(data);
 <h2>
   Olá, {profissionalLogado?.nome} 👋
 </h2>
+<div style={{marginTop:"20px"}}>
+
+
+
+
+</div>
 
   <small>
     Gerencie seus agendamentos com facilidade
   </small>
 
-</div>
+        </div>
 
 <div className="config-servicos">
 
 <h3>
 💅 Meus serviços
 </h3>
+
+<button
+style={{
+padding:"12px",
+marginLeft:"10px",
+background:"#2563eb",
+color:"white",
+border:"none",
+borderRadius:"12px",
+cursor:"pointer"
+}}
+onClick={() => {
+
+const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}`;
+
+navigator.clipboard.writeText(link);
+
+alert("Link copiado!");
+
+}}
+>
+📋 Copiar link
+</button>
 
 <button
 onClick={() => {
@@ -1084,8 +1124,6 @@ setNovoServico(e.target.value)
 <button
 onClick={async () => {
 
-  console.log("CLIQUEI ADICIONAR SERVIÇO");
-
 if(!novoServico){
 alert("Digite o nome do serviço");
 return;
@@ -1109,15 +1147,16 @@ return;
 }
 
 
-setNovoServico("");
-
-const { data } = await supabase
+const { data: novosServicos } = await supabase
 .from("servicos")
 .select("*")
-.eq("profissional_id", profissionalLogado.id)
-.order("id", { ascending: false });
+.order("nome");
 
-setMeusServicos(data);
+
+setServicos(novosServicos);
+
+
+setNovoServico("");
 
 alert("Serviço criado!");
 
