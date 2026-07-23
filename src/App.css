@@ -581,6 +581,32 @@ button.btn.cadastrar {
   align-items:center !important;
   text-align:center !important;
 }
-body {
-  background: lime !important;
+/* ================================
+   ALINHAR PERFIS DA TELA INICIAL
+================================ */
+
+.inicio-botoes {
+  width:100%;
+  display:flex;
+  flex-direction:row;
+  justify-content:center;
+  align-items:stretch;
+  gap:20px;
+}
+
+.inicio-botoes .btn {
+  width:250px;
+  height:55px;
+}
+@media(max-width:600px){
+
+  .inicio-botoes {
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .inicio-botoes .btn {
+    width:90%;
+  }
+
 }
