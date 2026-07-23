@@ -385,3 +385,23 @@ body,
   justify-content: flex-start !important;
   padding-top: 120px !important;
 }
+/* AJUSTE FINAL TELA INICIAL */
+
+.inicio-container {
+  min-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  padding-top: 70px !important;
+  box-sizing: border-box !important;
+}
+
+
+@media(max-width:600px){
+
+  .inicio-container {
+    padding-top: 40px !important;
+  }
+
+}
