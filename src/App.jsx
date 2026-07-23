@@ -1247,7 +1247,53 @@ alert("Serviço criado!");
 >
 Adicionar serviço
 </button>
+<h3>📋 Serviços cadastrados</h3>
 
+{meusServicos.map((item) => (
+  <div key={item.id} className="servico-card">
+
+    <p>💅 {item.nome}</p>
+
+    <p>
+      💰 R$ {item.valor}
+    </p>
+
+    <p>
+      ⏰ {item.duracao}
+    </p>
+
+    <button
+      onClick={async () => {
+
+        const confirmar = window.confirm(
+          "Deseja excluir este serviço?"
+        );
+
+        if(!confirmar) return;
+
+        const { error } = await supabase
+          .from("servicos")
+          .delete()
+          .eq("id", item.id);
+
+        if(error){
+          console.error(error);
+          return;
+        }
+
+        setMeusServicos(
+          meusServicos.filter(
+            (servico) => servico.id !== item.id
+          )
+        );
+
+      }}
+    >
+      🗑️ Excluir
+    </button>
+
+  </div>
+))}
 
 </div>
 
