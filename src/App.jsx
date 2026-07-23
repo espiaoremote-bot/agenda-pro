@@ -1085,6 +1085,8 @@ setNovoServico(e.target.value)
 <button
 onClick={async () => {
 
+  console.log("CLIQUEI ADICIONAR SERVIÇO");
+
 if(!novoServico){
 alert("Digite o nome do serviço");
 return;
@@ -1109,6 +1111,14 @@ return;
 
 
 setNovoServico("");
+
+const { data } = await supabase
+.from("servicos")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.order("id", { ascending: false });
+
+setMeusServicos(data);
 
 alert("Serviço criado!");
 
