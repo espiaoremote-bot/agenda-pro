@@ -649,3 +649,20 @@ body,
 .inicio-botoes .btn {
   width:100% !important;
 }
+/* SUBIR TELA INICIAL IGUAL ÁREA PROFISSIONAL */
+
+.inicio-container {
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding-top: 70px !important;
+}
+.inicio-card {
+  width:90% !important;
+  max-width:400px !important;
+  background:white !important;
+  padding:30px !important;
+  border-radius:30px !important;
+  box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
+  text-align:center !important;
+  border:none !important;
+}
