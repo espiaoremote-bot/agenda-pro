@@ -512,6 +512,7 @@ body,
 body,
 #root {
   background: #fff5fa !important;
+<<<<<<< HEAD
 }
 
 .cliente-card,
@@ -648,6 +649,7 @@ body,
 
 .inicio-botoes .btn {
   width:100% !important;
+<<<<<<< HEAD
 }
 /* SUBIR TELA INICIAL IGUAL ÁREA PROFISSIONAL */
 
@@ -666,3 +668,8 @@ body,
   text-align:center !important;
   border:none !important;
 }
+=======
+=======
+>>>>>>> parent of d8df067 (remove bordas dos cards modelo boutique)
+}
+>>>>>>> card-branco
