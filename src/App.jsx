@@ -814,14 +814,13 @@ setTotalAgendamentos(count);
 <p>
   Link:
   <br />
-
-  http://localhost:5173/?profissional={profissional.id}
+  https://seu-projeto.vercel.app/?profissional={profissional.id}
 </p>
 
 <button
   onClick={() => {
 
-    const link = `http://localhost:5173/?profissional=${profissional.id}`;
+    const link = `https://seu-projeto.vercel.app/?profissional=${profissional.id}`;
 
     window.open(link, "_blank");
 

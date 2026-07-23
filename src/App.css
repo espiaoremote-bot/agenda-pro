@@ -330,6 +330,7 @@ body,
 }
 
 .admin-card {
+  background:white !important;
   border: 2px solid #60a5fa !important;
   border-radius: 22px;
   padding: 20px;
@@ -740,4 +741,8 @@ button.btn.cadastrar {
   box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
   text-align:center !important;
   border:none !important;
+}
+.admin-area {
+  background:white !important;
+  min-height:100vh;
 }
