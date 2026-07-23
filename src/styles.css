@@ -380,3 +380,8 @@ body,
   }
 
 }
+/* subir tela inicial */
+.inicio-container {
+  justify-content: flex-start !important;
+  padding-top: 120px !important;
+}
