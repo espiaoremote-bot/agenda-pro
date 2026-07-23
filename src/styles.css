@@ -366,3 +366,17 @@ body,
   width:250px !important;
   height:55px !important;
 }
+@media (max-width:600px){
+
+  .inicio-botoes {
+    flex-direction: column !important;
+    align-items: center !important;
+    width:100% !important;
+  }
+
+  .inicio-botoes .btn {
+    width:90% !important;
+    max-width:350px !important;
+  }
+
+}
