@@ -25,6 +25,8 @@ const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
+const [novoValor, setNovoValor] = useState("");
+const [novaDuracao, setNovaDuracao] = useState("");
 const [meusServicos, setMeusServicos] = useState([]);
 const [profissionais, setProfissionais] = useState([]);
 const [totalAgendamentos, setTotalAgendamentos] = useState(0);
@@ -53,6 +55,7 @@ const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
+const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
 
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 const [horariosSelecionados, setHorariosSelecionados] = useState([]);
@@ -284,7 +287,7 @@ useEffect(() => {
   carregarMeusServicos();
 
 }, [profissionalLogado]);
-const agora = new Date();
+
 
 const horariosOcupados = pedidos
   .filter((item) => {
@@ -530,12 +533,12 @@ onChange={(e) => {
       item.ativo
     )
     .map((item) => (
-      <option 
-        key={item.id}
-        value={item.nome}
-      >
-        {item.nome}
-      </option>
+<option 
+key={item.id}
+value={item.nome}
+>
+{item.nome} - {item.duracao}
+</option>
     ))
   }
 
@@ -1061,12 +1064,67 @@ setProfissionais(data);
   </small>
 
         </div>
+        <h3>
+💅 Meus serviços
+</h3>
+<button
+onClick={async () => {
+
+const novoStatus =
+statusAtendimento === "Disponível"
+? "Ocupado"
+: "Disponível";
+
+
+const { error } = await supabase
+.from("profissionais")
+.update({
+  status_atendimento: novoStatus
+})
+.eq("id", profissionalLogado.id);
+
+
+if(error){
+ console.error(error);
+ return;
+}
+
+
+setStatusAtendimento(novoStatus);
+
+setProfissionalLogado({
+ ...profissionalLogado,
+ status_atendimento: novoStatus
+});
+
+}}
+>
+{
+statusAtendimento === "Disponível"
+?
+"🟢 Disponível"
+:
+"🔴 Ocupado"
+}
+
+</button>
+
+
+<button
+className="btn-config-principal"
+onClick={() =>
+setMostrarConfiguracoes(!mostrarConfiguracoes)
+}
+>
+⚙️ Configurações
+</button>
+
+{mostrarConfiguracoes && (
+<div>
 
 <div className="config-servicos">
 
-<h3>
-💅 Meus serviços
-</h3>
+
 
 <button
 style={{
@@ -1119,6 +1177,22 @@ onChange={(e) =>
 setNovoServico(e.target.value)
 }
 />
+<input
+placeholder="Valor"
+type="number"
+value={novoValor}
+onChange={(e) =>
+setNovoValor(e.target.value)
+}
+/>
+
+<input
+placeholder="Duração (ex: 1 hora)"
+value={novaDuracao}
+onChange={(e) =>
+setNovaDuracao(e.target.value)
+}
+/>
 
 
 <button
@@ -1135,6 +1209,8 @@ const { error } = await supabase
 .insert([
 {
 nome: novoServico,
+valor: novoValor,
+duracao: novaDuracao,
 profissional_id: profissionalLogado.id,
 ativo:true
 }
@@ -1154,9 +1230,16 @@ const { data: novosServicos } = await supabase
 
 
 setServicos(novosServicos);
+setMeusServicos(
+  novosServicos.filter(
+    (item) => item.profissional_id === profissionalLogado.id
+  )
+);
 
 
 setNovoServico("");
+setNovoValor("");
+setNovaDuracao("");
 
 alert("Serviço criado!");
 
@@ -1172,47 +1255,7 @@ Adicionar serviço
 
 </div>
 
-<button
-onClick={async () => {
 
-const novoStatus =
-statusAtendimento === "Disponível"
-? "Ocupado"
-: "Disponível";
-
-
-const { error } = await supabase
-.from("profissionais")
-.update({
-  status_atendimento: novoStatus
-})
-.eq("id", profissionalLogado.id);
-
-
-if(error){
- console.error(error);
- return;
-}
-
-
-setStatusAtendimento(novoStatus);
-
-setProfissionalLogado({
- ...profissionalLogado,
- status_atendimento: novoStatus
-});
-
-}}
->
-{
-statusAtendimento === "Disponível"
-?
-"🟢 Disponível"
-:
-"🔴 Ocupado"
-}
-
-</button>
 <button
   className="btn-config-horarios"
   onClick={() =>
@@ -1300,7 +1343,11 @@ alert("Horários salvos com sucesso!");
 >
 Salvar horários
 </button>
+
+</div>
+)}
 <div className="resumo-dashboard">
+
 
   <div className="resumo-card">
     <h3>📅 Hoje</h3>
