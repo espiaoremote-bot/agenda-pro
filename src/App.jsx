@@ -561,23 +561,16 @@ value={item.nome}
     Escolha o horário
   </option>
 
-{horariosDisponiveis.map((hora) => {
+{horariosDisponiveis.map((hora) => (
 
-const ocupado = horariosOcupados.includes(hora);
-
-return (
 <option
   key={hora}
   value={hora}
-  disabled={ocupado}
 >
-  {ocupado ? "🔴 " : "🟢 "}
   {hora}
-  {ocupado ? " Ocupado" : " Disponível"}
 </option>
-)
 
-})}
+))}
 
 </select>
 
@@ -1330,23 +1323,45 @@ Adicionar serviço
 type="checkbox"
 checked={horariosSelecionados.includes(hora)}
 
-onChange={() => {
+onChange={async () => {
+
+let novosHorarios;
 
 if (horariosSelecionados.includes(hora)) {
 
-setHorariosSelecionados(
-horariosSelecionados.filter(
-(item) => item !== hora
-)
-);
+  novosHorarios = horariosSelecionados.filter(
+    (item) => item !== hora
+  );
 
 } else {
 
-setHorariosSelecionados([
-...horariosSelecionados,
-hora
-]);
+  novosHorarios = [
+    ...horariosSelecionados,
+    hora
+  ];
 
+}
+
+setHorariosSelecionados(novosHorarios);
+
+const { error } = await supabase
+  .from("profissionais")
+  .update({
+    horarios_disponiveis: novosHorarios
+  })
+  .eq("id", profissionalLogado.id);
+
+if (error) {
+  console.error(error);
+  alert("Erro ao salvar horário.");
+}
+
+else {
+  setMensagemProfissional("✅ Horários salvos automaticamente!");
+
+  setTimeout(() => {
+    setMensagemProfissional("");
+  }, 1500);
 }
 
 }}
@@ -1364,31 +1379,6 @@ hora
 </div>
 
 )}
-
-<button
-onClick={async () => {
-
-const { error } = await supabase
-.from("profissionais")
-.update({
-  horarios_disponiveis: horariosSelecionados
-})
-.eq("id", profissionalLogado.id);
-
-
-if(error){
-  console.error(error);
-  alert("Erro ao salvar horários");
-  return;
-}
-
-
-alert("Horários salvos com sucesso!");
-
-}}
->
-Salvar horários
-</button>
 
 </div>
 )}

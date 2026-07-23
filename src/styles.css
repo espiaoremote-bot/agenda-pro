@@ -82,6 +82,7 @@ body {
 .admin-header small {
   opacity: 0.9;
 }
+
 .admin-header {
   background: linear-gradient(135deg, #1976d2, #2196f3) !important;
   color: white !important;
@@ -667,13 +668,4 @@ body,
   box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
   text-align:center !important;
   border:none !important;
-  .inicio-card {
-    width:90% !important;
-    max-width:400px !important;
-    background:white !important;
-    padding:30px !important;
-    border-radius:30px !important;
-    box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
-    text-align:center !important;
-    border:none !important;
-  }
+}
