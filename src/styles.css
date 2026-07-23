@@ -119,41 +119,41 @@ body {
   color: #db2777;
 }
 
-/* =====================================
+/* ==
    CLIENTE
-===================================== */
+== */
 
 
 
 
 
-/* =====================================
+/* ==
    PROFISSIONAL
-===================================== */
+== */
 
 
 
 
 
-/* =====================================
+/* ==
    ADMIN
-===================================== */
+== */
 
 
 
 
 
-/* =====================================
+/* ==
    CALENDÁRIO
-===================================== */
+== */
 
 
 
 
 
-/* =====================================
+/* ==
    RESPONSIVIDADE
-===================================== */
+== */
 
 
 .admin-card {
@@ -196,9 +196,9 @@ button.btn.cadastrar:hover {
   background: #ec4899 !important;
 }
 
-/* ==========================
+/* =====
    BOTÕES TELA INICIAL
-========================== */
+===== */
 
 button.btn.entrar,
 button.btn.cadastrar {
@@ -220,9 +220,9 @@ button.btn.cadastrar:hover {
 
 
 
-/* ================================
+/* ====
    BOTÃO ENTRAR ÁREA PROFISSIONAL
-================================ */
+==== */
 
 .btn-login {
   width:100%;
@@ -241,9 +241,9 @@ button.btn.cadastrar:hover {
 }
 
 
-/* ================================
+/* ====
    CARD TELA INICIAL
-================================ */
+==== */
 
 .card {
 
@@ -252,9 +252,9 @@ button.btn.cadastrar:hover {
   background:white;
   box-shadow:0 8px 25px rgba(0,0,0,0.10);
 }
-/* ================================
+/* ====
    CORREÇÃO ÁREA PROFISSIONAL
-================================ */
+==== */
 
 .profissional-container > div:first-child {
   background: linear-gradient(135deg,#ec4899,#db2777) !important;
@@ -493,9 +493,9 @@ body,
 }
 
 }
-/* ================================
+/* ====
    MODELO BOUTIQUE - CLIENTE
-================================ */
+==== */
 
 .cliente-card {
   background: #ffffff;
@@ -512,7 +512,7 @@ body,
 body,
 #root {
   background: #fff5fa !important;
-<<<<<<< HEAD
+
 }
 
 .cliente-card,
@@ -521,9 +521,9 @@ body,
 .inicio-card {
   box-shadow: 0 15px 35px rgba(0,0,0,0.10);
 }
-/* ================================
+/* ====
    AJUSTE TELA INICIAL BOUTIQUE
-================================ */
+==== */
 
 .inicio-container {
   min-height:100vh !important;
@@ -555,9 +555,9 @@ body,
   border-radius: 22px !important;
 }
 
-/* ================================
+/* ====
    REMOVER TODAS AS BORDAS
-================================ */
+==== */
 
 .login-card,
 .cliente-card,
@@ -571,9 +571,9 @@ body,
   border: none !important;
 }
 
-/* ================================
+/* ====
    TELA INICIAL MESMO ESTILO LOGIN
-================================ */
+==== */
 
 .inicio-container {
   min-height:100vh;
@@ -649,7 +649,7 @@ body,
 
 .inicio-botoes .btn {
   width:100% !important;
-<<<<<<< HEAD
+
 }
 /* SUBIR TELA INICIAL IGUAL ÁREA PROFISSIONAL */
 
@@ -667,9 +667,13 @@ body,
   box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
   text-align:center !important;
   border:none !important;
-}
-=======
-=======
->>>>>>> parent of d8df067 (remove bordas dos cards modelo boutique)
-}
->>>>>>> card-branco
+  .inicio-card {
+    width:90% !important;
+    max-width:400px !important;
+    background:white !important;
+    padding:30px !important;
+    border-radius:30px !important;
+    box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
+    text-align:center !important;
+    border:none !important;
+  }
