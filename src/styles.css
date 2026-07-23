@@ -511,3 +511,23 @@ body,
 }
 
 }
+/* ================================
+   MODELO BOUTIQUE - CLIENTE
+================================ */
+
+.cliente-card {
+  background: #ffffff;
+  width: 90%;
+  max-width: 420px;
+  margin: 30px auto;
+  padding: 30px;
+  border-radius: 30px;
+  box-shadow: 0 15px 35px rgba(219,39,119,0.15);
+  border: none !important;
+}
+
+
+body,
+#root {
+  background: #fff5fa !important;
+}
