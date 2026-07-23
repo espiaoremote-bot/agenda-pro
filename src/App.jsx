@@ -23,7 +23,9 @@ const [senha, setSenha] = useState("");
 
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
-
+const [servicos, setServicos] = useState([]);
+const [novoServico, setNovoServico] = useState("");
+const [meusServicos, setMeusServicos] = useState([]);
 const [profissionais, setProfissionais] = useState([]);
 const [totalAgendamentos, setTotalAgendamentos] = useState(0);
 const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -51,6 +53,7 @@ const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
+const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
 const [horariosSelecionados, setHorariosSelecionados] = useState([]);
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 useEffect(() => {
@@ -234,6 +237,52 @@ useEffect(() => {
 
 
 }, [tela, profissionalLogado, profissionalCliente, pedido]);
+useEffect(() => {
+  async function carregarServicos() {
+    const { data, error } = await supabase
+      .from("servicos")
+      .select("*")
+      .order("nome");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setServicos(data);
+  }
+
+  carregarServicos();
+}, []);
+
+useEffect(() => {
+
+  async function carregarMeusServicos() {
+
+    if (!profissionalLogado) return;
+
+
+    const { data, error } = await supabase
+      .from("servicos")
+      .select("*")
+      .eq("profissional_id", profissionalLogado.id)
+      .order("id", { ascending: false });
+
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+
+    setMeusServicos(data);
+
+  }
+
+
+  carregarMeusServicos();
+
+}, [profissionalLogado]);
 const agora = new Date();
 
 const horariosOcupados = pedidos
@@ -268,7 +317,7 @@ return (
   <div>
 
 {tela === "inicio" && (
-  <div>
+  <div className="inicio-container">
 
     <h2>
       Sua agenda organizada
@@ -276,23 +325,27 @@ return (
       de forma simples e rápida
     </h2>
 
-    <p>Escolha como deseja entrar:</p>
+<p>Escolha como deseja entrar:</p>
 
-    <button
-      className="btn entrar"
-      onClick={() => {
-        setTela("cliente");
-      }}
-    >
-      💅 Sou cliente
-    </button>
+<div className="inicio-botoes">
 
-    <button
-      className="btn cadastrar"
-      onClick={() => setTela("login")}
-    >
-      💼 Sou profissional
-    </button>
+<button
+  className="btn entrar"
+  onClick={() => {
+    setTela("cliente");
+  }}
+>
+  💅 Sou cliente
+</button>
+
+<button
+  className="btn cadastrar"
+  onClick={() => setTela("login")}
+>
+  💼 Sou profissional
+</button>
+
+</div>
 
   </div>
 )}
@@ -465,31 +518,25 @@ onChange={(e) => {
   value={servico}
   onChange={(e) => setServico(e.target.value)}
 >
-  <option value="">Escolha o serviço</option>
-
-  <option value="Manicure Simples">
-    Manicure Simples
+  <option value="">
+    Escolha o serviço
   </option>
 
-  <option value="Pedicure Simples">
-    Pedicure Simples
-  </option>
-
-  <option value="Esmaltação em Gel">
-    Esmaltação em Gel
-  </option>
-
-  <option value="Manicure + Esmaltação em Gel">
-    Manicure + Esmaltação em Gel
-  </option>
-
-  <option value="Pedicure + Esmaltação em Gel">
-    Pedicure + Esmaltação em Gel
-  </option>
-
-  <option value="Postiça realista">
-    Postiça realista
-  </option>
+  {servicos
+    .filter(
+      (item) => 
+      item.profissional_id === profissionalCliente &&
+      item.ativo
+    )
+    .map((item) => (
+      <option 
+        key={item.id}
+        value={item.nome}
+      >
+        {item.nome}
+      </option>
+    ))
+  }
 
 </select>
 
@@ -532,6 +579,8 @@ return (
 
 <button
 onClick={async () => {
+
+  
 
   console.log("CLIQUEI NO BOTÃO ENVIAR");
 
@@ -996,29 +1045,82 @@ setProfissionais(data);
   </small>
 
 </div>
-<div className="link-profissional">
+
+<div className="config-servicos">
 
 <h3>
-🔗 Meu link de agendamento
+💅 Meus serviços
 </h3>
-
-<p>
-
-</p>
 
 <button
 onClick={() => {
+  setMostrarConfiguracaoServicos(
+    !mostrarConfiguracaoServicos
+  );
+}}
+>
+{
+mostrarConfiguracaoServicos
+?
+"❌ Fechar serviços"
+:
+"⚙️ Configurar serviços"
+}
+</button>
 
-const link = `http://localhost:5173/?profissional=${profissionalLogado?.id}`;
 
-navigator.clipboard.writeText(link);
+{mostrarConfiguracaoServicos && (
 
-alert("Link copiado!");
+<div>
+
+<input
+placeholder="Nome do serviço"
+value={novoServico}
+onChange={(e) =>
+setNovoServico(e.target.value)
+}
+/>
+
+
+<button
+onClick={async () => {
+
+if(!novoServico){
+alert("Digite o nome do serviço");
+return;
+}
+
+
+const { error } = await supabase
+.from("servicos")
+.insert([
+{
+nome: novoServico,
+profissional_id: profissionalLogado.id,
+ativo:true
+}
+]);
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setNovoServico("");
+
+alert("Serviço criado!");
 
 }}
 >
-📋 Copiar link
+Adicionar serviço
 </button>
+
+
+</div>
+
+)}
 
 </div>
 
