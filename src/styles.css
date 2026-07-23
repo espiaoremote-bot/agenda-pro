@@ -405,3 +405,109 @@ body,
   }
 
 }
+/* MODELO BOUTIQUE - TELA INICIAL */
+
+.inicio-container {
+  min-height:100vh !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  padding:20px !important;
+  background:linear-gradient(180deg,#fce7f3,#fff) !important;
+}
+
+
+.inicio-card {
+
+  width:90%;
+  max-width:400px;
+
+  background:white;
+
+  padding:45px 30px;
+
+  border-radius:35px;
+
+  text-align:center;
+
+  box-shadow:0 15px 40px rgba(219,39,119,0.18);
+
+}
+
+
+.inicio-logo {
+
+  font-size:70px;
+
+  margin-bottom:20px;
+
+}
+
+
+.inicio-card h1 {
+
+  color:#db2777;
+
+  font-size:30px;
+
+  margin-bottom:15px;
+
+}
+
+
+.inicio-card p {
+
+  color:#777;
+
+  margin-bottom:35px;
+
+}
+
+
+.inicio-botoes {
+
+  display:flex !important;
+
+  flex-direction:column !important;
+
+  gap:15px;
+
+}
+
+
+.inicio-botoes .btn {
+
+  width:100% !important;
+
+  height:58px !important;
+
+  border-radius:18px !important;
+
+  font-size:17px !important;
+
+  font-weight:bold;
+
+}
+
+
+.btn.entrar {
+
+  background:linear-gradient(135deg,#ec4899,#db2777) !important;
+
+}
+
+
+.btn.cadastrar {
+
+  background:linear-gradient(135deg,#f472b6,#be185d) !important;
+
+}
+
+
+@media(max-width:600px){
+
+.inicio-card {
+  padding:35px 25px;
+}
+
+}
