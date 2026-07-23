@@ -317,49 +317,37 @@ return (
   <div>
 
 {tela === "inicio" && (
-<div className="inicio-container">
+  <div className="inicio-container">
 
-  <div className="login-card">
-
-    <div className="inicio-logo">
-    
-    </div>
-
-    <h1>
+    <h2>
       Sua agenda organizada
       <br />
       de forma simples e rápida
-    </h1>
+    </h2>
 
-    <p>
-      Escolha como deseja entrar:
-    </p>
+<p>Escolha como deseja entrar:</p>
 
+<div className="inicio-botoes">
 
-    <div className="inicio-botoes">
+<button
+  className="btn entrar"
+  onClick={() => {
+    setTela("cliente");
+  }}
+>
+  💅 Sou cliente
+</button>
 
-      <button
-        className="btn entrar"
-        onClick={() => {
-          setTela("cliente");
-        }}
-      >
-        💅 Sou cliente
-      </button>
-
-
-      <button
-        className="btn cadastrar"
-        onClick={() => setTela("login")}
-      >
-        💼 Sou profissional
-      </button>
-
-    </div>
-
-  </div>
+<button
+  className="btn cadastrar"
+  onClick={() => setTela("login")}
+>
+  💼 Sou profissional
+</button>
 
 </div>
+
+  </div>
 )}
 {tela === "login" && (
 <div className="login-card">
