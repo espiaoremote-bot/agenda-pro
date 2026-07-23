@@ -512,6 +512,7 @@ body,
 body,
 #root {
   background: #fff5fa !important;
+<<<<<<< HEAD
 }
 
 .cliente-card,
@@ -648,4 +649,6 @@ body,
 
 .inicio-botoes .btn {
   width:100% !important;
+=======
+>>>>>>> parent of d8df067 (remove bordas dos cards modelo boutique)
 }
