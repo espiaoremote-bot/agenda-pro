@@ -531,3 +531,19 @@ body,
 #root {
   background: #fff5fa !important;
 }
+/* ================================
+   REMOVER BORDAS DOS CARDS
+================================ */
+
+.cliente-card,
+.profissional-container,
+.login-card,
+.inicio-card {
+  border: none !important;
+}
+.cliente-card,
+.profissional-container,
+.login-card,
+.inicio-card {
+  box-shadow: 0 15px 35px rgba(0,0,0,0.10);
+}
