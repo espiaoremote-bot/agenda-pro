@@ -14,12 +14,11 @@ console.log("ESTOU NO APP JSX CERTO");
 
 
 function App() {
-  console.log("APP ESTÁ RODANDO");
-console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
-  
-const [tela, setTela] = useState("inicio");
+  const [tela, setTela] = useState("inicio");
 
 const [senha, setSenha] = useState("");
+  console.log("APP ESTÁ RODANDO");
+console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
@@ -39,7 +38,8 @@ const [profissionalEditando, setProfissionalEditando] = useState(null);
 const [editarNome, setEditarNome] = useState("");
 
 const [editarSenha, setEditarSenha] = useState("");
-
+const [whatsapp, setWhatsapp] = useState("");
+const [data, setData] = useState("");
 
 const [mensagem, setMensagem] = useState("");
 const [tipoMensagem, setTipoMensagem] = useState("");
@@ -58,7 +58,7 @@ const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(f
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
 
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
-const [horariosSelecionados, setHorariosSelecionados] = useState([]);
+
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 useEffect(() => {
 
@@ -67,7 +67,8 @@ async function carregarHorariosProfissional(){
 if(!profissionalLogado) return;
 
 
-const { data, error } = await supabase
+
+const { data: resultado, error } = await supabase
 .from("profissionais")
 .select("horarios_disponiveis, status_atendimento")
 .eq("id", profissionalLogado.id)
@@ -80,13 +81,13 @@ return;
 }
 
 
-setHorariosSelecionados(
-data.horarios_disponiveis || []
+setHorariosDisponiveis(
+  resultado.horarios_disponiveis || []
 );
 
 
 setStatusAtendimento(
-data.status_atendimento || "Disponível"
+resultado.status_atendimento || "Disponível"
 );
 
 
@@ -98,7 +99,15 @@ carregarHorariosProfissional();
 
 }, [profissionalLogado]);
 
-
+const diasSemana = [
+  "segunda",
+  "terça",
+  "quarta",
+  "quinta",
+  "sexta",
+  "sábado",
+  "domingo"
+];
 
 const listaHorarios = [
   "00:00",
@@ -150,46 +159,68 @@ const listaHorarios = [
   "23:00",
   "23:30"
 ];
+const [diaSelecionado, setDiaSelecionado] = useState("segunda");
+
+const [horariosTrabalho, setHorariosTrabalho] = useState([]);
+
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+
+
+
 useEffect(() => {
 
-  async function carregarHorarios() {
+async function carregarHorariosCliente(){
 
-    const idProfissional = profissionalCliente;
-
-    if (!idProfissional) return;
-
-    const { data, error } = await supabase
-      .from("profissionais")
-      .select("horarios_disponiveis, status_atendimento")
-      .eq("id", idProfissional)
-      .single();
+if(!profissionalCliente || !data){
+  setHorariosDisponiveis([]);
+  return;
+}
 
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+// pega o dia da semana da data escolhida
+const dataEscolhida = new Date(data + "T00:00:00");
+
+const dias = [
+  "domingo",
+  "segunda",
+  "terça",
+  "quarta",
+  "quinta",
+  "sexta",
+  "sábado"
+];
+
+const diaSemana = dias[dataEscolhida.getDay()];
 
 
-console.log(
-"HORÁRIOS DO PROFISSIONAL:",
-data.horarios_disponiveis
-);
-console.log("HORÁRIOS DO PROFISSIONAL:", data.horarios_disponiveis);
+const { data: horarios, error } = await supabase
+.from("horarios_trabalho")
+.select("horario")
+.eq("profissional_id", profissionalCliente)
+.eq("dia_semana", diaSemana);
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
 setHorariosDisponiveis(
- data.horarios_disponiveis || []
+  horarios
+  .map(item => item.horario)
+  .filter(hora => !horariosOcupados.includes(hora))
 );
-setStatusAtendimento(
- data.status_atendimento || "Disponível"
-);
-  }
 
-  carregarHorarios();
 
-}, [profissionalCliente]);
-const [whatsapp, setWhatsapp] = useState("");
-const [data, setData] = useState("");
+}
+
+
+carregarHorariosCliente();
+
+
+}, [profissionalCliente, data]);
+
 const params = new URLSearchParams(window.location.search);
 
 const profissionalIdLink = Number(params.get("profissional"));
@@ -219,7 +250,7 @@ useEffect(() => {
     }
 
 
-    const { data, error } = await supabase
+    const { data: resultado, error } = await supabase
       .from("agendamentos")
       .select("*")
       .eq("profissional_id", idProfissional)
@@ -232,7 +263,7 @@ useEffect(() => {
     }
 
 
-    setPedidos(data);
+    setPedidos(resultado)
 
   }
 
@@ -243,7 +274,7 @@ useEffect(() => {
 }, [tela, profissionalLogado, profissionalCliente, pedido]);
 useEffect(() => {
   async function carregarServicos() {
-    const { data, error } = await supabase
+    const { data: resultado, error } = await supabase
       .from("servicos")
       .select("*")
       .order("nome");
@@ -253,7 +284,7 @@ useEffect(() => {
       return;
     }
 
-    setServicos(data);
+    setServicos(resultado)
   }
 
   carregarServicos();
@@ -266,7 +297,7 @@ useEffect(() => {
     if (!profissionalLogado) return;
 
 
-    const { data, error } = await supabase
+    const { data: resultado, error } = await supabase
       .from("servicos")
       .select("*")
       .eq("profissional_id", profissionalLogado.id)
@@ -279,7 +310,7 @@ useEffect(() => {
     }
 
 
-    setMeusServicos(data);
+   setMeusServicos(resultado);
 
   }
 
@@ -310,7 +341,36 @@ if (
 
 console.log("Horários ocupados:", horariosOcupados);
 console.log("PEDIDOS DETALHADOS:", pedidos);
+async function carregarHorariosTrabalho(){
 
+  if(!profissionalLogado) return;
+
+
+  const { data: resultado, error } = await supabase
+    .from("horarios_trabalho")
+    .select("*")
+    .eq("profissional_id", profissionalLogado.id)
+    .eq("dia_semana", diaSelecionado);
+
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+
+setHorariosTrabalho(
+  resultado.map((item) => item.horario)
+);
+
+}
+useEffect(() => {
+
+  if(profissionalLogado){
+    carregarHorariosTrabalho();
+  }
+
+}, [diaSelecionado, profissionalLogado]);
 const dataSelecionadaFormatada = dataSelecionada
   .toLocaleDateString("sv-SE");
 
@@ -381,20 +441,37 @@ return (
 <button className="btn-login"
 onClick={async () => {
 
-const { data, error } = await supabase
+const { data: resultado, error } = await supabase
   .from("profissionais")
   .select("*")
   .eq("senha", senha)
   .single();
 
-  console.log("RETORNO LOGIN:", data);
+console.log("RETORNO LOGIN:", resultado);
 console.log("ERRO LOGIN:", error);
 
 
-if (error || !data) {
+if (error || !resultado) {
   setMensagemLogin("Senha incorreta!");
   return;
 }
+
+if (!resultado.ativo) {
+  setMensagemLogin("Este profissional está desativado.");
+  return;
+}
+
+setProfissionalLogado(resultado);
+
+setMensagemLogin("");
+
+if (resultado.tipo === "super_admin") {
+  setTela("admin");
+} else {
+  setTela("profissional");
+}
+
+setSenha("");
 
 if (!data.ativo) {
   setMensagemLogin("Este profissional está desativado.");
@@ -764,7 +841,7 @@ pedido.status === "Agendado" && pedido.horario_liberado === false
 <button
   onClick={async () => {
 
-    const { data, error } = await supabase
+    const { data: resultado, error } = await supabase
       .from("profissionais")
       .select("*");
 
@@ -773,7 +850,7 @@ pedido.status === "Agendado" && pedido.horario_liberado === false
       return;
     }
 
-    setProfissionais(data); 
+   setProfissionais(data)
     const { count } = await supabase
   .from("agendamentos")
   .select("*", { count: "exact", head: true });
@@ -835,7 +912,7 @@ setTotalAgendamentos(count);
       .from("profissionais")
       .select("*");
 
-    setProfissionais(data);
+    setProfissionais(resultado)
 
   }}
 >
@@ -933,7 +1010,7 @@ setTotalAgendamentos(count);
       .from("profissionais")
       .select("*");
 
-    setProfissionais(data);
+    setProfissionais(resultado)
 
     setProfissionalEditando(null);
 
@@ -1009,7 +1086,7 @@ setEditarSenha("");
 .from("profissionais")
 .select("*");
 
-setProfissionais(data);
+setProfissionais(resultado)
 
         setNovoNome("");
         setNovaSenha("");
@@ -1313,68 +1390,146 @@ Adicionar serviço
 
 <h3>⏰ Meus horários de atendimento</h3>
 
-<div>
 
-{listaHorarios.map((hora) => (
+<h4>Escolha o dia da semana:</h4>
 
-<label key={hora}>
+<select
+value={diaSelecionado}
+onChange={async (e)=>{
 
-<input
-type="checkbox"
-checked={horariosSelecionados.includes(hora)}
+const novoDia = e.target.value;
 
-onChange={async () => {
+setDiaSelecionado(novoDia);
 
-let novosHorarios;
 
-if (horariosSelecionados.includes(hora)) {
+const { data: resultado, error } = await supabase
+.from("horarios_trabalho")
+.select("*")
+.eq("profissional_id", profissionalLogado.id)
+.eq("dia_semana", novoDia);
 
-  novosHorarios = horariosSelecionados.filter(
-    (item) => item !== hora
-  );
 
-} else {
-
-  novosHorarios = [
-    ...horariosSelecionados,
-    hora
-  ];
-
+if(error){
+console.error(error);
+return;
 }
 
-setHorariosSelecionados(novosHorarios);
 
-const { error } = await supabase
-  .from("profissionais")
-  .update({
-    horarios_disponiveis: novosHorarios
-  })
-  .eq("id", profissionalLogado.id);
+setHorariosTrabalho(
+  resultado.map((item) => item.horario.slice(0,5))
+);
 
-if (error) {
-  console.error(error);
-  alert("Erro ao salvar horário.");
-}
-
-else {
-  setMensagemProfissional("✅ Horários salvos automaticamente!");
-
-  setTimeout(() => {
-    setMensagemProfissional("");
-  }, 1500);
-}
 
 }}
 
-/>
+>
 
-{hora}
+{diasSemana.map((dia)=>(
 
-</label>
+<option
+key={dia}
+value={dia}
+>
+
+{dia}
+
+</option>
 
 ))}
 
+</select>
+
+
+
+<h4>Escolha os horários:</h4>
+
+
+<div>
+
+
+{listaHorarios.map((hora)=>(
+
+
+<label 
+key={hora}
+style={{display:"block"}}
+>
+
+
+<input
+type="checkbox"
+checked={horariosTrabalho.includes(hora)}
+onChange={async (e)=>{
+
+const marcado = e.target.checked;
+
+
+if(marcado){
+
+const { error } = await supabase
+.from("horarios_trabalho")
+.insert([
+{
+profissional_id: profissionalLogado.id,
+dia_semana: diaSelecionado,
+horario: hora
+}
+]);
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setHorariosTrabalho([
+...horariosTrabalho,
+hora
+]);
+
+
+}else{
+
+
+const { error } = await supabase
+.from("horarios_trabalho")
+.delete()
+.eq("profissional_id", profissionalLogado.id)
+.eq("dia_semana", diaSelecionado)
+.eq("horario", hora);
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setHorariosTrabalho(
+horariosTrabalho.filter(
+(item)=> item !== hora
+)
+);
+
+
+}
+
+
+}}
+/>
+
+ {hora}
+
+
+</label>
+
+
+))}
+
+
 </div>
+
 
 </div>
 
@@ -1572,7 +1727,7 @@ if(erroBusca){
 console.log("PEDIDOS DETALHADOS:", pedidos);
 console.table(pedidos);
 
-setPedidos(data);
+setPedidos(resultado)
 
 setMensagemProfissional("Trabalho concluído!");
 await supabase
@@ -1625,7 +1780,7 @@ return;
 }
 
 
-setPedidos(data);
+setPedidos(resultado)
 
 setMensagemErroProfissional("Agendamento cancelado!");
 
