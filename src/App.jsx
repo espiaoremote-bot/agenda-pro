@@ -343,6 +343,7 @@ return;
 
 
 setDadosProfissionalCliente(data);
+console.log("TEMA DO PROFISSIONAL:", data.tema);
 
 }
 
@@ -572,11 +573,6 @@ if (error || !resultado) {
   return;
 }
 
-if (!resultado.ativo) {
-  setMensagemLogin("Este profissional está desativado.");
-  return;
-}
-
 setProfissionalLogado(resultado);
 
 setMensagemLogin("");
@@ -589,25 +585,9 @@ if (resultado.tipo === "super_admin") {
 
 setSenha("");
 
-if (!resultado.ativo) {
-  setMensagemLogin("Este profissional está desativado.");
-  return;
-}
-
-setProfissionalLogado(resultado);
-
-setMensagemLogin("");
-
-if (resultado.tipo === "super_admin") {
-  setTela("admin");
-} else {
-  setTela("profissional");
-}
-
-setSenha("");
-  }}
+}}
 >
-  Entrar
+Entrar
 </button>
 
 <button className="btn-voltar"
@@ -632,21 +612,12 @@ setSenha("");
 
 
 
-<div className={
-dadosProfissionalCliente?.tema === "masculino"
-? "cliente-topo masculino"
-: "cliente-topo feminino"
-}>
-  
-
-  <div className="cliente-icone">
+<div className="cliente-icone">
   {
     dadosProfissionalCliente?.tema === "masculino"
     ? "💈"
     : "💅"
   }
-</div>
-
   <h1>Agendar horário</h1>
 
   <p>
@@ -1185,9 +1156,9 @@ setEditarSenha("");
     💅 Feminino
   </option>
 
-  <option value="masculino">
-    💼 Masculino
-  </option>
+<option value="masculino">
+  💈 Masculino
+</option>
 </select>
 
 
@@ -1273,8 +1244,12 @@ Criar profissional
   </small>
 
         </div>
-        <h3>
-💅 Meus serviços
+<h3>
+{
+  profissionalLogado?.tema === "masculino"
+  ? "💈 Meus serviços"
+  : "💅 Meus serviços"
+}
 </h3>
 <button
 onClick={async () => {
@@ -1461,7 +1436,15 @@ Adicionar serviço
 {meusServicos.map((item) => (
   <div key={item.id} className="servico-card">
 
-    <p>👸​ {item.nome}</p>
+    <p>
+{
+profissionalLogado?.tema === "masculino"
+? "💈"
+: "💅"
+}
+{" "}
+{item.nome}
+</p>
 
     <p>
       💰 R$ {item.valor}
