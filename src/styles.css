@@ -669,3 +669,25 @@ body,
   text-align:center !important;
   border:none !important;
 }
+.cliente-topo h1 {
+  font-size: 20px !important;
+  margin: 0 !important;
+}
+
+.cliente-topo p {
+  font-size: 14px !important;
+}
+/* VOLTAR CABEÇALHO CLIENTE AO NORMAL */
+
+.cliente-icone {
+  font-size: 35px !important;
+}
+
+.cliente-icone h1 {
+  font-size: 24px !important;
+  margin: 0 !important;
+}
+
+.cliente-icone p {
+  font-size: 15px !important;
+}

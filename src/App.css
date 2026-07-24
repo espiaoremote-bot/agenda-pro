@@ -746,3 +746,41 @@ button.btn.cadastrar {
   background:white !important;
   min-height:100vh;
 }
+.cliente-topo h1 {
+  color: var(--rosa);
+  margin: 0;
+  font-size: 22px !important;
+}
+
+.cliente-topo p {
+  color: #777;
+  font-size: 14px !important;
+}
+
+.cliente-icone {
+  font-size: 30px !important;
+}
+
+.status-atendimento {
+  font-size: 14px !important;
+}
+
+.cliente-topo h1 {
+  color: var(--rosa);
+  margin: 0;
+  font-size: 22px !important;
+  font-weight: 600;
+}
+
+.cliente-topo p {
+  color: #777;
+  font-size: 14px !important;
+}
+
+.cliente-icone {
+  font-size: 30px !important;
+}
+
+.status-atendimento {
+  font-size: 14px !important;
+}
