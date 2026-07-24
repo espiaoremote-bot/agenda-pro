@@ -994,3 +994,55 @@ button {
 .btn-login {
   color: white !important;
 }
+
+/* ==========================
+   AJUSTE FINAL CORES
+========================== */
+
+
+/* BOTÕES PROFISSIONAL LOGIN */
+.btn-login,
+.btn-voltar,
+.profissional-container button,
+.login-card button {
+  background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+  color:white !important;
+  border:none !important;
+}
+
+
+/* TITULOS E TEXTOS PRETOS */
+.cliente-card h1,
+.cliente-card p,
+.login-card h1,
+.login-card p,
+.inicio-container h2,
+.inicio-container p,
+.profissional-container h2,
+.profissional-container h3,
+.profissional-container p {
+  color:#111 !important;
+}
+
+
+/* CABEÇALHO ÁREA PROFISSIONAL */
+.profissional-header,
+.profissional-header h2,
+.profissional-header p,
+.profissional-header small {
+  color:white !important;
+}
+
+
+/* CALENDÁRIO */
+.react-calendar,
+.react-calendar button,
+.react-calendar__navigation button {
+  color:#111 !important;
+}
+
+
+/* STATUS DISPONÍVEL */
+.disponivel {
+ color:#111 !important;
+}
