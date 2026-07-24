@@ -691,3 +691,31 @@ body,
 .cliente-icone p {
   font-size: 15px !important;
 }
+/* ================================
+   TEMA MASCULINO
+================================ */
+
+.profissional-container.masculino .profissional-header h2,
+.profissional-container.masculino h3 {
+  color:#2563eb;
+}
+
+
+.profissional-container.masculino button {
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+}
+
+
+.profissional-container.masculino .resumo-card h3 {
+  color:#2563eb;
+}
+
+
+.profissional-container.masculino .horario-card {
+  background:#2563eb;
+}
+
+
+.profissional-container.masculino .config-horarios {
+  border:2px solid #60a5fa;
+}
