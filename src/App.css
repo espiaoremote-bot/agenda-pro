@@ -822,16 +822,6 @@ button.btn.cadastrar {
 }
 
 
-/* botões */
-
-.masculino button,
-.masculino .btn,
-.masculino .btn-login,
-.masculino .btn-voltar {
-  background:linear-gradient(135deg,#2563eb,#1d4ed8) !important;
-  color:white !important;
-}
-
 
 /* cabeçalho */
 
@@ -845,4 +835,7 @@ button.btn.cadastrar {
 .masculino .info-agendamento p,
 .masculino .status-atendimento {
   color:#2563eb;
+}
+.titulo-profissional {
+  color: black !important;
 }
