@@ -498,7 +498,12 @@ return (
   <div>
 
 {tela === "inicio" && (
-  <div className="inicio-container">
+
+<div className={
+  profissionalLogado?.tema === "masculino"
+  ? "inicio-container masculino"
+  : "inicio-container feminino"
+}>
 
     <h2>
       Sua agenda organizada
@@ -516,7 +521,11 @@ return (
     setTela("cliente");
   }}
 >
-  💅 Sou cliente
+ {
+profissionalLogado?.tema === "masculino"
+? "💈 Sou cliente"
+: "💅 Sou cliente"
+}
 </button>
 
 <button
@@ -1221,7 +1230,13 @@ Criar profissional
 )}
 
 {tela === "profissional" && (
-  <div className="profissional-container">
+  <div 
+    className={
+      profissionalLogado?.tema === "masculino"
+      ? "profissional-container masculino"
+      : "profissional-container"
+    }
+  >
           
 <div className="profissional-header">
 
