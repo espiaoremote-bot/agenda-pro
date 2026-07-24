@@ -858,3 +858,52 @@ body,
 .profissional-container.masculino {
   background:#fff !important;
 }
+/* =================================
+   CORREÇÃO MASCULINO FINAL
+================================= */
+
+
+/* NÃO COLORIR CALENDÁRIO */
+.profissional-container.masculino .react-calendar button {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+
+/* CALENDÁRIO NORMAL */
+.profissional-container.masculino .react-calendar__tile {
+  color:#111 !important;
+}
+
+
+/* BOTÕES DA ÁREA PROFISSIONAL */
+.profissional-container.masculino > button,
+.profissional-container.masculino .btn-config-principal,
+.profissional-container.masculino .btn-config-horarios,
+.profissional-container.masculino .agenda-card button {
+  background:linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+  color:white !important;
+}
+
+
+/* LOGIN MASCULINO */
+.login-card.masculino .btn-login,
+.login-card.masculino .btn-voltar {
+  background:#2563eb !important;
+  color:white !important;
+}
+
+
+/* CLIENTE MASCULINO */
+.cliente-card.masculino button {
+  background:#2563eb !important;
+  color:white !important;
+}
+
+
+/* TEXTO PRETO */
+.profissional-container.masculino h2,
+.profissional-container.masculino h3,
+.profissional-container.masculino p {
+  color:#111 !important;
+}
