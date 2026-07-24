@@ -719,3 +719,83 @@ body,
 .profissional-container.masculino .config-horarios {
   border:2px solid #60a5fa;
 }
+/* =========================
+   TEMA MASCULINO AZUL
+========================= */
+
+
+.masculino {
+  --rosa:#2563eb;
+}
+
+
+/* textos */
+
+.masculino h1,
+.masculino h2,
+.masculino h3,
+.masculino p {
+  color:#2563eb;
+}
+
+
+/* botões */
+
+.masculino button,
+.masculino .btn-login,
+.masculino .btn-voltar {
+  background:linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+  color:white !important;
+}
+
+
+/* cards resumo */
+
+.masculino .resumo-card h3 {
+  color:#2563eb;
+}
+
+
+/* fundo */
+
+.inicio-container.masculino {
+  background:#eff6ff !important;
+}
+
+
+/* card */
+
+.inicio-container.masculino .inicio-card {
+  border:2px solid #2563eb !important;
+}
+
+/* =================================
+   TEMA MASCULINO FINAL
+================================= */
+
+
+.profissional-container.masculino .profissional-header {
+  background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+}
+
+
+.profissional-container.masculino button {
+  background: linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+  color:white !important;
+}
+
+
+.profissional-container.masculino .resumo-card h3 {
+  color:#2563eb !important;
+}
+
+
+.inicio-container.masculino {
+  background:#eff6ff !important;
+}
+
+
+.inicio-container.masculino .btn.entrar,
+.inicio-container.masculino .btn.cadastrar {
+  background:linear-gradient(135deg,#2563eb,#1d4ed8) !important;
+}
