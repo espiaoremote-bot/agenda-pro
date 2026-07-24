@@ -22,6 +22,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
+const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
 const [temaNovo, setTemaNovo] = useState("feminino");
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
@@ -323,6 +324,36 @@ useEffect(() => {
 
 useEffect(() => {
 
+async function carregarProfissionalCliente(){
+
+if(!profissionalCliente) return;
+
+
+const { data, error } = await supabase
+.from("profissionais")
+.select("*")
+.eq("id", profissionalCliente)
+.single();
+
+
+if(error){
+console.error(error);
+return;
+}
+
+
+setDadosProfissionalCliente(data);
+
+}
+
+
+carregarProfissionalCliente();
+
+
+}, [profissionalCliente]);
+
+useEffect(() => {
+
   async function carregarPedidos() {
 
 
@@ -601,11 +632,20 @@ setSenha("");
 
 
 
-<div className="cliente-topo">
+<div className={
+dadosProfissionalCliente?.tema === "masculino"
+? "cliente-topo masculino"
+: "cliente-topo feminino"
+}>
+  
 
   <div className="cliente-icone">
-    💅
-  </div>
+  {
+    dadosProfissionalCliente?.tema === "masculino"
+    ? "💈"
+    : "💅"
+  }
+</div>
 
   <h1>Agendar horário</h1>
 
