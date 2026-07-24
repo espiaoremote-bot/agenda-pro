@@ -315,10 +315,33 @@ console.log("Profissional pelo link:", profissionalIdLink);
 
 useEffect(() => {
 
-  if (profissionalIdLink) {
-    setProfissionalCliente(profissionalIdLink);
-    setTela("cliente");
-  }
+async function abrirLink(){
+
+if(!profissionalIdLink) return;
+
+
+setProfissionalCliente(profissionalIdLink);
+
+
+const {data,error}=await supabase
+.from("profissionais")
+.select("*")
+.eq("id", profissionalIdLink)
+.single();
+
+
+if(error){
+ console.error(error);
+ return;
+}
+
+
+setDadosProfissionalCliente(data);
+setTela("cliente");
+
+}
+
+abrirLink();
 
 }, []);
 
@@ -500,7 +523,7 @@ return (
 {tela === "inicio" && (
 
 <div className={
-  profissionalLogado?.tema === "masculino"
+  dadosProfissionalCliente?.tema === "masculino"
   ? "inicio-container masculino"
   : "inicio-container feminino"
 }>
@@ -521,8 +544,8 @@ return (
     setTela("cliente");
   }}
 >
- {
-profissionalLogado?.tema === "masculino"
+{
+dadosProfissionalCliente?.tema === "masculino"
 ? "💈 Sou cliente"
 : "💅 Sou cliente"
 }
@@ -540,7 +563,11 @@ profissionalLogado?.tema === "masculino"
   </div>
 )}
 {tela === "login" && (
-<div className="login-card">
+<div className={
+  profissionalLogado?.tema === "masculino"
+  ? "login-card masculino"
+  : "login-card"
+}>
 
 <div className="login-icone">
   💼
@@ -617,7 +644,11 @@ Entrar
 )}
 
 {tela === "cliente" && (
-<div className="cliente-card">
+<div className={
+ dadosProfissionalCliente?.tema === "masculino"
+ ? "cliente-card masculino"
+ : "cliente-card"
+}>
 
 
 
