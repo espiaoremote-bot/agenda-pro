@@ -907,3 +907,90 @@ body,
 .profissional-container.masculino p {
   color:#111 !important;
 }
+/* textos da área profissional */
+.profissional-container,
+.profissional-container h1,
+.profissional-container h2,
+.profissional-container p,
+.cliente-card h2,
+.cliente-card p {
+  color: black !important;
+}
+
+/* mês e navegação do calendário */
+.react-calendar__navigation button {
+  color: black !important;
+}
+
+/* dias do calendário */
+.react-calendar__tile {
+  color: black !important;
+}
+
+/* disponível */
+.disponivel {
+  color: black !important;
+}
+.dia-agendado {
+  background: #22c55e !important;
+  color: white !important;
+  border-radius: 50%;
+}
+
+.dia-cancelado {
+  background: #ef4444 !important;
+  color: white !important;
+  border-radius: 50%;
+}
+.btn-status {
+  color: black !important;
+}
+/* FORÇA TEXTOS PRINCIPAIS PRETOS */
+
+.cliente-card h1,
+.cliente-card p,
+.inicio-container h2,
+.inicio-container p,
+.profissional-header p,
+.profissional-header h2,
+.profissional-header small {
+  color: black !important;
+}
+
+
+/* Status Disponível */
+.cliente-card p {
+  color: black !important;
+}
+
+
+/* Texto do calendário */
+.react-calendar,
+.react-calendar button {
+  color: black !important;
+}
+/* TESTE FORÇADO - TODAS AS TELAS */
+body {
+  color: black !important;
+}
+
+.cliente-card,
+.cliente-card *,
+.inicio-container,
+.inicio-container *,
+.profissional-container,
+.profissional-container *,
+.login-card,
+.login-card * {
+  color: black !important;
+}
+
+
+/* mantém botões com fundo */
+button {
+  color: black;
+}
+
+.btn-login {
+  color: white !important;
+}
