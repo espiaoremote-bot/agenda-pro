@@ -1466,6 +1466,12 @@ const marcado = e.target.checked;
 
 if(marcado){
 
+setHorariosTrabalho([
+  ...horariosTrabalho,
+  hora
+]);
+
+
 const { error } = await supabase
 .from("horarios_trabalho")
 .insert([
@@ -1479,14 +1485,15 @@ horario: hora
 
 if(error){
 console.error(error);
+
+setHorariosTrabalho(
+  horariosTrabalho.filter(
+    item => item !== hora
+  )
+);
+
 return;
 }
-
-
-setHorariosTrabalho([
-...horariosTrabalho,
-hora
-]);
 
 
 }else{
