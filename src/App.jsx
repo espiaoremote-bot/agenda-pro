@@ -22,6 +22,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
+const [temaNovo, setTemaNovo] = useState("feminino");
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
 const [novoValor, setNovoValor] = useState("");
@@ -1119,25 +1120,33 @@ setEditarSenha("");
     </p>
 
 
-    <h3>Cadastrar profissional</h3>
+<input
+  placeholder="Senha"
+  type="password"
+  value={novaSenha}
+  onChange={(e) => setNovaSenha(e.target.value)}
+/>
 
-    <input
-      placeholder="Nome do profissional"
-      value={novoNome}
-      onChange={(e) => setNovoNome(e.target.value)}
-    />
+<label>
+  Tema do perfil
+</label>
+
+<select
+  value={temaNovo}
+  onChange={(e) => setTemaNovo(e.target.value)}
+>
+  <option value="feminino">
+    💅 Feminino
+  </option>
+
+  <option value="masculino">
+    💼 Masculino
+  </option>
+</select>
 
 
-    <input
-      placeholder="Senha"
-      type="password"
-      value={novaSenha}
-      onChange={(e) => setNovaSenha(e.target.value)}
-    />
-
-
-    <button
-      onClick={async () => {
+<button
+  onClick={async () => {
 
         if (!novoNome || !novaSenha) {
           alert("Preencha nome e senha");
@@ -1149,14 +1158,14 @@ setEditarSenha("");
           .from("profissionais")
           .insert([
             {
- nome: novoNome,
- senha: novaSenha,
- tipo: "profissional",
- ativo: true,
- status_atendimento: "Disponível"
-}
-          ]);
-
+          nome: novoNome,
+          senha: novaSenha,
+          tipo: "profissional",
+          ativo: true,
+          status_atendimento: "Disponível",
+          tema: temaNovo
+        }
+        ]);
 
         if (error) {
           console.error(error);
@@ -1172,14 +1181,14 @@ setEditarSenha("");
 
 setProfissionais(data);
 
-        setNovoNome("");
-        setNovaSenha("");
+setNovoNome("");
+setNovaSenha("");
+setTemaNovo("feminino");
 
-      }}
-    >
-      Criar profissional
-    </button>
-
+}}
+>
+Criar profissional
+</button>
 
     <br /><br />
 
@@ -1874,7 +1883,6 @@ await supabase
 
 
 setStatusAtendimento("Disponível");
-
 }}
 >
 ✅ Finalizar trabalho
