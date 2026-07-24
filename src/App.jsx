@@ -1271,7 +1271,7 @@ Criar profissional
           
 <div className="profissional-header">
 
-<p style={{ marginTop: "10px" }}>
+<p className="titulo-profissional">
   Área Profissional
 </p>
 
@@ -1298,6 +1298,7 @@ Criar profissional
 }
 </h3>
 <button
+className="btn-status"
 onClick={async () => {
 
 const novoStatus =
@@ -1790,6 +1791,16 @@ horariosTrabalho.filter(
 <Calendar
   onChange={setDataSelecionada}
   value={dataSelecionada}
+  tileClassName={({ date }) => {
+    const data = date.toISOString().split("T")[0];
+
+    const temAgendamento = pedidos.some(
+      (p) => p.data === data && p.status === "Agendado"
+    );
+
+    return temAgendamento ? "teste-dia" : null;
+  }}
+/>
 
 tileClassName={({ date, view }) => {
   if (view === "month") {
@@ -1819,7 +1830,7 @@ if (temCancelado) {
 
   return null;
 }}
-/>
+/
 
 {mensagemProfissional && (
   <p style={{ color: "green" }}>
