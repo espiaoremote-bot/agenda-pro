@@ -108,6 +108,13 @@ const diasSemana = [
   "sábado",
   "domingo"
 ];
+const [diaSelecionado, setDiaSelecionado] = useState("segunda");
+
+const [horariosTrabalho, setHorariosTrabalho] = useState([]);
+
+const [periodoHorario, setPeriodoHorario] = useState("todos");
+
+const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 
 const listaHorarios = [
   "00:00",
@@ -159,14 +166,91 @@ const listaHorarios = [
   "23:00",
   "23:30"
 ];
-const [diaSelecionado, setDiaSelecionado] = useState("segunda");
+const horariosFiltrados = listaHorarios.filter((hora) => {
 
-const [horariosTrabalho, setHorariosTrabalho] = useState([]);
-
-const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+  const horaNumero = parseInt(hora.split(":")[0]);
 
 
+  if (periodoHorario === "madrugada") {
+    return horaNumero >= 0 && horaNumero < 7;
+  }
 
+
+  if (periodoHorario === "manha") {
+    return horaNumero >= 7 && horaNumero < 12;
+  }
+
+
+  if (periodoHorario === "tarde") {
+    return horaNumero >= 12 && horaNumero < 18;
+  }
+
+
+  if (periodoHorario === "noite") {
+    return horaNumero >= 18 && horaNumero <= 23;
+  }
+
+
+  return true;
+
+});
+async function marcarPeriodo(periodo){
+
+let horariosParaMarcar = listaHorarios.filter((hora)=>{
+
+const h = parseInt(hora.split(":")[0]);
+
+if(periodo === "madrugada")
+return h >= 0 && h < 7;
+
+if(periodo === "manha")
+return h >= 7 && h < 12;
+
+if(periodo === "tarde")
+return h >= 12 && h < 18;
+
+if(periodo === "noite")
+return h >= 18 && h <= 23;
+
+return true;
+
+});
+
+
+const novosHorarios = horariosParaMarcar.filter(
+  (hora) => !horariosTrabalho.includes(hora)
+);
+
+
+if(novosHorarios.length > 0){
+
+const { error } = await supabase
+.from("horarios_trabalho")
+.insert(
+novosHorarios.map((hora)=>({
+  profissional_id: profissionalLogado.id,
+  dia_semana: diaSelecionado,
+  horario: hora
+}))
+);
+
+
+if(error){
+console.error(error);
+return;
+}
+
+}
+
+
+setHorariosTrabalho([
+...new Set([
+...horariosTrabalho,
+...horariosParaMarcar
+])
+]);
+
+}
 useEffect(() => {
 
 async function carregarHorariosCliente(){
@@ -473,16 +557,16 @@ if (resultado.tipo === "super_admin") {
 
 setSenha("");
 
-if (!data.ativo) {
+if (!resultado.ativo) {
   setMensagemLogin("Este profissional está desativado.");
   return;
 }
 
-setProfissionalLogado(data);
+setProfissionalLogado(resultado);
 
 setMensagemLogin("");
 
-if (data.tipo === "super_admin") {
+if (resultado.tipo === "super_admin") {
   setTela("admin");
 } else {
   setTela("profissional");
@@ -850,7 +934,7 @@ pedido.status === "Agendado" && pedido.horario_liberado === false
       return;
     }
 
-   setProfissionais(data)
+   setProfissionais(resultado);
     const { count } = await supabase
   .from("agendamentos")
   .select("*", { count: "exact", head: true });
@@ -912,7 +996,7 @@ setTotalAgendamentos(count);
       .from("profissionais")
       .select("*");
 
-    setProfissionais(resultado)
+    setProfissionais(data);
 
   }}
 >
@@ -1010,7 +1094,7 @@ setTotalAgendamentos(count);
       .from("profissionais")
       .select("*");
 
-    setProfissionais(resultado)
+   setProfissionais(data);
 
     setProfissionalEditando(null);
 
@@ -1086,7 +1170,7 @@ setEditarSenha("");
 .from("profissionais")
 .select("*");
 
-setProfissionais(resultado)
+setProfissionais(data);
 
         setNovoNome("");
         setNovaSenha("");
@@ -1268,9 +1352,9 @@ setNovaDuracao(e.target.value)
 <button
 onClick={async () => {
 
-if(!novoServico){
-alert("Digite o nome do serviço");
-return;
+if (!novoServico.trim()) {
+  alert("Digite o nome do serviço.");
+  return;
 }
 
 
@@ -1278,11 +1362,11 @@ const { error } = await supabase
 .from("servicos")
 .insert([
 {
-nome: novoServico,
-valor: novoValor,
-duracao: novaDuracao,
-profissional_id: profissionalLogado.id,
-ativo:true
+  nome: novoServico,
+  valor: novoValor || null,
+  duracao: novaDuracao || null,
+  profissional_id: profissionalLogado.id,
+  ativo: true
 }
 ]);
 
@@ -1322,7 +1406,7 @@ Adicionar serviço
 {meusServicos.map((item) => (
   <div key={item.id} className="servico-card">
 
-    <p>💅 {item.nome}</p>
+    <p>👸​ {item.nome}</p>
 
     <p>
       💰 R$ {item.valor}
@@ -1443,11 +1527,55 @@ value={dia}
 
 <h4>Escolha os horários:</h4>
 
+<div style={{
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginBottom: "15px"
+}}>
+
+<button 
+onClick={() => setPeriodoHorario("todos")}
+onDoubleClick={() => marcarPeriodo("todos")}
+>
+📋 Todos
+</button>
+
+<button 
+onClick={() => setPeriodoHorario("madrugada")}
+onDoubleClick={() => marcarPeriodo("madrugada")}
+>
+🌙 Madrugada
+</button>
+
+<button 
+onClick={() => setPeriodoHorario("manha")}
+onDoubleClick={() => marcarPeriodo("manha")}
+>
+☀️ Manhã
+</button>
+
+<button 
+onClick={() => setPeriodoHorario("tarde")}
+onDoubleClick={() => marcarPeriodo("tarde")}
+>
+🌇 Tarde
+</button>
+
+<button 
+onClick={() => setPeriodoHorario("noite")}
+onDoubleClick={() => marcarPeriodo("noite")}
+>
+🌃 Noite
+</button>
+
+</div>
+
 
 <div>
 
 
-{listaHorarios.map((hora)=>(
+{horariosFiltrados.map((hora) => (
 
 
 <label 
@@ -1734,7 +1862,7 @@ if(erroBusca){
 console.log("PEDIDOS DETALHADOS:", pedidos);
 console.table(pedidos);
 
-setPedidos(resultado)
+setPedidos(data);
 
 setMensagemProfissional("Trabalho concluído!");
 await supabase
@@ -1787,7 +1915,7 @@ return;
 }
 
 
-setPedidos(resultado)
+setPedidos(data);
 
 setMensagemErroProfissional("Agendamento cancelado!");
 
