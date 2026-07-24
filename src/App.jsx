@@ -1161,6 +1161,12 @@ setEditarSenha("");
 
 
 <input
+  placeholder="Nome do profissional"
+  value={novoNome}
+  onChange={(e) => setNovoNome(e.target.value)}
+/>
+
+<input
   placeholder="Senha"
   type="password"
   value={novaSenha}
