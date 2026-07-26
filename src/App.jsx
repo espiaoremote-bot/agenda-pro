@@ -62,6 +62,8 @@ const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
+const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+
 useEffect(() => {
 
 async function carregarHorariosProfissional(){
@@ -116,7 +118,13 @@ const [horariosTrabalho, setHorariosTrabalho] = useState([]);
 
 const [periodoHorario, setPeriodoHorario] = useState("todos");
 
-const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+
+const [horariosCliente, setHorariosCliente] = useState([]);
+const tema = 
+dadosProfissionalCliente?.tema === "masculino"
+? "masculino"
+: "feminino";
+
 
 const listaHorarios = [
   "00:00",
@@ -253,6 +261,24 @@ setHorariosTrabalho([
 ]);
 
 }
+const horariosOcupados = pedidos
+  .filter((item) => {
+
+    if (item.data !== data) return false;
+
+    // continua bloqueando agendamentos ativos
+if (
+  item.status === "Agendado" &&
+  item.horario_liberado !== true
+) {
+  return true;
+}
+
+    return false;
+
+  })
+  .map((item) => item.horario);
+
 useEffect(() => {
 
 async function carregarHorariosCliente(){
@@ -292,7 +318,15 @@ return;
 }
 
 
-const hoje = new Date().toLocaleDateString("sv-SE");
+const hojeData = new Date();
+
+const hoje = 
+hojeData.getFullYear() +
+"-" +
+String(hojeData.getMonth()+1).padStart(2,"0") +
+"-" +
+String(hojeData.getDate()).padStart(2,"0");
+
 const agora = new Date();
 
 const horariosDisponiveisFiltrados = horarios
@@ -300,8 +334,7 @@ const horariosDisponiveisFiltrados = horarios
   .filter(hora => !horariosOcupados.includes(hora))
   .filter(hora => {
 
-    // Se a data escolhida não é hoje,
-    // mostra todos os horários.
+    // Se não for hoje, mantém todos
     if (data !== hoje) {
       return true;
     }
@@ -311,18 +344,23 @@ const horariosDisponiveisFiltrados = horarios
     const horaAtual = agora.getHours();
     const minutoAtual = agora.getMinutes();
 
-    // Esconde todos os horários que já passaram.
-    if (
-      horaSlot < horaAtual ||
-      (horaSlot === horaAtual && minutoSlot <= minutoAtual)
-    ) {
-      return false;
-    }
+    // Bloqueia horários que já passaram
+if (
+  horaSlot < horaAtual ||
+  (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+) {
+  return false;
+}
 
     return true;
   });
 
-setHorariosDisponiveis(horariosDisponiveisFiltrados);
+console.log("DATA ESCOLHIDA:", data);
+console.log("DIA SEMANA:", diaSemana);
+console.log("HORÁRIOS DO BANCO:", horarios);
+console.log("HORÁRIOS LIVRES:", horariosDisponiveisFiltrados);
+
+setHorariosCliente(horariosDisponiveisFiltrados);
 
 
 }
@@ -331,13 +369,16 @@ setHorariosDisponiveis(horariosDisponiveisFiltrados);
 carregarHorariosCliente();
 
 
-}, [profissionalCliente, data]);
+}, [profissionalCliente, data, pedidos]);
 
 const params = new URLSearchParams(window.location.search);
 
+console.log("URL COMPLETA:", window.location.href);
+console.log("PARAMETRO PROFISSIONAL:", params.get("profissional"));
+
 const profissionalIdLink = Number(params.get("profissional"));
 
-console.log("Profissional pelo link:", profissionalIdLink);
+console.log("ID FINAL:", profissionalIdLink);
 
 useEffect(() => {
 
@@ -369,6 +410,11 @@ return;
 
 
 setDadosProfissionalCliente(data);
+
+setStatusAtendimento(
+  data.status_atendimento || "Disponível"
+);
+
 console.log("TEMA DO PROFISSIONAL:", data.tema);
 
 }
@@ -387,10 +433,43 @@ useEffect(() => {
     const idProfissional = profissionalLogado?.id || profissionalCliente;
 
 
-    if (!idProfissional) {
-      console.log("SEM PROFISSIONAL AINDA");
-      return;
-    }
+if (!profissionalLogado && !profissionalCliente) {
+  console.log("SEM PROFISSIONAL AINDA");
+  return;
+}
+
+const agora = new Date();
+
+const { data: agendamentosVencidos } = await supabase
+  .from("agendamentos")
+  .select("*")
+  .eq("profissional_id", idProfissional)
+  .eq("status", "Agendado");
+
+for (const agendamento of agendamentosVencidos || []) {
+
+  console.log("AGENDAMENTO:", agendamento);
+
+  const dataHoraAgendamento = new Date(
+    `${agendamento.data}T${agendamento.horario}:00`
+  );
+
+  console.log("Agora:", agora);
+  console.log("Data do agendamento:", dataHoraAgendamento);
+  console.log("Passou?", dataHoraAgendamento < agora);
+
+  if (dataHoraAgendamento < agora) {
+    
+
+await supabase
+  .from("agendamentos")
+  .update({
+    status: "Expirado"
+  })
+  .eq("id", agendamento.id);
+
+  }
+}
 
 
     const { data: resultado, error } = await supabase
@@ -461,26 +540,6 @@ useEffect(() => {
   carregarMeusServicos();
 
 }, [profissionalLogado]);
-
-
-const horariosOcupados = pedidos
-  .filter((item) => {
-
-    if (item.data !== data) return false;
-
-    // continua bloqueando agendamentos ativos
-if (
-  item.status === "Agendado" &&
-  item.horario_liberado !== true
-) {
-  return true;
-}
-
-    return false;
-
-  })
-  .map((item) => item.horario);
-
 
 console.log("Horários ocupados:", horariosOcupados);
 console.log("PEDIDOS DETALHADOS:", pedidos);
@@ -760,7 +819,7 @@ value={item.nome}
     Escolha o horário
   </option>
 
-{horariosDisponiveis.map((hora) => (
+{horariosCliente.map((hora) => (
 
 <option
   key={hora}
@@ -774,6 +833,9 @@ value={item.nome}
 </select>
 
 <button
+style={{
+  backgroundColor: tema === "masculino" ? "blue" : "red"
+}}
 onClick={async () => {
 
   
@@ -786,10 +848,29 @@ if (!nome || !whatsapp || !servico || !data || !horario) {
   return;
 }
 
-const hoje = new Date().toLocaleDateString("sv-SE");
+const hojeData = new Date();
+
+const hoje = 
+hojeData.getFullYear() +
+"-" +
+String(hojeData.getMonth() + 1).padStart(2,"0") +
+"-" +
+String(hojeData.getDate()).padStart(2,"0");
 
 if (data < hoje) {
   setMensagem("Não é possível agendar uma data que já passou.");
+  setTipoMensagem("erro");
+  return;
+}
+
+const agora = new Date();
+
+const dataHoraEscolhida = new Date(
+  `${data}T${horario}:00`
+);
+
+if (dataHoraEscolhida < agora) {
+  setMensagem("Esse horário já passou.");
   setTipoMensagem("erro");
   return;
 }
@@ -1846,6 +1927,8 @@ pedido.status === "Agendado"
 ? "🟢 Agendado"
 : pedido.status === "Cancelado"
 ? "🔴 Cancelado"
+: pedido.status === "Expirado"
+? "⏰ Expirado"
 : "✅ Concluído"
 }
 
