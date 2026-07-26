@@ -292,11 +292,37 @@ return;
 }
 
 
-setHorariosDisponiveis(
-  horarios
+const hoje = new Date().toLocaleDateString("sv-SE");
+const agora = new Date();
+
+const horariosDisponiveisFiltrados = horarios
   .map(item => item.horario)
   .filter(hora => !horariosOcupados.includes(hora))
-);
+  .filter(hora => {
+
+    // Se a data escolhida não é hoje,
+    // mostra todos os horários.
+    if (data !== hoje) {
+      return true;
+    }
+
+    const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+
+    const horaAtual = agora.getHours();
+    const minutoAtual = agora.getMinutes();
+
+    // Esconde todos os horários que já passaram.
+    if (
+      horaSlot < horaAtual ||
+      (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+setHorariosDisponiveis(horariosDisponiveisFiltrados);
 
 
 }
