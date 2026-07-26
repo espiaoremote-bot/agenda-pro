@@ -178,7 +178,7 @@ body {
 .btn.entrar,
 .btn.cadastrar,
 .btn-voltar {
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
   color:white !important;
   border:none !important;
   border-radius:12px;
@@ -204,7 +204,7 @@ button.btn.cadastrar:hover {
 button.btn.entrar,
 button.btn.cadastrar {
   width:100%;
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
   color:white !important;
   border:none !important;
   padding:12px !important;
@@ -216,7 +216,7 @@ button.btn.cadastrar {
 
 button.btn.entrar:hover,
 button.btn.cadastrar:hover {
-  background: linear-gradient(135deg,#db2777,#ec4899) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
 }
 
 
@@ -227,7 +227,7 @@ button.btn.cadastrar:hover {
 
 .btn-login {
   width:100%;
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
   color:white !important;
   border:none !important;
   padding:12px;
@@ -238,7 +238,7 @@ button.btn.cadastrar:hover {
 
 
 .btn-login:hover {
-  background: linear-gradient(135deg,#db2777,#ec4899) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
 }
 
 
@@ -258,7 +258,7 @@ button.btn.cadastrar:hover {
 ==== */
 
 .profissional-container > div:first-child {
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
   color: white !important;
 }
 .inicio-card {
@@ -306,7 +306,7 @@ button.btn.cadastrar:hover {
 
 /* ÁREA PROFISSIONAL */
 .profissional-header {
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
   color: white !important;
   padding: 25px;
   border-radius: 22px;
@@ -396,7 +396,7 @@ body,
   justify-content:center !important;
   align-items:center !important;
   padding:20px !important;
-  background:linear-gradient(180deg,#fce7f3,#fff) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
 }
 
 
@@ -475,14 +475,14 @@ body,
 
 .btn.entrar {
 
-  background:linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
 
 }
 
 
 .btn.cadastrar {
 
-  background:linear-gradient(135deg,#f472b6,#be185d) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
 
 }
 
@@ -676,4 +676,14 @@ body,
 
 .cliente-icone p {
   font-size: 15px;
+}
+.tema-masculino .btn,
+.tema-masculino button {
+  background: #2563eb;
+  color: white;
+}
+
+.tema-masculino .btn:hover,
+.tema-masculino button:hover {
+  background: #1d4ed8;
 }

@@ -464,7 +464,7 @@ button {
 
 button.btn.entrar,
 button.btn.cadastrar {
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg,#ec4899,#db2777);
   color:white !important;
 }
 /* ================================
