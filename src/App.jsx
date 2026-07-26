@@ -438,40 +438,6 @@ if (!profissionalLogado && !profissionalCliente) {
   return;
 }
 
-const agora = new Date();
-
-const { data: agendamentosVencidos } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", idProfissional)
-  .eq("status", "Agendado");
-
-for (const agendamento of agendamentosVencidos || []) {
-
-  console.log("AGENDAMENTO:", agendamento);
-
-  const dataHoraAgendamento = new Date(
-    `${agendamento.data}T${agendamento.horario}:00`
-  );
-
-  console.log("Agora:", agora);
-  console.log("Data do agendamento:", dataHoraAgendamento);
-  console.log("Passou?", dataHoraAgendamento < agora);
-
-  if (dataHoraAgendamento < agora) {
-    
-
-await supabase
-  .from("agendamentos")
-  .update({
-    status: "Expirado"
-  })
-  .eq("id", agendamento.id);
-
-  }
-}
-
-
     const { data: resultado, error } = await supabase
       .from("agendamentos")
       .select("*")
@@ -1927,8 +1893,6 @@ pedido.status === "Agendado"
 ? "🟢 Agendado"
 : pedido.status === "Cancelado"
 ? "🔴 Cancelado"
-: pedido.status === "Expirado"
-? "⏰ Expirado"
 : "✅ Concluído"
 }
 
