@@ -2092,6 +2092,16 @@ setMensagemErroProfissional("Agendamento cancelado!");
   </div>
 )}
 
+<footer className="rodape">
+  <p>
+    © 2026 Agenda Pro - Todos os direitos reservados.
+  </p>
+
+  <p>
+    Sistema de agendamentos desenvolvido por Dário Júnior
+  </p>
+</footer>
+
   </div>
 );
 }
