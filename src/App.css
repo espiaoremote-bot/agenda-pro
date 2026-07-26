@@ -746,3 +746,21 @@ button.btn.cadastrar {
   background:white !important;
   min-height:100vh;
 }
+.cliente-card.masculino button {
+  background: #2563eb;
+  color: white;
+}
+
+.cliente-card.feminino button {
+  background: #ec4899;
+  color: white;
+}
+.cliente-card.masculino button {
+  background: #2563eb;
+  color: white;
+}
+
+.cliente-card.feminino button {
+  background: #ec4899;
+  color: white;
+}
