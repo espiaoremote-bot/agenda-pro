@@ -764,3 +764,11 @@ button.btn.cadastrar {
   background: #ec4899;
   color: white;
 }
+.tema-masculino .btn,
+.tema-masculino button,
+.tema-masculino .btn-login,
+.tema-masculino .btn-voltar {
+  background: #2563eb !important;
+  color: white !important;
+  border: none !important;
+}
