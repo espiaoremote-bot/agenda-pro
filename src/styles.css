@@ -669,3 +669,11 @@ body,
   text-align:center !important;
   border:none !important;
 }
+.cliente-icone h1 {
+  font-size: 26px;
+  margin: 10px 0;
+}
+
+.cliente-icone p {
+  font-size: 15px;
+}
