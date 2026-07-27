@@ -15,6 +15,7 @@ console.log("ESTOU NO APP JSX CERTO");
 
 function App() {
   const [tela, setTela] = useState("inicio");
+  const [carregandoProfissional, setCarregandoProfissional] = useState(false);
 const [iconeProfissional, setIconeProfissional] = useState("")
 const [senha, setSenha] = useState("");
   console.log("APP ESTÁ RODANDO");
@@ -395,6 +396,8 @@ async function carregarProfissionalCliente(){
 
 if(!profissionalCliente) return;
 
+setCarregandoProfissional(true);
+
 
 const { data, error } = await supabase
 .from("profissionais")
@@ -416,15 +419,16 @@ if (!data.ativo) {
 setDadosProfissionalCliente(data);
 
 setIconeProfissional(
-  data.icone || "💅"
+  data.icone || ""
 );
 
 setStatusAtendimento(
   data.status_atendimento || "Disponível"
 );
 
-console.log("TEMA DO PROFISSIONAL:", data.tema);
+setCarregandoProfissional(false);
 
+console.log("TEMA DO PROFISSIONAL:", data.tema);
 }
 
 
@@ -671,6 +675,11 @@ Entrar
 )}
 
 {tela === "cliente" && (
+carregandoProfissional ? (
+  <div className="cliente-card">
+    <h2>Carregando...</h2>
+  </div>
+) : (
 <div className="cliente-card">
 
 
@@ -965,6 +974,7 @@ pedido.status === "Agendado" && pedido.horario_liberado === false
 </button>
 
 </div>
+)
 )}
 {tela === "admin" && (
   <div className="admin-area">
