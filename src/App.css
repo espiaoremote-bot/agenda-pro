@@ -207,7 +207,7 @@ body,
   padding:9px;
   border:none;
   border-radius:10px;
-  background:linear-gradient(135deg,#ec4899,#db2777);
+  background: var(--cor-principal);
   color:white;
   cursor:pointer;
   font-size:14px;
@@ -244,7 +244,7 @@ body,
 
 
 .resumo-card h3 {
-  color:#db2777;
+  color:var(--cor-principal);
 }
 
 
@@ -464,7 +464,7 @@ button {
 
 button.btn.entrar,
 button.btn.cadastrar {
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: var(--cor-principal);
   color:white !important;
 }
 /* ================================
@@ -472,7 +472,7 @@ button.btn.cadastrar {
 ================================ */
 
 .card {
-  border: 2px solid #db2777;
+  border: 2px var(--cor-principal);
   border-radius: 22px;
   padding: 30px;
   background:white;
@@ -696,7 +696,7 @@ button.btn.cadastrar {
 .btn.entrar,
 .btn.cadastrar {
 
-  background:linear-gradient(135deg,#ec4899,#db2777);
+  background: var(--cor-principal);
 
   color:white;
 
@@ -713,11 +713,11 @@ button.btn.cadastrar {
 }
 
 .inicio-card {
-  border: 2px solid #db2777 !important;
+  border: 2px var(--cor-principal);
   border-radius: 22px;
 }
 .inicio-card {
-  border: 2px solid #db2777 !important;
+  border: 2px var(--cor-principal);
   border-radius: 22px !important;
 }
 
