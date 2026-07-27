@@ -15,7 +15,7 @@ console.log("ESTOU NO APP JSX CERTO");
 
 function App() {
   const [tela, setTela] = useState("inicio");
-const [iconeProfissional, setIconeProfissional] = useState("💅");
+const [iconeProfissional, setIconeProfissional] = useState("")
 const [senha, setSenha] = useState("");
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
