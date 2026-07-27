@@ -1333,7 +1333,8 @@ Criar profissional
 )}
 
 {tela === "profissional" && (
-  <div className="profissional-container">
+
+<div className={`profissional-container perfil-${profissionalLogado?.cor_perfil}`}>
           
 <div className="profissional-header">
 
