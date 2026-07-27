@@ -17,7 +17,7 @@ function App() {
   const [tela, setTela] = useState("inicio");
   const [carregandoProfissional, setCarregandoProfissional] = useState(false);
 const [iconeProfissional, setIconeProfissional] = useState("")
-const [corPerfil, setCorPerfil] = useState(null);
+const [corPerfil, setCorPerfil] = useState("rosa");
 const [senha, setSenha] = useState("");
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
@@ -660,8 +660,8 @@ setProfissionalLogado({
  cor_perfil: resultado.cor_perfil
 });
 
-setCorPerfil(resultado.cor_perfil);
-setIconeProfissional(resultado.icone || "");
+setCorPerfil(resultado.cor_perfil || "rosa");
+setIconeProfissional(resultado.icone || "💅");
 
 setMensagemLogin("");
 
@@ -1300,7 +1300,7 @@ setEditarSenha("");
  ativo:true,
  status_atendimento:"Disponível",
  tema:temaNovo,
- cor_perfil:""
+ cor_perfil:"rosa"
 }
         ]);
 
@@ -1498,7 +1498,7 @@ alert("Ícone atualizado!");
 
 }}
 >
-Salvar ícone
+Salvar aparência
 </button>
 
 

@@ -130,7 +130,7 @@ body,
 
 
 .cliente-topo h1 {
-  color:var(--rosa);
+  color:var(--cor-principal);
   margin:0;
   font-size:24px;
 }
