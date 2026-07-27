@@ -407,7 +407,11 @@ if(error){
 console.error(error);
 return;
 }
-
+if (!data.ativo) {
+  alert("Este profissional está indisponível.");
+  setTela("inicio");
+  return;
+}
 
 setDadosProfissionalCliente(data);
 
@@ -621,6 +625,10 @@ console.log("ERRO LOGIN:", error);
 
 if (error || !resultado) {
   setMensagemLogin("Senha incorreta!");
+  return;
+}
+if (!resultado.ativo) {
+  setMensagemLogin("Este perfil está desativado.");
   return;
 }
 
