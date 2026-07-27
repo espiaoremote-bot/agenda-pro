@@ -408,6 +408,9 @@ const { data, error } = await supabase
 .eq("id", profissionalCliente)
 .single();
 
+console.log("PROFISSIONAL COMPLETO:", data);
+console.log("COR RECEBIDA:", data?.cor_perfil);
+
 
 if(error){
 console.error(error);
@@ -420,7 +423,7 @@ if (!data.ativo) {
 }
 
 setDadosProfissionalCliente(data);
-
+console.log("DADOS COMPLETOS PROFISSIONAL:", data);
 setIconeProfissional(
   data.icone || ""
 );
@@ -435,8 +438,11 @@ setStatusAtendimento(
 
 setCarregandoProfissional(false);
 
+console.log("DADOS COMPLETOS PROFISSIONAL:", data);
+console.log("COR DO PROFISSIONAL:", data.cor_perfil);
 console.log("TEMA DO PROFISSIONAL:", data.tema);
 }
+
 
 
 carregarProfissionalCliente();
