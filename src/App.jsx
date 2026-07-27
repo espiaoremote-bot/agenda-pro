@@ -126,6 +126,8 @@ const tema =
 dadosProfissionalCliente?.tema === "masculino"
 ? "masculino"
 : "feminino";
+const corCliente =
+dadosProfissionalCliente?.cor_perfil || "rosa";
 
 
 const listaHorarios = [
@@ -579,7 +581,19 @@ return (
 <div className="inicio-botoes">
 
 <button
-  className="btn entrar"
+className="btn entrar"
+style={{
+backgroundColor:
+corCliente === "azul"
+? "#2563eb"
+: corCliente === "verde"
+? "#16a34a"
+: corCliente === "laranja"
+? "#f97316"
+: corCliente === "cinza"
+? "#64748b"
+: "#ec4899"
+}}
   onClick={() => {
     setTela("cliente");
   }}
@@ -588,7 +602,8 @@ return (
 </button>
 
 <button
-  className="btn cadastrar"
+className="btn cadastrar"
+style={{ backgroundColor: corPerfil }}
   onClick={() => setTela("login")}
 >
   💼 Sou profissional
@@ -827,15 +842,15 @@ value={item.nome}
 <button
 style={{
 backgroundColor:
-corPerfil === "azul"
+corCliente === "azul"
 ? "#2563eb"
-: corPerfil === "verde"
+: corCliente === "verde"
 ? "#16a34a"
-: corPerfil === "laranja"
+: corCliente === "laranja"
 ? "#f97316"
-: corPerfil === "cinza"
+: corCliente === "cinza"
 ? "#64748b"
-:"#ec4899"
+: "#ec4899"
 }}
 onClick={async () => {
 
@@ -939,7 +954,7 @@ if (error) {
 setPedido(pedidoSalvo);
 
 setPedidos([
-  ...pedidos,
+ ...pedidos,
   pedidoSalvo
 ]);
 
@@ -1476,8 +1491,9 @@ if(error){
 
 
 setProfissionalLogado({
- ...profissionalLogado,
- icone: iconeProfissional
+   ...profissionalLogado,
+   icone: iconeProfissional,
+   cor_perfil: corPerfil
 });
 
 
