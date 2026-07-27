@@ -17,6 +17,7 @@ function App() {
   const [tela, setTela] = useState("inicio");
   const [carregandoProfissional, setCarregandoProfissional] = useState(false);
 const [iconeProfissional, setIconeProfissional] = useState("")
+const [corPerfil, setCorPerfil] = useState("rosa");
 const [senha, setSenha] = useState("");
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
@@ -422,6 +423,10 @@ setIconeProfissional(
   data.icone || ""
 );
 
+setCorPerfil(
+ data.cor_perfil || "rosa"
+);
+
 setStatusAtendimento(
   data.status_atendimento || "Disponível"
 );
@@ -676,11 +681,15 @@ Entrar
 
 {tela === "cliente" && (
 carregandoProfissional ? (
-  <div className="cliente-card">
+<div 
+className={`cliente-card perfil-${dadosProfissionalCliente?.cor_perfil}`}
+>
     <h2>Carregando...</h2>
   </div>
 ) : (
-<div className="cliente-card">
+<div 
+className={`cliente-card perfil-${dadosProfissionalCliente?.cor_perfil}`}
+>
 
 
 
@@ -817,7 +826,16 @@ value={item.nome}
 
 <button
 style={{
-  backgroundColor: tema === "masculino" ? "blue" : "red"
+backgroundColor:
+corPerfil === "azul"
+? "#2563eb"
+: corPerfil === "verde"
+? "#16a34a"
+: corPerfil === "laranja"
+? "#f97316"
+: corPerfil === "cinza"
+? "#64748b"
+:"#ec4899"
 }}
 onClick={async () => {
 
@@ -1395,7 +1413,34 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
 <h3>Escolha o ícone do perfil</h3>
 
+<h3>Escolha a cor do perfil</h3>
 
+<select
+value={corPerfil}
+onChange={(e)=>setCorPerfil(e.target.value)}
+>
+
+<option value="rosa">
+🌸 Rosa
+</option>
+
+<option value="azul">
+💈 Azul
+</option>
+
+<option value="verde">
+🌿 Verde
+</option>
+
+<option value="laranja">
+🧡 Laranja
+</option>
+
+<option value="cinza">
+⚫ Cinza
+</option>
+
+</select>
 
 <div className="config-servicos">
 
@@ -1418,7 +1463,8 @@ onClick={async()=>{
 const { error } = await supabase
 .from("profissionais")
 .update({
-  icone: iconeProfissional
+  icone: iconeProfissional,
+  cor_perfil: corPerfil
 })
 .eq("id", profissionalLogado.id);
 
