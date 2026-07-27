@@ -76,7 +76,7 @@ body,
 
 .btn-login {
   width:100%;
-  background:linear-gradient(135deg,#ec4899,#db2777);
+    background: var(--cor-principal);
   color:white;
   border:none;
   padding:12px;
@@ -89,7 +89,7 @@ body,
 .btn-voltar {
   width:100%;
   margin-top:12px;
-  background:linear-gradient(135deg,#ec4899,#db2777);
+    background: var(--cor-principal);
   color:white;
   border:none;
   padding:12px;
@@ -745,4 +745,22 @@ button.btn.cadastrar {
 .admin-area {
   background:white !important;
   min-height:100vh;
+}
+.perfil-azul {
+--cor-principal:#2563eb;
+}
+
+.perfil-verde {
+--cor-principal:#16a34a;
+}
+
+.perfil-laranja {
+--cor-principal:#f97316;
+}
+
+.perfil-cinza {
+--cor-principal:#64748b;
+}
+.cliente-card button {
+background:var(--cor-principal);
 }

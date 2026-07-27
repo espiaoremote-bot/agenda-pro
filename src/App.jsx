@@ -17,7 +17,7 @@ function App() {
   const [tela, setTela] = useState("inicio");
   const [carregandoProfissional, setCarregandoProfissional] = useState(false);
 const [iconeProfissional, setIconeProfissional] = useState("")
-const [corPerfil, setCorPerfil] = useState("rosa");
+const [corPerfil, setCorPerfil] = useState(null);
 const [senha, setSenha] = useState("");
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
@@ -25,7 +25,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
-const [temaNovo, setTemaNovo] = useState("feminino");
+const [temaNovo, setTemaNovo] = useState("");
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
 const [novoValor, setNovoValor] = useState("");
@@ -126,8 +126,7 @@ const tema =
 dadosProfissionalCliente?.tema === "masculino"
 ? "masculino"
 : "feminino";
-const corCliente =
-dadosProfissionalCliente?.cor_perfil || "rosa";
+const corCliente = dadosProfissionalCliente?.cor_perfil;
 
 
 const listaHorarios = [
@@ -428,9 +427,7 @@ setIconeProfissional(
   data.icone || ""
 );
 
-setCorPerfil(
- data.cor_perfil || "rosa"
-);
+setCorPerfil(data.cor_perfil);
 
 setStatusAtendimento(
   data.status_atendimento || "Disponível"
@@ -588,18 +585,6 @@ return (
 
 <button
 className="btn entrar"
-style={{
-backgroundColor:
-corCliente === "azul"
-? "#2563eb"
-: corCliente === "verde"
-? "#16a34a"
-: corCliente === "laranja"
-? "#f97316"
-: corCliente === "cinza"
-? "#64748b"
-: "#ec4899"
-}}
   onClick={() => {
     setTela("cliente");
   }}
@@ -666,7 +651,14 @@ if (!resultado.ativo) {
   return;
 }
 
-setProfissionalLogado(resultado);
+setProfissionalLogado({
+ ...resultado,
+ icone: resultado.icone,
+ cor_perfil: resultado.cor_perfil
+});
+
+setCorPerfil(resultado.cor_perfil);
+setIconeProfissional(resultado.icone || "");
 
 setMensagemLogin("");
 
@@ -846,18 +838,7 @@ value={item.nome}
 </select>
 
 <button
-style={{
-backgroundColor:
-corCliente === "azul"
-? "#2563eb"
-: corCliente === "verde"
-? "#16a34a"
-: corCliente === "laranja"
-? "#f97316"
-: corCliente === "cinza"
-? "#64748b"
-: "#ec4899"
-}}
+className="btn-principal"
 onClick={async () => {
 
   
@@ -1304,14 +1285,15 @@ setEditarSenha("");
         const { error } = await supabase
           .from("profissionais")
           .insert([
-            {
-          nome: novoNome,
-          senha: novaSenha,
-          tipo: "profissional",
-          ativo: true,
-          status_atendimento: "Disponível",
-          tema: temaNovo
-        }
+        {
+ nome: novoNome,
+ senha: novaSenha,
+ tipo:"profissional",
+ ativo:true,
+ status_atendimento:"Disponível",
+ tema:temaNovo,
+ cor_perfil:""
+}
         ]);
 
         if (error) {
