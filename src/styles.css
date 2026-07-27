@@ -711,26 +711,33 @@ body,
   opacity: 0.6;
   font-size: 14px;
 }
-.perfil-rosa{
-background:#ec4899;
+/* BOTÕES DO PERFIL */
+
+.cliente-card.azul button {
+  background: #2563eb;
+  color: white;
 }
 
 
-.perfil-azul{
-background:#2563eb;
+.cliente-card.verde button {
+  background: #16a34a;
+  color: white;
 }
 
 
-.perfil-verde{
-background:#16a34a;
+.cliente-card.laranja button {
+  background: #f97316;
+  color: white;
 }
 
 
-.perfil-laranja{
-background:#f97316;
+.cliente-card.cinza button {
+  background: #6b7280;
+  color: white;
 }
 
 
-.perfil-cinza{
-background:#64748b;
+.cliente-card.rosa button {
+  background: #ec4899;
+  color: white;
 }
