@@ -15,7 +15,7 @@ console.log("ESTOU NO APP JSX CERTO");
 
 function App() {
   const [tela, setTela] = useState("inicio");
-
+const [iconeProfissional, setIconeProfissional] = useState("💅");
 const [senha, setSenha] = useState("");
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
@@ -415,6 +415,10 @@ if (!data.ativo) {
 
 setDadosProfissionalCliente(data);
 
+setIconeProfissional(
+  data.icone || "💅"
+);
+
 setStatusAtendimento(
   data.status_atendimento || "Disponível"
 );
@@ -571,7 +575,7 @@ return (
     setTela("cliente");
   }}
 >
-  💅 Sou cliente
+  {iconeProfissional} Sou cliente
 </button>
 
 <button
@@ -672,13 +676,9 @@ Entrar
 
 
 <div className="cliente-icone">
-  {
-    dadosProfissionalCliente?.tema === "masculino"
-    ? "💈"
-    : "💅"
-  }
-  <h1>Agendar horário</h1>
+{iconeProfissional}
 
+<h1>Agendar horário</h1>
   <p>
     Escolha o melhor horário para você
   </p>
@@ -1326,11 +1326,7 @@ Criar profissional
 
         </div>
 <h3>
-{
-  profissionalLogado?.tema === "masculino"
-  ? "💈 Meus serviços"
-  : "💅 Meus serviços"
-}
+{iconeProfissional} Meus serviços
 </h3>
 <button
 onClick={async () => {
@@ -1387,7 +1383,54 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 {mostrarConfiguracoes && (
 <div>
 
+<h3>Escolha o ícone do perfil</h3>
+
+
+
 <div className="config-servicos">
+
+  <select
+  value={iconeProfissional}
+  onChange={(e) => setIconeProfissional(e.target.value)}
+>
+  <option value="💅">💅</option>
+  <option value="💇">💇</option>
+  <option value="💈">💈</option>
+  <option value="🐶">🐶</option>
+  <option value="🎂">🎂</option>
+  <option value="🧁">🧁</option>
+  <option value="🍰">🍰</option>
+</select>
+
+<button
+onClick={async()=>{
+
+const { error } = await supabase
+.from("profissionais")
+.update({
+  icone: iconeProfissional
+})
+.eq("id", profissionalLogado.id);
+
+
+if(error){
+ console.error(error);
+ return;
+}
+
+
+setProfissionalLogado({
+ ...profissionalLogado,
+ icone: iconeProfissional
+});
+
+
+alert("Ícone atualizado!");
+
+}}
+>
+Salvar ícone
+</button>
 
 
 
@@ -1518,11 +1561,7 @@ Adicionar serviço
   <div key={item.id} className="servico-card">
 
     <p>
-{
-profissionalLogado?.tema === "masculino"
-? "💈"
-: "💅"
-}
+{iconeProfissional}
 {" "}
 {item.nome}
 </p>
