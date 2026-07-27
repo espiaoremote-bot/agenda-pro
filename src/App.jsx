@@ -571,7 +571,7 @@ return (
   <div>
 
 {tela === "inicio" && (
-  <div className="inicio-container">
+  <div className={`inicio-container perfil-${corPerfil}`}>
 
     <h2>
       Sua agenda organizada
@@ -585,6 +585,7 @@ return (
 
 <button
 className="btn entrar"
+style={{backgroundColor: `var(--cor-principal)`}}
   onClick={() => {
     setTela("cliente");
   }}
@@ -594,7 +595,7 @@ className="btn entrar"
 
 <button
 className="btn cadastrar"
-style={{ backgroundColor: corPerfil }}
+style={{backgroundColor:"var(--cor-principal)"}}
   onClick={() => setTela("login")}
 >
   💼 Sou profissional
@@ -605,7 +606,7 @@ style={{ backgroundColor: corPerfil }}
   </div>
 )}
 {tela === "login" && (
-<div className="login-card">
+<div className={`login-card perfil-${corPerfil}`}>
 
 <div className="login-icone">
   💼
@@ -629,7 +630,9 @@ style={{ backgroundColor: corPerfil }}
   onChange={(e) => setSenha(e.target.value)}
 />
 
-<button className="btn-login"
+<button 
+className="btn-login"
+style={{backgroundColor:"var(--cor-principal)"}}
 onClick={async () => {
 
 const { data: resultado, error } = await supabase
@@ -675,7 +678,12 @@ setSenha("");
 Entrar
 </button>
 
-<button className="btn-voltar"
+<button 
+className="btn-voltar"
+style={{
+borderColor:"var(--cor-principal)",
+color:"var(--cor-principal)"
+}}
   onClick={async () => {
    setMensagemLogin("");
     setTela("inicio");
