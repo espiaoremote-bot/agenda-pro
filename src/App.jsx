@@ -47,6 +47,22 @@ const themeOptions = [
     background: "#f3e8ff",
     border: "#d8b4fe",
   },
+  {
+    value: "cinza",
+    label: "Cinza",
+    primary: "#374151",
+    secondary: "#6b7280",
+    background: "#f3f4f6",
+    border: "#9ca3af",
+  },
+  {
+    value: "preto",
+    label: "Preto",
+    primary: "#0f172a",
+    secondary: "#334155",
+    background: "#eef2f7",
+    border: "#94a3b8",
+  },
 ];
 
 function getThemeConfig(value) {
