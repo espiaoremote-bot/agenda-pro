@@ -582,7 +582,7 @@ body,
   flex-direction:column !important;
   justify-content:flex-start !important;
   align-items:center !important;
-  padding:24px 16px 16px !important;
+  padding:24px 0 16px !important;
 }
 
 .inicio-card {
