@@ -538,6 +538,27 @@ body,
   background-color: #e6e6e6 !important;
 }
 
+/* Restaura o destaque do dia selecionado, do dia de hoje e do hover,
+   que eram apagados pela regra ".react-calendar button" acima */
+.react-calendar button.react-calendar__tile--active,
+.react-calendar button.react-calendar__tile--hasActive {
+  background: var(--cor-secundaria) !important;
+  color: white !important;
+  border-radius: 8px;
+}
+
+.react-calendar button.react-calendar__tile--now {
+  background: var(--cor-borda) !important;
+  color: inherit !important;
+  border-radius: 8px;
+}
+
+.react-calendar button.react-calendar__tile:enabled:hover {
+  background: var(--cor-borda) !important;
+  color: inherit !important;
+  border-radius: 8px;
+}
+
 
 
 /* =====================================
