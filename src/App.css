@@ -3,12 +3,14 @@
 ===================================== */
 
 :root {
-  --azul: #2563eb;
-  --azul-escuro: #1d4ed8;
-  --rosa: #db2777;
-  --fundo: #f8fafc;
+  --cor-primaria: #db2777;
+  --cor-secundaria: #ec4899;
+  --cor-borda: #fbcfe8;
+  --fundo: #fff5fa;
   --branco: #ffffff;
-  --texto: #333;
+  --texto: #333333;
+  --texto-secundario: #555555;
+  --sombra: rgba(0,0,0,0.10);
 }
 
 body,
@@ -76,7 +78,7 @@ body,
 
 .btn-login {
   width:100%;
-  background:linear-gradient(135deg,#ec4899,#db2777);
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
   color:white;
   border:none;
   padding:12px;
@@ -89,7 +91,7 @@ body,
 .btn-voltar {
   width:100%;
   margin-top:12px;
-  background:linear-gradient(135deg,#ec4899,#db2777);
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
   color:white;
   border:none;
   padding:12px;
@@ -130,7 +132,7 @@ body,
 
 
 .cliente-topo h1 {
-  color:var(--rosa);
+  color: var(--cor-primaria);
   margin:0;
   font-size:24px;
 }
@@ -200,6 +202,40 @@ body,
   background:#fafafa;
 }
 
+.tema-configuracao {
+  margin-top:16px;
+}
+
+.tema-configuracao label {
+  display:block;
+  margin-bottom:8px;
+  font-weight:bold;
+  color: var(--texto);
+}
+
+.tema-configuracao > div {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+
+.tema-configuracao select {
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  background:white;
+  color:var(--texto);
+}
+
+.tema-configuracao button {
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color:white;
+  cursor:pointer;
+}
 
 .cliente-card button {
   width:100%;
@@ -207,7 +243,7 @@ body,
   padding:9px;
   border:none;
   border-radius:10px;
-  background:linear-gradient(135deg,#ec4899,#db2777);
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
   color:white;
   cursor:pointer;
   font-size:14px;
@@ -244,7 +280,7 @@ body,
 
 
 .resumo-card h3 {
-  color:#db2777;
+  color: var(--cor-primaria);
 }
 
 
@@ -260,6 +296,10 @@ body,
   text-align:left;
 }
 
+
+.profissional-card h3 {
+  color: var(--cor-primaria);
+}
 
 .profissional-info {
   text-align:left;
@@ -327,6 +367,22 @@ body,
   border-radius:25px;
   text-align:center;
   margin-bottom:30px;
+}
+
+.profissional-header {
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  padding: 25px;
+  border-radius: 22px;
+  margin-bottom: 25px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.profissional-header h2,
+.profissional-header p,
+.profissional-header small {
+  color: white;
 }
 
 .admin-card {
@@ -464,7 +520,7 @@ button {
 
 button.btn.entrar,
 button.btn.cadastrar {
-  background: linear-gradient(135deg,#ec4899,#db2777) !important;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria)) !important;
   color:white !important;
 }
 /* ================================
@@ -472,7 +528,7 @@ button.btn.cadastrar {
 ================================ */
 
 .card {
-  border: 2px solid #db2777;
+  border: 2px solid var(--cor-primaria);
   border-radius: 22px;
   padding: 30px;
   background:white;
@@ -696,7 +752,7 @@ button.btn.cadastrar {
 .btn.entrar,
 .btn.cadastrar {
 
-  background:linear-gradient(135deg,#ec4899,#db2777);
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
 
   color:white;
 
@@ -713,11 +769,11 @@ button.btn.cadastrar {
 }
 
 .inicio-card {
-  border: 2px solid #db2777 !important;
+  border: 2px solid var(--cor-primaria) !important;
   border-radius: 22px;
 }
 .inicio-card {
-  border: 2px solid #db2777 !important;
+  border: 2px solid var(--cor-primaria) !important;
   border-radius: 22px !important;
 }
 
@@ -728,7 +784,7 @@ button.btn.cadastrar {
   display:flex !important;
   justify-content:center !important;
   align-items:center !important;
-  background:#fff5fa !important;
+  background: var(--fundo) !important;
 }
 
 

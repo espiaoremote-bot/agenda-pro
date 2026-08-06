@@ -4,7 +4,54 @@ import "react-calendar/dist/Calendar.css";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 import "./App.css";
-import "./styles.css";
+
+// Temas disponíveis para profissionais e para os clientes verem no agendamento.
+const themeOptions = [
+  {
+    value: "feminino",
+    label: "Rosa",
+    primary: "#db2777",
+    secondary: "#ec4899",
+    background: "#fff5fa",
+    border: "#fbcfe8",
+  },
+  {
+    value: "masculino",
+    label: "Azul",
+    primary: "#2563eb",
+    secondary: "#1d4ed8",
+    background: "#eff6ff",
+    border: "#93c5fd",
+  },
+  {
+    value: "verde",
+    label: "Verde",
+    primary: "#16a34a",
+    secondary: "#22c55e",
+    background: "#ecfdf5",
+    border: "#86efac",
+  },
+  {
+    value: "laranja",
+    label: "Laranja",
+    primary: "#f97316",
+    secondary: "#fb923c",
+    background: "#fff7ed",
+    border: "#fed7aa",
+  },
+  {
+    value: "roxo",
+    label: "Roxo",
+    primary: "#8b5cf6",
+    secondary: "#a78bfa",
+    background: "#f3e8ff",
+    border: "#d8b4fe",
+  },
+];
+
+function getThemeConfig(value) {
+  return themeOptions.find((item) => item.value === value) || themeOptions[0];
+}
 
 
 console.log("ESTOU NO ARQUIVO CERTO 999");
@@ -57,12 +104,24 @@ const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
+
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
 
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
 
+const [temaSelecionado, setTemaSelecionado] = useState("feminino");
+
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+
+const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
+const temaConfig = getThemeConfig(temaAtivo);
+const appStyles = {
+  "--cor-primaria": temaConfig.primary,
+  "--cor-secundaria": temaConfig.secondary,
+  "--fundo": temaConfig.background,
+  "--cor-borda": temaConfig.border,
+};
 
 useEffect(() => {
 
@@ -430,6 +489,12 @@ carregarProfissionalCliente();
 }, [profissionalCliente]);
 
 useEffect(() => {
+if (profissionalLogado?.tema) {
+  setTemaSelecionado(profissionalLogado.tema);
+}
+}, [profissionalLogado]);
+
+useEffect(() => {
 
   async function carregarPedidos() {
 
@@ -550,7 +615,7 @@ const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
 return (
-  <div>
+  <div style={appStyles}>
 
 {tela === "inicio" && (
   <div className="inicio-container">
@@ -633,6 +698,7 @@ if (!resultado.ativo) {
 }
 
 setProfissionalLogado(resultado);
+setTemaSelecionado(resultado.tema || "feminino");
 
 setMensagemLogin("");
 
@@ -808,7 +874,7 @@ value={item.nome}
 
 <button
 style={{
-  backgroundColor: tema === "masculino" ? "blue" : "red"
+  backgroundColor: temaConfig.primary,
 }}
 onClick={async () => {
 
@@ -1233,13 +1299,11 @@ setEditarSenha("");
   value={temaNovo}
   onChange={(e) => setTemaNovo(e.target.value)}
 >
-  <option value="feminino">
-    💅 Feminino
-  </option>
-
-<option value="masculino">
-  💈 Masculino
-</option>
+  {themeOptions.map((tema) => (
+    <option key={tema.value} value={tema.value}>
+      {tema.label}
+    </option>
+  ))}
 </select>
 
 
@@ -1395,7 +1459,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 style={{
 padding:"12px",
 marginLeft:"10px",
-background:"#2563eb",
+background: temaConfig.primary,
 color:"white",
 border:"none",
 borderRadius:"12px",
@@ -1413,6 +1477,49 @@ alert("Link copiado!");
 >
 📋 Copiar link
 </button>
+
+<div className="tema-configuracao">
+  <label>Cor do perfil</label>
+  <div>
+    <select
+      value={temaSelecionado}
+      onChange={(e) => setTemaSelecionado(e.target.value)}
+    >
+      {themeOptions.map((tema) => (
+        <option key={tema.value} value={tema.value}>
+          {tema.label}
+        </option>
+      ))}
+    </select>
+    <button
+      onClick={async () => {
+        if (!profissionalLogado?.id) return;
+
+        const { error } = await supabase
+          .from("profissionais")
+          .update({ tema: temaSelecionado })
+          .eq("id", profissionalLogado.id);
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao salvar a cor do perfil.");
+          return;
+        }
+
+        setProfissionalLogado({
+          ...profissionalLogado,
+          tema: temaSelecionado,
+        });
+
+        setMensagemProfissional(
+          `Cor atualizada para ${themeOptions.find((item) => item.value === temaSelecionado)?.label || "tema"}!`
+        );
+      }}
+    >
+      Salvar cor
+    </button>
+  </div>
+</div>
 
 <button
 onClick={() => {
