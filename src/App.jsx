@@ -124,6 +124,14 @@ const appStyles = {
 };
 
 useEffect(() => {
+  const root = document.documentElement;
+  root.style.setProperty("--cor-primaria", temaConfig.primary);
+  root.style.setProperty("--cor-secundaria", temaConfig.secondary);
+  root.style.setProperty("--fundo", temaConfig.background);
+  root.style.setProperty("--cor-borda", temaConfig.border);
+}, [temaConfig]);
+
+useEffect(() => {
 
 async function carregarHorariosProfissional(){
 

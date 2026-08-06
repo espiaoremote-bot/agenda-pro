@@ -437,6 +437,10 @@ body,
 
 button {
   transition:0.3s;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 
 
