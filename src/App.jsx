@@ -745,12 +745,14 @@ Entrar
 
 
 
-<div className="cliente-topo cliente-icone">
-  {
-    dadosProfissionalCliente?.tema === "masculino"
-    ? "💈"
-    : "💅"
-  }
+<div className="cliente-topo">
+  <div className="cliente-icone">
+    {
+      dadosProfissionalCliente?.tema === "masculino"
+      ? "💈"
+      : "💅"
+    }
+  </div>
   <h1>Agendar horário</h1>
 
   <p>
@@ -759,15 +761,15 @@ Entrar
 
   {console.log("PROFISSIONAL CLIENTE:", profissionalCliente)}
 
-<p>
-{
-statusAtendimento === "Ocupado"
-?
-"🔴 Ocupado"
-:
-"🟢 Disponível"
-}
-</p>
+  <p className="status-text">
+    {
+    statusAtendimento === "Ocupado"
+    ?
+    "🔴 Ocupado"
+    :
+    "🟢 Disponível"
+    }
+  </p>
 </div>
 
 
