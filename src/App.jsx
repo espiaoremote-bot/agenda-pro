@@ -1052,18 +1052,6 @@ Enviar pedido
     </p>
     <p>Data: {pedido.data}</p>
     <p>Horário: {pedido.horario}</p>
-<p>
-Status:
-
-{
-pedido.status === "Agendado" && pedido.horario_liberado === false
-? "🔴 Em atendimento"
-: pedido.status === "Cancelado"
-? "🔴 Cancelado"
-: "🟢 Disponível"
-}
-
-</p>
 </div>
 )}
 
