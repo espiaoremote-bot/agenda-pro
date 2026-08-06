@@ -402,7 +402,7 @@ body,
 }
 
 .admin-header {
-  background:linear-gradient(135deg,var(--azul),var(--azul-escuro));
+  background:linear-gradient(135deg,var(--cor-secundaria),var(--cor-primaria));
   color:white;
   padding:35px;
   border-radius:25px;

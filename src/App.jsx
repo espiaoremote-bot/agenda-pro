@@ -1098,6 +1098,48 @@ pedido.status === "Agendado" && pedido.horario_liberado === false
       </small>
 
     </div>
+
+    <div className="tema-configuracao">
+      <label>Cor do perfil</label>
+      <div>
+        <select
+          value={temaSelecionado}
+          onChange={(e) => setTemaSelecionado(e.target.value)}
+        >
+          {themeOptions.map((tema) => (
+            <option key={tema.value} value={tema.value}>
+              {tema.label}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={async () => {
+            if (!profissionalLogado?.id) return;
+
+            const { error } = await supabase
+              .from("profissionais")
+              .update({ tema: temaSelecionado })
+              .eq("id", profissionalLogado.id);
+
+            if (error) {
+              console.error(error);
+              alert("Erro ao salvar a cor do perfil.");
+              return;
+            }
+
+            setProfissionalLogado({
+              ...profissionalLogado,
+              tema: temaSelecionado,
+            });
+
+            alert(`Cor atualizada para ${themeOptions.find((item) => item.value === temaSelecionado)?.label || "tema"}!`);
+          }}
+        >
+          Salvar cor
+        </button>
+      </div>
+    </div>
+
     <h3>Profissionais cadastrados</h3>
     <div className="resumo-dashboard">
 
