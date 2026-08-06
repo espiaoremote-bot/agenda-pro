@@ -744,13 +744,10 @@ button.btn.cadastrar {
   display:flex;
   justify-content:flex-start;
   align-items:center;
-  padding:50px 16px 24px;
+  padding: 50px 16px 24px;
   background: var(--fundo);
 }
 
-.inicio-card {
-  margin: 0 auto !important;
-}
 
 .inicio-container h2 {
   margin-top: 0;
@@ -881,14 +878,16 @@ button.btn.cadastrar {
 
 .login-card,
 .inicio-card {
-  width:90% !important;
-  max-width:400px !important;
-  background:white !important;
-  padding:40px 30px !important;
-  border-radius:22px !important;
-  box-shadow:0 15px 35px rgba(0,0,0,0.10) !important;
-  text-align:center !important;
-  border:none !important;
+  width: min(100%, 400px);
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 30px;
+  box-sizing: border-box;
+  background: white;
+  border: none;
+  border-radius: 22px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.10);
+  text-align: center;
 }
 
 .admin-area {
