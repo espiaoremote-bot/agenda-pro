@@ -646,7 +646,7 @@ return (
 
 {tela === "inicio" && (
   <div className="inicio-container">
-    <div className="inicio-card">
+    <div className="login-card inicio-card">
       <h2>
         Sua agenda organizada
         <br />
