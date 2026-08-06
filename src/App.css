@@ -267,6 +267,8 @@ body,
   width:90%;
   max-width:1000px;
   margin:30px auto;
+  padding-top: 20px;
+  padding-bottom: 60px;
 }
 .profissional-container .react-calendar {
   margin:20px auto;
@@ -738,9 +740,9 @@ button.btn.cadastrar {
 .inicio-container {
   min-height:100vh;
   display:flex;
-  justify-content:center;
+  justify-content:flex-start;
   align-items:center;
-  padding:20px;
+  padding:40px 20px 20px;
   background:#f8fafc;
 }
 
