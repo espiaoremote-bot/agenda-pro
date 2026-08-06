@@ -903,7 +903,7 @@ onChange={(e) => {
 key={item.id}
 value={item.nome}
 >
-  {iconeAtivo} {item.nome} - {item.duracao}
+  {iconeAtivo} {item.nome}{item.duracao ? ` - ⏰ ${item.duracao}` : ""}{item.valor ? ` - 💰 R$ ${item.valor}` : ""}
 </option>
     ))
   }
