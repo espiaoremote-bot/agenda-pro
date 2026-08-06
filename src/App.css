@@ -616,14 +616,26 @@ body,
     padding-bottom: 40px;
   }
 
+  .app-content {
+    padding-bottom: 90px;
+  }
+
   .rodape {
-    margin-top: 30px;
-    padding: 24px 12px max(60px, env(safe-area-inset-bottom));
-    line-height: 1.6;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    margin-top: 0;
+    padding: 10px 12px max(14px, env(safe-area-inset-bottom));
+    line-height: 1.5;
+    background: var(--branco);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.12);
   }
 
   .rodape p {
-    margin: 4px 0;
+    margin: 2px 0;
+    font-size: 13px;
   }
 
 
