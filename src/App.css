@@ -470,6 +470,22 @@ body,
   margin-left:3px;
 }
 
+/* Nas cores Cinza, Preto, Verde e Azul, o marcador do calendário vira ✔
+   (verde se agendado, vermelho se cancelado) */
+.cor-masculina .dia-agendado::after {
+  content:"✔";
+  color:green;
+  font-size:10px;
+  margin-left:3px;
+}
+
+.cor-masculina .dia-cancelado::after {
+  content:"✔";
+  color:red;
+  font-size:10px;
+  margin-left:3px;
+}
+
 
 
 /* =====================================

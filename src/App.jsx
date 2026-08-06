@@ -660,7 +660,7 @@ const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
 return (
-  <div style={appStyles} className="app-wrapper">
+  <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
     <div className="app-content">
 
 {tela === "inicio" && (
@@ -1027,7 +1027,7 @@ setPedidos([
   pedidoSalvo
 ]);
 
-setMensagem("Agendamento realizado com sucesso! ❤️");
+setMensagem(["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "Agendamento realizado com sucesso! ✔️" : "Agendamento realizado com sucesso! ❤️");
 setTipoMensagem("sucesso");
 setMensagemProfissional("Novo pedido recebido!");
 setMensagemErroProfissional("");
