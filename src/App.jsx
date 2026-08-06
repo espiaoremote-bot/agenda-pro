@@ -134,6 +134,9 @@ const appStyles = {
   "--cor-secundaria": temaConfig.secondary,
   "--fundo": temaConfig.background,
   "--cor-borda": temaConfig.border,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "100vh",
 };
 
 const iconeAtivo = profissionalLogado?.icone || dadosProfissionalCliente?.icone || (temaAtivo === "masculino" ? "💈" : "💅");
@@ -638,39 +641,40 @@ const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
 return (
-  <div style={appStyles}>
+  <div style={appStyles} className="app-wrapper">
+    <div className="app-content">
 
 {tela === "inicio" && (
   <div className="inicio-container">
+    <div className="inicio-card">
+      <h2>
+        Sua agenda organizada
+        <br />
+        de forma simples e rápida
+      </h2>
 
-    <h2>
-      Sua agenda organizada
-      <br />
-      de forma simples e rápida
-    </h2>
+      <p>Escolha como deseja entrar:</p>
 
-<p>Escolha como deseja entrar:</p>
+      <div className="inicio-botoes">
 
-<div className="inicio-botoes">
+        <button
+          className="btn entrar"
+          onClick={() => {
+            setTela("cliente");
+          }}
+        >
+          {iconeAtivo} Sou cliente
+        </button>
 
-<button
-  className="btn entrar"
-  onClick={() => {
-    setTela("cliente");
-  }}
->
-  {iconeAtivo} Sou cliente
-</button>
+        <button
+          className="btn cadastrar"
+          onClick={() => setTela("login")}
+        >
+          💼 Sou profissional
+        </button>
 
-<button
-  className="btn cadastrar"
-  onClick={() => setTela("login")}
->
-  💼 Sou profissional
-</button>
-
-</div>
-
+      </div>
+    </div>
   </div>
 )}
 {tela === "login" && (
@@ -2224,15 +2228,16 @@ setMensagemErroProfissional("Agendamento cancelado!");
   </div>
 )}
 
-<footer className="rodape">
-  <p>
-    © 2026 Agenda Pro - Todos os direitos reservados.
-  </p>
+    </div>
+    <footer className="rodape">
+      <p>
+        © 2026 Agenda Pro - Todos os direitos reservados.
+      </p>
 
-  <p>
-    Sistema de agendamentos desenvolvido por Dário Júnior
-  </p>
-</footer>
+      <p>
+        Sistema de agendamentos desenvolvido por Dário Júnior
+      </p>
+    </footer>
 
   </div>
 );

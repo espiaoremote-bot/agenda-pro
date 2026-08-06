@@ -542,7 +542,7 @@ body,
   flex-direction:column !important;
   justify-content:flex-start !important;
   align-items:center !important;
-  padding:16px 16px 16px !important;
+  padding:40px 16px 20px !important;
 }
 
 .inicio-botoes {
@@ -769,21 +769,24 @@ button.btn.cadastrar {
 
 
 .inicio-card {
-
   width:90%;
   max-width:420px;
-
+  margin:0 auto;
   background:white;
-
-  padding:40px 30px;
-
-  border-radius:30px;
-
+  padding:30px;
+  border-radius:22px;
   text-align:center;
+  box-shadow:0 15px 35px rgba(0,0,0,0.12);
+}
 
-  box-shadow:
-  0 15px 35px rgba(0,0,0,0.12);
+.app-wrapper {
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
 
+.app-content {
+  flex:1;
 }
 
 
