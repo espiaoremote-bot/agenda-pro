@@ -1399,7 +1399,7 @@ Criar profissional
 </p>
 
 <h2>
-  {profissionalLogado?.icone || (profissionalLogado?.tema === "masculino" ? "💈" : "💅")} Olá, {profissionalLogado?.nome} 👋
+  Olá, {profissionalLogado?.nome} 👋
 </h2>
 <div style={{marginTop:"20px"}}>
 
