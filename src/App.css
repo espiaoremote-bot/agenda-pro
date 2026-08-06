@@ -544,7 +544,11 @@ body,
   flex-direction:column !important;
   justify-content:flex-start !important;
   align-items:center !important;
-  padding:40px 16px 20px !important;
+  padding:24px 16px 16px !important;
+}
+
+.inicio-card {
+  margin: 16px auto 0 !important;
 }
 
 .inicio-botoes {
@@ -740,8 +744,12 @@ button.btn.cadastrar {
   display:flex;
   justify-content:center;
   align-items:center;
-  padding:20px;
+  padding:24px 16px 24px;
   background:#f8fafc;
+}
+
+.inicio-card {
+  margin: 24px auto 0;
 }
 
 .inicio-container h2 {
