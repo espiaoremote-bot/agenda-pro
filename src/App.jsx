@@ -4,9 +4,68 @@ import "react-calendar/dist/Calendar.css";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 import "./App.css";
-import "./styles.css";
 
+// Temas disponíveis para profissionais e para os clientes verem no agendamento.
+const themeOptions = [
+  {
+    value: "feminino",
+    label: "Rosa",
+    primary: "#db2777",
+    secondary: "#ec4899",
+    background: "#fff5fa",
+    border: "#fbcfe8",
+  },
+  {
+    value: "masculino",
+    label: "Azul",
+    primary: "#2563eb",
+    secondary: "#1d4ed8",
+    background: "#eff6ff",
+    border: "#93c5fd",
+  },
+  {
+    value: "verde",
+    label: "Verde",
+    primary: "#16a34a",
+    secondary: "#22c55e",
+    background: "#ecfdf5",
+    border: "#86efac",
+  },
+  {
+    value: "laranja",
+    label: "Laranja",
+    primary: "#f97316",
+    secondary: "#fb923c",
+    background: "#fff7ed",
+    border: "#fed7aa",
+  },
+  {
+    value: "roxo",
+    label: "Roxo",
+    primary: "#8b5cf6",
+    secondary: "#a78bfa",
+    background: "#f3e8ff",
+    border: "#d8b4fe",
+  },
+];
 
+function getThemeConfig(value) {
+  return themeOptions.find((item) => item.value === value) || themeOptions[0];
+}
+
+const iconOptions = [
+  { value: "🎂", label: "Bolo" },
+  { value: "🍰", label: "Bolo de fatia" },
+  { value: "🧁", label: "Cupcake" },
+  { value: "💇", label: "Cabelo" },
+  { value: "💈", label: "Barbearia" },
+  { value: "💅", label: "Beleza" },
+  { value: "🐶", label: "Pets" },
+  { value: "💄", label: "Maquiagem" },
+  { value: "🐾", label: "Pet" },
+  { value: "🩺", label: "Saúde" },
+];
+ 
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
@@ -57,11 +116,39 @@ const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
 const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
+
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
-
+ 
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
-
+ 
+const [temaSelecionado, setTemaSelecionado] = useState("feminino");
+const [iconeSelecionado, setIconeSelecionado] = useState("💅");
+ 
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
+const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+
+const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
+const temaConfig = getThemeConfig(temaAtivo);
+const appStyles = {
+  "--cor-primaria": temaConfig.primary,
+  "--cor-secundaria": temaConfig.secondary,
+  "--fundo": temaConfig.background,
+  "--cor-borda": temaConfig.border,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "100vh",
+};
+
+const iconeAtivo = profissionalLogado?.icone || dadosProfissionalCliente?.icone || (temaAtivo === "masculino" ? "💈" : "💅");
+
+useEffect(() => {
+  const root = document.documentElement;
+  root.style.setProperty("--cor-primaria", temaConfig.primary);
+  root.style.setProperty("--cor-secundaria", temaConfig.secondary);
+  root.style.setProperty("--fundo", temaConfig.background);
+  root.style.setProperty("--cor-borda", temaConfig.border);
+}, [temaConfig]);
+
 useEffect(() => {
 
 async function carregarHorariosProfissional(){
@@ -116,7 +203,13 @@ const [horariosTrabalho, setHorariosTrabalho] = useState([]);
 
 const [periodoHorario, setPeriodoHorario] = useState("todos");
 
-const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+
+const [horariosCliente, setHorariosCliente] = useState([]);
+const tema = 
+dadosProfissionalCliente?.tema === "masculino"
+? "masculino"
+: "feminino";
+
 
 const listaHorarios = [
   "00:00",
@@ -253,6 +346,24 @@ setHorariosTrabalho([
 ]);
 
 }
+const horariosOcupados = pedidos
+  .filter((item) => {
+
+    if (item.data !== data) return false;
+
+    // continua bloqueando agendamentos ativos
+if (
+  item.status === "Agendado" &&
+  item.horario_liberado !== true
+) {
+  return true;
+}
+
+    return false;
+
+  })
+  .map((item) => item.horario);
+
 useEffect(() => {
 
 async function carregarHorariosCliente(){
@@ -292,11 +403,49 @@ return;
 }
 
 
-setHorariosDisponiveis(
-  horarios
+const hojeData = new Date();
+
+const hoje = 
+hojeData.getFullYear() +
+"-" +
+String(hojeData.getMonth()+1).padStart(2,"0") +
+"-" +
+String(hojeData.getDate()).padStart(2,"0");
+
+const agora = new Date();
+
+const horariosDisponiveisFiltrados = horarios
   .map(item => item.horario)
   .filter(hora => !horariosOcupados.includes(hora))
-);
+  .filter(hora => {
+
+    // Se não for hoje, mantém todos
+    if (data !== hoje) {
+      return true;
+    }
+
+    const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+
+    const horaAtual = agora.getHours();
+    const minutoAtual = agora.getMinutes();
+
+    // Bloqueia horários que já passaram
+if (
+  horaSlot < horaAtual ||
+  (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+) {
+  return false;
+}
+
+    return true;
+  });
+
+console.log("DATA ESCOLHIDA:", data);
+console.log("DIA SEMANA:", diaSemana);
+console.log("HORÁRIOS DO BANCO:", horarios);
+console.log("HORÁRIOS LIVRES:", horariosDisponiveisFiltrados);
+
+setHorariosCliente(horariosDisponiveisFiltrados);
 
 
 }
@@ -305,43 +454,23 @@ setHorariosDisponiveis(
 carregarHorariosCliente();
 
 
-}, [profissionalCliente, data]);
+}, [profissionalCliente, data, pedidos]);
 
 const params = new URLSearchParams(window.location.search);
 
+console.log("URL COMPLETA:", window.location.href);
+console.log("PARAMETRO PROFISSIONAL:", params.get("profissional"));
+
 const profissionalIdLink = Number(params.get("profissional"));
 
-console.log("Profissional pelo link:", profissionalIdLink);
+console.log("ID FINAL:", profissionalIdLink);
 
 useEffect(() => {
 
-async function abrirLink(){
-
-if(!profissionalIdLink) return;
-
-
-setProfissionalCliente(profissionalIdLink);
-
-
-const {data,error}=await supabase
-.from("profissionais")
-.select("*")
-.eq("id", profissionalIdLink)
-.single();
-
-
-if(error){
- console.error(error);
- return;
-}
-
-
-setDadosProfissionalCliente(data);
-setTela("cliente");
-
-}
-
-abrirLink();
+  if (profissionalIdLink) {
+    setProfissionalCliente(profissionalIdLink);
+    setTela("cliente");
+  }
 
 }, []);
 
@@ -363,9 +492,18 @@ if(error){
 console.error(error);
 return;
 }
-
+if (!data.ativo) {
+  alert("Este profissional está indisponível.");
+  setTela("inicio");
+  return;
+}
 
 setDadosProfissionalCliente(data);
+
+setStatusAtendimento(
+  data.status_atendimento || "Disponível"
+);
+
 console.log("TEMA DO PROFISSIONAL:", data.tema);
 
 }
@@ -377,6 +515,12 @@ carregarProfissionalCliente();
 }, [profissionalCliente]);
 
 useEffect(() => {
+if (profissionalLogado?.tema) {
+  setTemaSelecionado(profissionalLogado.tema);
+}
+}, [profissionalLogado]);
+
+useEffect(() => {
 
   async function carregarPedidos() {
 
@@ -384,11 +528,10 @@ useEffect(() => {
     const idProfissional = profissionalLogado?.id || profissionalCliente;
 
 
-    if (!idProfissional) {
-      console.log("SEM PROFISSIONAL AINDA");
-      return;
-    }
-
+if (!profissionalLogado && !profissionalCliente) {
+  console.log("SEM PROFISSIONAL AINDA");
+  return;
+}
 
     const { data: resultado, error } = await supabase
       .from("agendamentos")
@@ -459,26 +602,6 @@ useEffect(() => {
 
 }, [profissionalLogado]);
 
-
-const horariosOcupados = pedidos
-  .filter((item) => {
-
-    if (item.data !== data) return false;
-
-    // continua bloqueando agendamentos ativos
-if (
-  item.status === "Agendado" &&
-  item.horario_liberado !== true
-) {
-  return true;
-}
-
-    return false;
-
-  })
-  .map((item) => item.horario);
-
-
 console.log("Horários ocupados:", horariosOcupados);
 console.log("PEDIDOS DETALHADOS:", pedidos);
 async function carregarHorariosTrabalho(){
@@ -518,56 +641,44 @@ const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
 return (
-  <div>
+  <div style={appStyles} className="app-wrapper">
+    <div className="app-content">
 
 {tela === "inicio" && (
+  <div className="inicio-container">
+    <div className="login-card inicio-card">
+      <h2>
+        Sua agenda organizada
+        <br />
+        de forma simples e rápida
+      </h2>
 
-<div className={
-  dadosProfissionalCliente?.tema === "masculino"
-  ? "inicio-container masculino"
-  : "inicio-container feminino"
-}>
+      <p>Escolha como deseja entrar:</p>
 
-    <h2>
-      Sua agenda organizada
-      <br />
-      de forma simples e rápida
-    </h2>
+      <div className="inicio-botoes">
 
-<p>Escolha como deseja entrar:</p>
+        <button
+          className="btn entrar"
+          onClick={() => {
+            setTela("cliente");
+          }}
+        >
+          {iconeAtivo} Sou cliente
+        </button>
 
-<div className="inicio-botoes">
+        <button
+          className="btn cadastrar"
+          onClick={() => setTela("login")}
+        >
+          💼 Sou profissional
+        </button>
 
-<button
-  className="btn entrar"
-  onClick={() => {
-    setTela("cliente");
-  }}
->
-{
-dadosProfissionalCliente?.tema === "masculino"
-? "💈 Sou cliente"
-: "💅 Sou cliente"
-}
-</button>
-
-<button
-  className="btn cadastrar"
-  onClick={() => setTela("login")}
->
-  💼 Sou profissional
-</button>
-
-</div>
-
+      </div>
+    </div>
   </div>
 )}
 {tela === "login" && (
-<div className={
-  profissionalLogado?.tema === "masculino"
-  ? "login-card masculino"
-  : "login-card"
-}>
+<div className="login-card">
 
 <div className="login-icone">
   💼
@@ -608,8 +719,14 @@ if (error || !resultado) {
   setMensagemLogin("Senha incorreta!");
   return;
 }
+if (!resultado.ativo) {
+  setMensagemLogin("Este perfil está desativado.");
+  return;
+}
 
 setProfissionalLogado(resultado);
+setTemaSelecionado(resultado.tema || "feminino");
+setIconeSelecionado(resultado.icone || (resultado.tema === "masculino" ? "💈" : "💅"));
 
 setMensagemLogin("");
 
@@ -644,21 +761,15 @@ Entrar
 )}
 
 {tela === "cliente" && (
-<div className={
- dadosProfissionalCliente?.tema === "masculino"
- ? "cliente-card masculino"
- : "cliente-card"
-}>
+<div className="cliente-card">
 
 
 
-<div className="cliente-icone">
-  {
-    dadosProfissionalCliente?.tema === "masculino"
-    ? "💈"
-    : "💅"
-  }
-  <h1>Agendar horário</h1>
+<div className="cliente-topo">
+  <div className="cliente-icone">
+      {iconeAtivo}
+    </div>
+    <h1>Agendar horário</h1>
 
   <p>
     Escolha o melhor horário para você
@@ -666,15 +777,15 @@ Entrar
 
   {console.log("PROFISSIONAL CLIENTE:", profissionalCliente)}
 
-<p>
-{
-statusAtendimento === "Ocupado"
-?
-"🔴 Ocupado"
-:
-"🟢 Disponível"
-}
-</p>
+  <p className="status-text">
+    {
+    statusAtendimento === "Ocupado"
+    ?
+    "🔴 Ocupado"
+    :
+    "🟢 Disponível"
+    }
+  </p>
 </div>
 
 
@@ -750,7 +861,7 @@ onChange={(e) => {
 key={item.id}
 value={item.nome}
 >
-{item.nome} - {item.duracao}
+  {iconeAtivo} {item.nome} - {item.duracao}
 </option>
     ))
   }
@@ -774,7 +885,7 @@ value={item.nome}
     Escolha o horário
   </option>
 
-{horariosDisponiveis.map((hora) => (
+{horariosCliente.map((hora) => (
 
 <option
   key={hora}
@@ -788,6 +899,9 @@ value={item.nome}
 </select>
 
 <button
+style={{
+  backgroundColor: temaConfig.primary,
+}}
 onClick={async () => {
 
   
@@ -800,10 +914,29 @@ if (!nome || !whatsapp || !servico || !data || !horario) {
   return;
 }
 
-const hoje = new Date().toLocaleDateString("sv-SE");
+const hojeData = new Date();
+
+const hoje = 
+hojeData.getFullYear() +
+"-" +
+String(hojeData.getMonth() + 1).padStart(2,"0") +
+"-" +
+String(hojeData.getDate()).padStart(2,"0");
 
 if (data < hoje) {
   setMensagem("Não é possível agendar uma data que já passou.");
+  setTipoMensagem("erro");
+  return;
+}
+
+const agora = new Date();
+
+const dataHoraEscolhida = new Date(
+  `${data}T${horario}:00`
+);
+
+if (dataHoraEscolhida < agora) {
+  setMensagem("Esse horário já passou.");
   setTipoMensagem("erro");
   return;
 }
@@ -895,7 +1028,9 @@ Enviar pedido
     <h3>Pedido salvo:</h3>
     <p>Nome: {pedido.nome}</p>
     <p>WhatsApp: {pedido.whatsapp}</p>
-    <p>Serviço: {pedido.servico}</p>
+    <p>
+      Serviço: {iconeAtivo} {pedido.servico}
+    </p>
     <p>Data: {pedido.data}</p>
     <p>Horário: {pedido.horario}</p>
 <p>
@@ -1192,13 +1327,11 @@ setEditarSenha("");
   value={temaNovo}
   onChange={(e) => setTemaNovo(e.target.value)}
 >
-  <option value="feminino">
-    💅 Feminino
-  </option>
-
-<option value="masculino">
-  💈 Masculino
-</option>
+  {themeOptions.map((tema) => (
+    <option key={tema.value} value={tema.value}>
+      {tema.label}
+    </option>
+  ))}
 </select>
 
 
@@ -1261,17 +1394,11 @@ Criar profissional
 )}
 
 {tela === "profissional" && (
-  <div 
-    className={
-      profissionalLogado?.tema === "masculino"
-      ? "profissional-container masculino"
-      : "profissional-container"
-    }
-  >
+  <div className="profissional-container">
           
 <div className="profissional-header">
 
-<p className="titulo-profissional">
+<p style={{ marginTop: "10px" }}>
   Área Profissional
 </p>
 
@@ -1291,14 +1418,9 @@ Criar profissional
 
         </div>
 <h3>
-{
-  profissionalLogado?.tema === "masculino"
-  ? "💈 Meus serviços"
-  : "💅 Meus serviços"
-}
+  {iconeAtivo} Meus serviços
 </h3>
 <button
-className="btn-status"
 onClick={async () => {
 
 const novoStatus =
@@ -1361,7 +1483,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 style={{
 padding:"12px",
 marginLeft:"10px",
-background:"#2563eb",
+background: temaConfig.primary,
 color:"white",
 border:"none",
 borderRadius:"12px",
@@ -1379,6 +1501,90 @@ alert("Link copiado!");
 >
 📋 Copiar link
 </button>
+
+<div className="tema-configuracao">
+  <label>Cor do perfil</label>
+  <div>
+    <select
+      value={temaSelecionado}
+      onChange={(e) => setTemaSelecionado(e.target.value)}
+    >
+      {themeOptions.map((tema) => (
+        <option key={tema.value} value={tema.value}>
+          {tema.label}
+        </option>
+      ))}
+    </select>
+    <button
+      onClick={async () => {
+        if (!profissionalLogado?.id) return;
+
+        const { error } = await supabase
+          .from("profissionais")
+          .update({ tema: temaSelecionado })
+          .eq("id", profissionalLogado.id);
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao salvar a cor do perfil.");
+          return;
+        }
+
+        setProfissionalLogado({
+          ...profissionalLogado,
+          tema: temaSelecionado,
+        });
+
+        setMensagemProfissional(
+          `Cor atualizada para ${themeOptions.find((item) => item.value === temaSelecionado)?.label || "tema"}!`
+        );
+      }}
+    >
+      Salvar cor
+    </button>
+  </div>
+</div>
+
+<div className="tema-configuracao">
+  <label>Ícone do perfil</label>
+  <div>
+    <select
+      value={iconeSelecionado}
+      onChange={(e) => setIconeSelecionado(e.target.value)}
+    >
+      {iconOptions.map((icone) => (
+        <option key={icone.value} value={icone.value}>
+          {icone.value} {icone.label}
+        </option>
+      ))}
+    </select>
+    <button
+      onClick={async () => {
+        if (!profissionalLogado?.id) return;
+
+        const { error } = await supabase
+          .from("profissionais")
+          .update({ icone: iconeSelecionado })
+          .eq("id", profissionalLogado.id);
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao salvar o ícone do perfil.");
+          return;
+        }
+
+        setProfissionalLogado({
+          ...profissionalLogado,
+          icone: iconeSelecionado,
+        });
+
+        setMensagemProfissional("Ícone do perfil atualizado!");
+      }}
+    >
+      Salvar ícone
+    </button>
+  </div>
+</div>
 
 <button
 onClick={() => {
@@ -1425,10 +1631,8 @@ setNovaDuracao(e.target.value)
 }
 />
 
-
 <button
 onClick={async () => {
-
 if (!novoServico.trim()) {
   alert("Digite o nome do serviço.");
   return;
@@ -1483,23 +1687,17 @@ Adicionar serviço
 {meusServicos.map((item) => (
   <div key={item.id} className="servico-card">
 
-    <p>
-{
-profissionalLogado?.tema === "masculino"
-? "💈"
-: "💅"
-}
-{" "}
-{item.nome}
+<p>
+  {iconeAtivo} {item.nome}
 </p>
 
-    <p>
-      💰 R$ {item.valor}
-    </p>
+<p>
+  💰 R$ {item.valor}
+</p>
 
-    <p>
-      ⏰ {item.duracao}
-    </p>
+<p>
+  ⏰ {item.duracao}
+</p>
 
     <button
       onClick={async () => {
@@ -1791,16 +1989,6 @@ horariosTrabalho.filter(
 <Calendar
   onChange={setDataSelecionada}
   value={dataSelecionada}
-  tileClassName={({ date }) => {
-    const data = date.toISOString().split("T")[0];
-
-    const temAgendamento = pedidos.some(
-      (p) => p.data === data && p.status === "Agendado"
-    );
-
-    return temAgendamento ? "teste-dia" : null;
-  }}
-/>
 
 tileClassName={({ date, view }) => {
   if (view === "month") {
@@ -1830,7 +2018,7 @@ if (temCancelado) {
 
   return null;
 }}
-/
+/>
 
 {mensagemProfissional && (
   <p style={{ color: "green" }}>
@@ -2039,6 +2227,17 @@ setMensagemErroProfissional("Agendamento cancelado!");
 
   </div>
 )}
+
+    </div>
+    <footer className="rodape">
+      <p>
+        © 2026 Agenda Pro - Todos os direitos reservados.
+      </p>
+
+      <p>
+        Sistema de agendamentos desenvolvido por Dário Júnior
+      </p>
+    </footer>
 
   </div>
 );
