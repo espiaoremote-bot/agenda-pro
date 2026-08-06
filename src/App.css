@@ -742,9 +742,9 @@ button.btn.cadastrar {
 .inicio-container {
   min-height:100vh;
   display:flex;
-  justify-content:center;
+  justify-content:flex-start;
   align-items:center;
-  padding:24px 16px 24px;
+  padding:50px 16px 24px;
   background: var(--fundo);
 }
 
