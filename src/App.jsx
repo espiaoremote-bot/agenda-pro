@@ -93,6 +93,7 @@ function App() {
   const [tela, setTela] = useState("inicio");
 
 const [senha, setSenha] = useState("");
+const [loginNome, setLoginNome] = useState("");
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
@@ -738,6 +739,15 @@ return (
 
 <input
   className="input-login"
+  type="text"
+  placeholder="Digite seu nome"
+  value={loginNome}
+  onChange={(e) => setLoginNome(e.target.value)}
+/>
+
+
+<input
+  className="input-login"
   type="password"
   placeholder="Digite a senha"
   value={senha}
@@ -750,35 +760,43 @@ onClick={async () => {
 const { data: resultado, error } = await supabase
   .from("profissionais")
   .select("*")
-  .eq("senha", senha)
-  .single();
+  .eq("nome", loginNome)
+  .eq("senha", senha);
 
 console.log("RETORNO LOGIN:", resultado);
 console.log("ERRO LOGIN:", error);
 
 
-if (error || !resultado) {
-  setMensagemLogin("Senha incorreta!");
+if (error || !resultado || resultado.length === 0) {
+  setMensagemLogin("Nome ou senha incorretos!");
   return;
 }
-if (!resultado.ativo) {
+if (resultado.length > 1) {
+  setMensagemLogin("Existem perfis com esse nome e senha duplicados. O administrador precisa corrigir.");
+  return;
+}
+
+const resultadoLogado = resultado[0];
+
+if (!resultadoLogado.ativo) {
   setMensagemLogin("Este perfil está desativado.");
   return;
 }
 
-setProfissionalLogado(resultado);
-setTemaSelecionado(resultado.tema || "feminino");
-setIconeSelecionado(resultado.icone || (resultado.tema === "masculino" ? "💈" : "💅"));
+setProfissionalLogado(resultadoLogado);
+setTemaSelecionado(resultadoLogado.tema || "feminino");
+setIconeSelecionado(resultadoLogado.icone || (resultadoLogado.tema === "masculino" ? "💈" : "💅"));
 
 setMensagemLogin("");
 
-if (resultado.tipo === "super_admin") {
+if (resultadoLogado.tipo === "super_admin") {
   setTela("admin");
 } else {
   setTela("profissional");
 }
 
 setSenha("");
+setLoginNome("");
 
 }}
 >
@@ -788,6 +806,7 @@ Entrar
 <button className="btn-voltar"
   onClick={async () => {
    setMensagemLogin("");
+   setLoginNome("");
     setTela("inicio");
   }}
 >
@@ -1225,6 +1244,18 @@ setTotalAgendamentos(count);
 <p>
   Status: {profissional.ativo ? "🟢 Ativo" : "🔴 Inativo"}
 </p>
+
+{
+  profissionais.filter(
+    (p) => p.nome === profissional.nome && p.senha === profissional.senha
+  ).length > 1 && (
+    <p style={{ color: "#d32f2f", fontWeight: "bold", marginTop: "8px" }}>
+      ⚠️ Nome e senha duplicados! Ajuste um deles para evitar confusão no login.
+    </p>
+  )
+}
+
+
 
 </div>
 
