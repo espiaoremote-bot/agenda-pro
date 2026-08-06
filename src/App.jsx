@@ -745,7 +745,7 @@ Entrar
 
 
 
-<div className="cliente-icone">
+<div className="cliente-topo cliente-icone">
   {
     dadosProfissionalCliente?.tema === "masculino"
     ? "💈"

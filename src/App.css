@@ -341,7 +341,7 @@ body,
 
 
 .agenda-card h3 {
-  color:var(--azul);
+  color: var(--cor-primaria);
 }
 
 
@@ -351,7 +351,7 @@ body,
   align-items:center;
 }
 .horario-card {
-  background:var(--azul);
+  background: var(--cor-primaria);
   color:white;
   padding:12px;
   border-radius:12px;
@@ -435,7 +435,16 @@ body,
    HOVER
 ===================================== */
 
-button {
+.btn,
+.btn-login,
+.btn-voltar,
+.cliente-card button,
+.tema-configuracao button,
+.profissional-botoes button,
+.admin-botoes button,
+.config-horarios button,
+.agenda-card button,
+.login-card button {
   transition:0.3s;
   background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
   color: white;
@@ -444,9 +453,32 @@ button {
 }
 
 
-button:hover {
+.btn:hover,
+.btn-login:hover,
+.btn-voltar:hover,
+.cliente-card button:hover,
+.tema-configuracao button:hover,
+.profissional-botoes button:hover,
+.admin-botoes button:hover,
+.config-horarios button:hover,
+.agenda-card button:hover,
+.login-card button:hover {
   opacity:0.85;
   transform:translateY(-2px);
+}
+
+
+.react-calendar button {
+  background: none !important;
+  color: inherit !important;
+  border: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: #e6e6e6 !important;
 }
 
 
