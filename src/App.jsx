@@ -64,6 +64,7 @@ const iconOptions = [
   { value: "💄", label: "Maquiagem" },
   { value: "🐾", label: "Pet" },
   { value: "🩺", label: "Saúde" },
+  { value: "🖋️​", label: "Tatuagem" },
 ];
  
 console.log("ESTOU NO ARQUIVO CERTO 999");
