@@ -540,11 +540,12 @@ body {
 }
 
 .inicio-container {
-  padding-top: 12px;
+  padding-top: 6px;
+  padding-bottom: 40px;
 }
 
 .inicio-botoes {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .inicio-container h2 {
@@ -553,6 +554,10 @@ body {
 
 .inicio-container p {
   margin-top: 0;
+}
+
+.login-card {
+  margin:20px auto 60px;
 }
 
   .resumo-dashboard {
