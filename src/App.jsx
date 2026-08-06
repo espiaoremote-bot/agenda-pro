@@ -58,10 +58,10 @@ const themeOptions = [
   {
     value: "preto",
     label: "Preto",
-    primary: "#0f172a",
-    secondary: "#334155",
-    background: "#eef2f7",
-    border: "#94a3b8",
+    primary: "#000000",
+    secondary: "#333333",
+    background: "#f5f5f5",
+    border: "#555555",
   },
 ];
 
