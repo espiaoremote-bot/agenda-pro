@@ -1205,12 +1205,22 @@ setTotalAgendamentos(count);
 
 </div>
 
-<p>
-  Link:
-  <br />
-
-  {window.location.origin}/?profissional={profissional.id}
-</p>
+<div className="link-profissional">
+  <p>Link:</p>
+  <button
+    onClick={async () => {
+      const link = `${window.location.origin}/?profissional=${profissional.id}`;
+      try {
+        await navigator.clipboard.writeText(link);
+        alert("Link copiado!");
+      } catch (err) {
+        alert(link);
+      }
+    }}
+  >
+    📋 Copiar link
+  </button>
+</div>
 
 
 <button
