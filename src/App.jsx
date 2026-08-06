@@ -53,7 +53,26 @@ function getThemeConfig(value) {
   return themeOptions.find((item) => item.value === value) || themeOptions[0];
 }
 
+const iconOptions = [
+  { value: "🎂", label: "Bolo" },
+  { value: "🍰", label: "Bolo de fatia" },
+  { value: "🧁", label: "Cupcake" },
+  { value: "💇", label: "Cabelo" },
+  { value: "💈", label: "Barbearia" },
+  { value: "💅", label: "Beleza" },
+  { value: "🐶", label: "Pets" },
+  { value: "💄", label: "Maquiagem" },
+  { value: "🐾", label: "Pet" },
+  { value: "🩺", label: "Saúde" },
+];
 
+function getServiceIcon(service, profissionalTema) {
+  return (
+    service?.icone ||
+    (profissionalTema === "masculino" ? "💈" : "💅")
+  );
+}
+ 
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
@@ -106,11 +125,13 @@ const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
 
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
-
+ 
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
-
+ 
 const [temaSelecionado, setTemaSelecionado] = useState("feminino");
-
+const [iconeSelecionado, setIconeSelecionado] = useState("💅");
+const [iconeServicoSelecionado, setIconeServicoSelecionado] = useState("💈");
+ 
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 
@@ -130,6 +151,22 @@ useEffect(() => {
   root.style.setProperty("--fundo", temaConfig.background);
   root.style.setProperty("--cor-borda", temaConfig.border);
 }, [temaConfig]);
+
+useEffect(() => {
+if (profissionalLogado?.icone) {
+  setIconeSelecionado(profissionalLogado.icone);
+} else if (profissionalLogado?.tema === "masculino") {
+  setIconeSelecionado("💈");
+} else {
+  setIconeSelecionado("💅");
+}
+}, [profissionalLogado]);
+
+useEffect(() => {
+if (dadosProfissionalCliente?.icone) {
+  setIconeSelecionado(dadosProfissionalCliente.icone);
+}
+}, [dadosProfissionalCliente]);
 
 useEffect(() => {
 
@@ -747,13 +784,9 @@ Entrar
 
 <div className="cliente-topo">
   <div className="cliente-icone">
-    {
-      dadosProfissionalCliente?.tema === "masculino"
-      ? "💈"
-      : "💅"
-    }
-  </div>
-  <h1>Agendar horário</h1>
+      {dadosProfissionalCliente?.icone || (dadosProfissionalCliente?.tema === "masculino" ? "💈" : "💅")}
+    </div>
+    <h1>Agendar horário</h1>
 
   <p>
     Escolha o melhor horário para você
@@ -845,7 +878,7 @@ onChange={(e) => {
 key={item.id}
 value={item.nome}
 >
-{item.nome} - {item.duracao}
+{getServiceIcon(item, dadosProfissionalCliente?.tema)} {item.nome} - {item.duracao}
 </option>
     ))
   }
@@ -1012,7 +1045,16 @@ Enviar pedido
     <h3>Pedido salvo:</h3>
     <p>Nome: {pedido.nome}</p>
     <p>WhatsApp: {pedido.whatsapp}</p>
-    <p>Serviço: {pedido.servico}</p>
+    <p>
+      Serviço: {getServiceIcon(
+        servicos.find(
+          (item) =>
+            item.nome === pedido.servico &&
+            item.profissional_id === profissionalCliente
+        ),
+        dadosProfissionalCliente?.tema
+      )} {pedido.servico}
+    </p>
     <p>Data: {pedido.data}</p>
     <p>Horário: {pedido.horario}</p>
 <p>
@@ -1385,7 +1427,7 @@ Criar profissional
 </p>
 
 <h2>
-  Olá, {profissionalLogado?.nome} 👋
+  {profissionalLogado?.icone || (profissionalLogado?.tema === "masculino" ? "💈" : "💅")} Olá, {profissionalLogado?.nome} 👋
 </h2>
 <div style={{marginTop:"20px"}}>
 
@@ -1531,6 +1573,47 @@ alert("Link copiado!");
   </div>
 </div>
 
+<div className="tema-configuracao">
+  <label>Ícone do perfil</label>
+  <div>
+    <select
+      value={iconeSelecionado}
+      onChange={(e) => setIconeSelecionado(e.target.value)}
+    >
+      {iconOptions.map((icone) => (
+        <option key={icone.value} value={icone.value}>
+          {icone.value} {icone.label}
+        </option>
+      ))}
+    </select>
+    <button
+      onClick={async () => {
+        if (!profissionalLogado?.id) return;
+
+        const { error } = await supabase
+          .from("profissionais")
+          .update({ icone: iconeSelecionado })
+          .eq("id", profissionalLogado.id);
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao salvar o ícone do perfil.");
+          return;
+        }
+
+        setProfissionalLogado({
+          ...profissionalLogado,
+          icone: iconeSelecionado,
+        });
+
+        setMensagemProfissional("Ícone do perfil atualizado!");
+      }}
+    >
+      Salvar ícone
+    </button>
+  </div>
+</div>
+
 <button
 onClick={() => {
   setMostrarConfiguracaoServicos(
@@ -1576,10 +1659,24 @@ setNovaDuracao(e.target.value)
 }
 />
 
+<div className="tema-configuracao">
+<label>Ícone do serviço</label>
+<div>
+<select
+  value={iconeServicoSelecionado}
+  onChange={(e) => setIconeServicoSelecionado(e.target.value)}
+>
+  {iconOptions.map((icone) => (
+    <option key={icone.value} value={icone.value}>
+      {icone.value} {icone.label}
+    </option>
+  ))}
+</select>
+</div>
+</div>
 
 <button
 onClick={async () => {
-
 if (!novoServico.trim()) {
   alert("Digite o nome do serviço.");
   return;
@@ -1593,6 +1690,7 @@ const { error } = await supabase
   nome: novoServico,
   valor: novoValor || null,
   duracao: novaDuracao || null,
+  icone: iconeServicoSelecionado,
   profissional_id: profissionalLogado.id,
   ativo: true
 }
@@ -1634,23 +1732,17 @@ Adicionar serviço
 {meusServicos.map((item) => (
   <div key={item.id} className="servico-card">
 
-    <p>
-{
-profissionalLogado?.tema === "masculino"
-? "💈"
-: "💅"
-}
-{" "}
-{item.nome}
+<p>
+  {getServiceIcon(item, profissionalLogado?.tema)} {item.nome}
 </p>
 
-    <p>
-      💰 R$ {item.valor}
-    </p>
+<p>
+  💰 R$ {item.valor}
+</p>
 
-    <p>
-      ⏰ {item.duracao}
-    </p>
+<p>
+  ⏰ {item.duracao}
+</p>
 
     <button
       onClick={async () => {

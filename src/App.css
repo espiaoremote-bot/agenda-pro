@@ -320,6 +320,33 @@ body,
   font-size:16px;
 }
 
+.servico-card {
+  border: 1px solid var(--cor-borda);
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 14px;
+  background: #ffffff;
+}
+
+.servico-card p {
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.servico-card button {
+  margin-top: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.servico-card button:hover {
+  opacity: 0.9;
+}
+
 
 .profissional-botoes {
   display:flex;
