@@ -538,12 +538,15 @@ body,
 
 .inicio-container {
   min-height: auto !important;
-  display:block !important;
-  padding:10px 16px 16px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-start !important;
+  align-items:center !important;
+  padding:16px 16px 16px !important;
 }
 
 .inicio-botoes {
-  margin-top: 6px !important;
+  margin-top: 10px !important;
 }
 
 .inicio-container h2 {
@@ -733,9 +736,9 @@ button.btn.cadastrar {
 .inicio-container {
   min-height:100vh;
   display:flex;
-  justify-content:flex-start;
+  justify-content:center;
   align-items:center;
-  padding:10px 20px 20px;
+  padding:20px;
   background:#f8fafc;
 }
 
