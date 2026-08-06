@@ -99,7 +99,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
-const [carregandoPerfil, setCarregandoPerfil] = useState(false);
+const [carregandoPerfil, setCarregandoPerfil] = useState(() => Boolean(Number(new URLSearchParams(window.location.search).get("profissional"))));
 const [temaNovo, setTemaNovo] = useState("feminino");
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");

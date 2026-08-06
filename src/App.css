@@ -602,7 +602,7 @@ body,
 }
 
 .login-card {
-  margin:16px auto 120px;
+  margin:16px auto 40px;
 }
 
   .resumo-dashboard {
@@ -613,12 +613,12 @@ body,
   .profissional-container {
     padding:15px;
     box-sizing:border-box;
-    padding-bottom: 180px;
+    padding-bottom: 40px;
   }
 
   .rodape {
     margin-top: 30px;
-    padding: 24px 12px 60px;
+    padding: 24px 12px max(60px, env(safe-area-inset-bottom));
     line-height: 1.6;
   }
 
