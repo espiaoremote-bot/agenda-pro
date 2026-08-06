@@ -99,6 +99,7 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
+const [carregandoPerfil, setCarregandoPerfil] = useState(false);
 const [temaNovo, setTemaNovo] = useState("feminino");
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
@@ -487,6 +488,7 @@ console.log("ID FINAL:", profissionalIdLink);
 useEffect(() => {
 
   if (profissionalIdLink) {
+    setCarregandoPerfil(true);
     setProfissionalCliente(profissionalIdLink);
     setTela("cliente");
   }
@@ -509,15 +511,18 @@ const { data, error } = await supabase
 
 if(error){
 console.error(error);
+setCarregandoPerfil(false);
 return;
 }
 if (!data.ativo) {
+  setCarregandoPerfil(false);
   alert("Este profissional está indisponível.");
   setTela("inicio");
   return;
 }
 
 setDadosProfissionalCliente(data);
+setCarregandoPerfil(false);
 
 setStatusAtendimento(
   data.status_atendimento || "Disponível"
@@ -659,6 +664,24 @@ const dataSelecionadaFormatada = dataSelecionada
 const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
+
+if (carregandoPerfil) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#ffffff",
+        fontFamily: "Arial, Helvetica, sans-serif",
+      }}
+    >
+      <p style={{ color: "#555" }}>Carregando…</p>
+    </div>
+  );
+}
+
 return (
   <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
     <div className="app-content">
