@@ -391,7 +391,7 @@ body,
   gap:10px;
   align-items:center;
 }
-.horario-card {
+.agenda-card .horario-card {
   background: var(--cor-primaria);
   color:white;
   padding:12px;
