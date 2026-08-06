@@ -902,3 +902,20 @@ button.btn.cadastrar {
   background:white !important;
   min-height:100vh;
 }
+
+@media (min-width: 601px) {
+  .inicio-container {
+    position: relative;
+    min-height: 100vh;
+    padding-top: 50px;
+    padding-bottom: 24px;
+  }
+
+  .inicio-container > .login-card.inicio-card {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0 !important;
+  }
+}
