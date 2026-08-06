@@ -749,7 +749,7 @@ button.btn.cadastrar {
 }
 
 .inicio-card {
-  margin: 0 auto;
+  margin: 0 auto !important;
 }
 
 .inicio-container h2 {
@@ -877,17 +877,9 @@ button.btn.cadastrar {
 
 }
 
-.inicio-card {
-  border: 2px solid var(--cor-primaria) !important;
-  border-radius: 22px;
-}
-.inicio-card {
-  border: 2px solid var(--cor-primaria) !important;
-  border-radius: 22px !important;
-}
-
 /* TELA INICIAL IGUAL LOGIN */
 
+.login-card,
 .inicio-card {
   width:90% !important;
   max-width:400px !important;
@@ -898,24 +890,9 @@ button.btn.cadastrar {
   text-align:center !important;
   border:none !important;
 }
+
 .admin-area {
   background:white !important;
   min-height:100vh;
 }
 
-@media (min-width: 601px) {
-  .inicio-container {
-    position: relative;
-    min-height: 100vh;
-    padding-top: 50px;
-    padding-bottom: 24px;
-  }
-
-  .inicio-container > .login-card.inicio-card {
-    position: absolute;
-    top: 50px;
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 0 !important;
-  }
-}
