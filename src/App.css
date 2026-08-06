@@ -49,7 +49,7 @@ body {
 .login-card {
   width:90%;
   max-width:400px;
-  margin:20px auto 30px;
+  margin:50px auto;
   padding:30px;
   text-align:center;
   box-sizing:border-box;
@@ -116,7 +116,7 @@ body {
 .cliente-card {
   width: 85%;
   max-width: 380px;
-  margin:15px auto;
+  margin:20px auto;
   padding:15px;
   box-sizing:border-box;
 }
@@ -272,8 +272,7 @@ body {
   max-width:1000px;
   margin:30px auto;
   padding-top: 20px;
-  padding-bottom: 160px;
-  min-height: calc(100vh - 120px);
+  padding-bottom: 60px;
 }
 .profissional-container .react-calendar {
   margin:20px auto;
@@ -541,7 +540,19 @@ body {
 }
 
 .inicio-container {
-  padding-top: 10px;
+  padding-top: 12px;
+}
+
+.inicio-botoes {
+  margin-top: 12px;
+}
+
+.inicio-container h2 {
+  margin-top: 0;
+}
+
+.inicio-container p {
+  margin-top: 0;
 }
 
   .resumo-dashboard {
@@ -552,6 +563,12 @@ body {
   .profissional-container {
     padding:15px;
     box-sizing:border-box;
+    padding-bottom: 140px;
+  }
+
+  .rodape {
+    margin-top: 80px;
+    padding: 24px 0 40px;
   }
 
 
@@ -730,7 +747,7 @@ button.btn.cadastrar {
   display:flex;
   justify-content:flex-start;
   align-items:center;
-  padding:12px 20px 20px;
+  padding:40px 20px 20px;
   background:#f8fafc;
 }
 
@@ -749,7 +766,7 @@ button.btn.cadastrar {
   display:flex;
   flex-direction:column;
   gap:15px;
-  margin-top: 12px;
+  margin-top: 18px;
 }
 
 .inicio-botoes .btn {
@@ -848,8 +865,8 @@ button.btn.cadastrar {
 }
 
 .rodape {
-  margin-top: 80px;
-  padding: 24px 0 40px;
+  margin-top: 40px;
+  padding: 20px 0 30px;
   text-align: center;
   color: #555;
   font-size: 14px;
