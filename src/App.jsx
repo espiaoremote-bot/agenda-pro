@@ -158,6 +158,8 @@ const appStyles = {
 
 const iconeAtivo = profissionalLogado?.icone || dadosProfissionalCliente?.icone || (temaAtivo === "masculino" ? "💈" : "💅");
 
+const iconeCliente = ["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "🧔" : "👩🏻";
+
 useEffect(() => {
   const root = document.documentElement;
   root.style.setProperty("--cor-primaria", temaConfig.primary);
@@ -2063,14 +2065,14 @@ if (temCancelado) {
 
 <div className="info-agendamento">
 
-<p>👩🏻 {pedido.nome}</p>
+<p>{iconeCliente} {pedido.nome}</p>
 
 <p>
   <FaWhatsapp />
   {pedido.whatsapp}
 </p>
 
-<p>💅 {pedido.servico}</p>
+<p>{iconeAtivo} {pedido.servico}</p>
 
 <p>📅 {pedido.data}</p>
 
