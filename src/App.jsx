@@ -1078,7 +1078,7 @@ Enviar pedido
 </p>
 
       <h1>
-        👑 Olá, {profissionalLogado?.nome}
+        Olá, {profissionalLogado?.nome}
       </h1>
 
       <small>
