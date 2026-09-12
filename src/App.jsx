@@ -2180,6 +2180,35 @@ Adicionar serviço
       {item.ativo ? "🗑️ Desativar" : "♻️ Reativar"}
     </button>
 
+    <button
+      style={{ marginLeft: "8px", background: "#d32f2f" }}
+      onClick={async () => {
+        const confirmar = window.confirm(
+          "⚠️ EXCLUIR PARA SEMPRE?\n\n" +
+          "Isso só funciona se NENHUM agendamento usar este serviço.\n" +
+          "Se houver agendamentos, o banco dará erro."
+        );
+
+        if(!confirmar) return;
+
+        const { error } = await supabase
+          .from("servicos")
+          .delete()
+          .eq("id", item.id);
+
+        if(error){
+          console.error(error);
+          alert("Erro ao excluir: " + error.message + "\n\nProvavelmente há agendamentos vinculados. Use 'Desativar' em vez de excluir.");
+          return;
+        }
+
+        setMeusServicos(prev => prev.filter(s => s.id !== item.id));
+        alert("Serviço excluído permanentemente!");
+      }}
+    >
+      🗑️ Excluir
+    </button>
+
 </div>
 ))}
 
