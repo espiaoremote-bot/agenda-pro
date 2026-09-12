@@ -145,6 +145,7 @@ const [iconeSelecionado, setIconeSelecionado] = useState("💅");
  
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
+const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
 
 const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
 const temaConfig = getThemeConfig(temaAtivo);
@@ -580,6 +581,46 @@ if (!profissionalLogado && !profissionalCliente) {
 
 
 }, [tela, profissionalLogado, profissionalCliente, pedido]);
+
+// Mantém os agendamentos (e os contadores "Hoje" / "Ativos") atualizados
+// em tempo real quando um cliente agenda, mesmo estando em outro navegador.
+// Usa o realtime do Supabase e, como garantia, recarrega a cada 20s.
+useEffect(() => {
+  const idProfissional = profissionalLogado?.id;
+  if (!idProfissional) return;
+
+  let canal = null;
+  let intervalo = null;
+
+  const atualizarPedidos = async () => {
+    const { data: resultado, error } = await supabase
+      .from("agendamentos")
+      .select("*")
+      .eq("profissional_id", idProfissional)
+      .order("id", { ascending: false });
+
+    if (!error && Array.isArray(resultado)) {
+      setPedidos(resultado);
+    }
+  };
+
+  canal = supabase
+    .channel(`agendamentos-realtime-${idProfissional}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "agendamentos" },
+      () => atualizarPedidos()
+    )
+    .subscribe();
+
+  intervalo = setInterval(atualizarPedidos, 20000);
+
+  return () => {
+    if (canal) supabase.removeChannel(canal);
+    if (intervalo) clearInterval(intervalo);
+  };
+}, [profissionalLogado]);
+
 useEffect(() => {
   async function carregarServicos() {
     const { data: resultado, error } = await supabase
@@ -665,6 +706,19 @@ const dataSelecionadaFormatada = dataSelecionada
 const pedidosDoDia = pedidos.filter(
   (pedido) => pedido.data === dataSelecionadaFormatada
 );
+
+// Dias que possuem agendamento ativo, ordenados do mais próximo ao mais distante.
+const diasAgendados = [...new Set(
+  pedidos
+    .filter((pedido) => pedido.status === "Agendado")
+    .map((pedido) => pedido.data)
+)].sort();
+
+function formatarDiaAgendado(dia) {
+  const d = new Date(dia + "T00:00:00");
+  const nomesDias = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  return `${nomesDias[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 if (carregandoPerfil) {
   return (
@@ -2085,7 +2139,11 @@ horariosTrabalho.filter(
   </div>
 
 
-  <div className="resumo-card">
+  <div
+    className="resumo-card resumo-card-clicavel"
+    onClick={() => setMostrarDiasAgendados(!mostrarDiasAgendados)}
+    title="Clique para mostrar os dias agendados"
+  >
     <h3>🟢 Ativos</h3>
     <p>
       {
@@ -2094,9 +2152,46 @@ horariosTrabalho.filter(
         ).length
       } marcados
     </p>
+    <small className="dica-dias-agendados">
+      {mostrarDiasAgendados ? "▲ Esconder dias agendados" : "▼ Ver dias agendados"}
+    </small>
   </div>
 
 </div>
+
+{mostrarDiasAgendados && (
+  <div className="dias-agendados-area">
+    <h3>🗓️ Dias com agendamento</h3>
+
+    {diasAgendados.length === 0 ? (
+      <p>Nenhum dia agendado ainda.</p>
+    ) : (
+      <div className="dias-agendados-lista">
+        {diasAgendados.map((dia) => (
+          <button
+            key={dia}
+            className={
+              "dia-agendado-chip" +
+              (dia === dataSelecionadaFormatada
+                ? " dia-agendado-chip-ativo"
+                : "")
+            }
+            onClick={() =>
+              setDataSelecionada(new Date(dia + "T00:00:00"))
+            }
+          >
+            {formatarDiaAgendado(dia)}
+          </button>
+        ))}
+      </div>
+    )}
+
+    <small className="dica-dias-agendados">
+      Clique em um dia para o calendário abrir nele.
+    </small>
+  </div>
+)}
+
             <h2>📅 Agenda de horários</h2>
 
 <Calendar

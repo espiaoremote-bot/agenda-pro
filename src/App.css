@@ -305,6 +305,70 @@ body,
 }
 
 
+.resumo-card-clicavel {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.resumo-card-clicavel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.dica-dias-agendados {
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  font-weight:normal;
+  color:var(--texto-secundario);
+}
+
+/* Lista de dias com agendamento */
+.dias-agendados-area {
+  background: var(--branco);
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.10);
+  padding:20px;
+  margin-bottom:25px;
+  text-align:center;
+}
+
+.dias-agendados-area h3 {
+  margin-top:0;
+  color: var(--cor-primaria);
+}
+
+.dias-agendados-lista {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  margin-top:12px;
+}
+
+.dia-agendado-chip {
+  padding:10px 14px;
+  border-radius:12px;
+  border:2px solid var(--cor-borda);
+  background:var(--fundo);
+  color:var(--texto);
+  font-weight:bold;
+  cursor:pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dia-agendado-chip:hover {
+  background: var(--cor-primaria);
+  color:#fff;
+}
+
+.dia-agendado-chip-ativo {
+  background: var(--cor-primaria) !important;
+  color:#fff !important;
+}
+
+
 .profissional-card {
   padding:25px;
   margin-top:20px;
