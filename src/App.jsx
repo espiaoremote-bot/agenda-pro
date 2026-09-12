@@ -2197,6 +2197,19 @@ horariosTrabalho.filter(
 <Calendar
   onChange={setDataSelecionada}
   value={dataSelecionada}
+  onActiveStartDateChange={({ action, activeStartDate }) => {
+    // Ao navegar para outro mês/ano, troca a seleção para o 1º dia do novo
+    // período. Assim o agendamento do mês anterior não fica aparecendo como
+    // se fosse um agendamento do mês atual.
+    if (
+      action === "prev" ||
+      action === "next" ||
+      action === "prev2" ||
+      action === "next2"
+    ) {
+      setDataSelecionada(activeStartDate);
+    }
+  }}
 
 tileClassName={({ date, view }) => {
   if (view === "month") {
