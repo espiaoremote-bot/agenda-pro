@@ -146,6 +146,7 @@ const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(f
  
 const [temaSelecionado, setTemaSelecionado] = useState("feminino");
 const [iconeSelecionado, setIconeSelecionado] = useState("💅");
+const [mostrarSaldo, setMostrarSaldo] = useState(true);
  
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
@@ -1884,34 +1885,53 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   </button>
 </div>
 
-<div className="saldo-config">
-  <button
-    style={{
-      padding:"12px",
-      background: saldoHabilitado ? "#d32f2f" : temaConfig.primary,
-      color:"white",
-      border:"none",
-      borderRadius:"12px",
-      cursor:"pointer",
-      width:"100%"
-    }}
-    onClick={() => {
-      const novo = !saldoHabilitado;
-      setSaldoHabilitado(novo);
-      localStorage.setItem(
-        `saldo_habilitado_${profissionalLogado?.id}`,
-        novo ? "1" : "0"
-      );
-    }}
-  >
-    {saldoHabilitado
-      ? "🚫 Desativar saldo de trabalhos"
-      : "💰 Ativar saldo de trabalhos"}
-  </button>
-  <small className="dica-dias-agendados">
-    Mostra quantos trabalhos foram concluídos por período (semanal, quinzenal, mensal).
-  </small>
-</div>
+<div className="saldo-config" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+      <button
+        style={{
+          padding: "12px",
+          background: saldoHabilitado ? "#d32f2f" : temaConfig.primary,
+          color: "white",
+          border: "none",
+          borderRadius: "12px",
+          cursor: "pointer",
+          width: "100%"
+        }}
+        onClick={() => {
+          const novo = !saldoHabilitado;
+          setSaldoHabilitado(novo);
+          localStorage.setItem(
+            `saldo_habilitado_${profissionalLogado?.id}`,
+            novo ? "1" : "0"
+          );
+        }}
+      >
+        {saldoHabilitado
+          ? "🚫 Desativar saldo de trabalhos"
+          : "💰 Ativar saldo de trabalhos"}
+      </button>
+      {saldoHabilitado && (
+        <button
+          style={{
+            padding: "12px",
+            background: "transparent",
+            border: "none",
+            borderRadius: "12px",
+            cursor: "pointer",
+            fontSize: "20px",
+            lineHeight: 1
+          }}
+          onClick={() => setMostrarSaldo(!mostrarSaldo)}
+          title={mostrarSaldo ? "Ocultar saldo" : "Mostrar saldo"}
+        >
+          {mostrarSaldo ? "🙈" : "👁️"}
+        </button>
+      )}
+    </div>
+    <small className="dica-dias-agendados">
+      Mostra quantos trabalhos foram concluídos por período (semanal, quinzenal, mensal).
+    </small>
+  </div>
 
 <div className="tema-configuracao">
   <label>Cor do perfil</label>
@@ -2403,7 +2423,7 @@ horariosTrabalho.filter(
 
 </div>
 
-{saldoHabilitado && (
+{saldoHabilitado && mostrarSaldo && (
   <div className="saldo-trabalhos-area">
     <h3>💰 Saldo de trabalhos</h3>
 
