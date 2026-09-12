@@ -136,6 +136,7 @@ const [pedidos, setPedidos] = useState([]);
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [servico, setServico] = useState("");
+const [valorServico, setValorServico] = useState(0);
 const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
 
@@ -858,12 +859,14 @@ limiteSaldoDate.setDate(
 );
 const limiteSaldoString = limiteSaldoDate.toLocaleDateString("sv-SE");
 
-const trabalhosConcluidos = pedidos.filter(
-  (pedido) =>
-    pedido.status === "Concluído" &&
-    pedido.data >= limiteSaldoString &&
-    pedido.data <= hojeSaldoString
-).length;
+const trabalhosConcluidos = pedidos
+  .filter(
+    (pedido) =>
+      pedido.status === "Concluído" &&
+      pedido.data >= limiteSaldoString &&
+      pedido.data <= hojeSaldoString
+  )
+  .reduce((soma, pedido) => soma + (Number(pedido.valor_servico) || 0), 0);
 
 function formatarDiaAgendado(dia) {
   const d = new Date(dia + "T00:00:00");
@@ -1119,7 +1122,14 @@ onChange={(e) => {
 
 <select
   value={servico}
-  onChange={(e) => setServico(e.target.value)}
+  onChange={(e) => {
+    const selectedServico = e.target.value;
+    setServico(selectedServico);
+    const servicoEncontrado = servicos.find(
+      (item) => item.nome === selectedServico && item.profissional_id === profissionalCliente && item.ativo
+    );
+    setValorServico(servicoEncontrado?.valor || 0);
+  }}
 >
   <option value="">
     Escolha o serviço
@@ -1254,6 +1264,7 @@ const { data: pedidoSalvo, error } = await supabase
   nome,
   whatsapp,
   servico,
+  valor_servico: valorServico,
   data,
   horario,
   status: "Agendado",
@@ -1292,6 +1303,7 @@ setMensagemErroProfissional("");
 setNome("");
 setWhatsapp("");
 setServico("");
+setValorServico(0);
 setData("");
 setHorario("");
   }}
@@ -2416,13 +2428,13 @@ horariosTrabalho.filter(
       </button>
     </div>
 
-    <p className="saldo-numero">{trabalhosConcluidos}</p>
+    <p className="saldo-numero">R$ {trabalhosConcluidos.toFixed(2).replace(".", ",")}</p>
     <p className="saldo-legenda">
       {periodoSaldo === "semanal"
-        ? "trabalhos concluídos nos últimos 7 dias"
+        ? "valor dos trabalhos concluídos nos últimos 7 dias"
         : periodoSaldo === "quinzenal"
-        ? "trabalhos concluídos nos últimos 15 dias"
-        : "trabalhos concluídos nos últimos 30 dias"}
+        ? "valor dos trabalhos concluídos nos últimos 15 dias"
+        : "valor dos trabalhos concluídos nos últimos 30 dias"}
     </p>
   </div>
 )}
