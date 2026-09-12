@@ -1813,28 +1813,57 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
 
 
-<button
-style={{
-padding:"12px",
-marginLeft:"10px",
-background: temaConfig.primary,
-color:"white",
-border:"none",
-borderRadius:"12px",
-cursor:"pointer"
-}}
-onClick={() => {
+<div className="link-profissional">
+  <p>📅 Link de agendamento — para o cliente agendar</p>
+  <button
+    style={{
+      padding:"12px",
+      marginLeft:"0px",
+      background: temaConfig.primary,
+      color:"white",
+      border:"none",
+      borderRadius:"12px",
+      cursor:"pointer",
+      width:"100%"
+    }}
+    onClick={async () => {
+      try {
+        const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}`;
+        await navigator.clipboard.writeText(link);
+        alert("Link de agendamento copiado!");
+      } catch (err) {
+        alert(link);
+      }
+    }}
+  >
+    📋 Copiar link de agendamento
+  </button>
 
-const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}`;
-
-navigator.clipboard.writeText(link);
-
-alert("Link copiado!");
-
-}}
->
-📋 Copiar link
-</button>
+  <p>💼 Link do perfil profissional — para entrar no login direto</p>
+  <button
+    style={{
+      padding:"12px",
+      marginLeft:"0px",
+      background: temaConfig.primary,
+      color:"white",
+      border:"none",
+      borderRadius:"12px",
+      cursor:"pointer",
+      width:"100%"
+    }}
+    onClick={async () => {
+      try {
+        const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}&login=1`;
+        await navigator.clipboard.writeText(link);
+        alert("Link do perfil profissional copiado!");
+      } catch (err) {
+        alert(link);
+      }
+    }}
+  >
+    📋 Copiar link do perfil profissional
+  </button>
+</div>
 
 <div className="tema-configuracao">
   <label>Cor do perfil</label>
