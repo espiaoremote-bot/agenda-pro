@@ -100,7 +100,10 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
-const [carregandoPerfil, setCarregandoPerfil] = useState(() => Boolean(Number(new URLSearchParams(window.location.search).get("profissional"))));
+const [carregandoPerfil, setCarregandoPerfil] = useState(() => {
+  const parametros = new URLSearchParams(window.location.search);
+  return Boolean(Number(parametros.get("profissional"))) && parametros.get("login") !== "1";
+});
 const [temaNovo, setTemaNovo] = useState("feminino");
 const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
@@ -492,7 +495,39 @@ console.log("ID FINAL:", profissionalIdLink);
 
 useEffect(() => {
 
-  if (profissionalIdLink) {
+  if (profissionalIdLink && params.get("login") === "1") {
+    // Link do profissional: abre direto a tela de login da área profissional.
+    setCarregandoPerfil(false);
+
+    // Se já existe uma sessão salva deste mesmo profissional, entra direto.
+    let sessao = null;
+    try {
+      const dados = JSON.parse(localStorage.getItem("profissionalLogado") || "");
+      if (dados?.id === profissionalIdLink) sessao = dados;
+    } catch (e) {}
+
+    if (sessao) {
+      setProfissionalLogado(sessao);
+      setTemaSelecionado(sessao.tema || "feminino");
+      setIconeSelecionado(sessao.icone || (sessao.tema === "masculino" ? "💈" : "💅"));
+      setTela(sessao.tipo === "super_admin" ? "admin" : "profissional");
+    } else {
+      setTela("login");
+
+      // Já preenche o nome do profissional do link para facilitar o login.
+      supabase
+        .from("profissionais")
+        .select("nome")
+        .eq("id", profissionalIdLink)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.nome) {
+            setLoginNome(data.nome);
+          }
+        })
+        .catch(() => {});
+    }
+  } else if (profissionalIdLink) {
     setCarregandoPerfil(true);
     setProfissionalCliente(profissionalIdLink);
     setTela("cliente");
@@ -928,6 +963,8 @@ if (!resultadoLogado.ativo) {
 
 setProfissionalLogado(resultadoLogado);
 localStorage.setItem("profissionalLogado", JSON.stringify(resultadoLogado));
+// Remove os parâmetros do link de login da URL para a sessão valer no refresh.
+window.history.replaceState({}, "", window.location.pathname);
 setNotificacaoNovoAgendamento(null);
 setTemaSelecionado(resultadoLogado.tema || "feminino");
 setIconeSelecionado(resultadoLogado.icone || (resultadoLogado.tema === "masculino" ? "💈" : "💅"));
@@ -1405,19 +1442,34 @@ setTotalAgendamentos(count);
 </div>
 
 <div className="link-profissional">
-  <p>Link:</p>
+  <p>📅 Link do cliente — para o cliente agendar</p>
   <button
     onClick={async () => {
       const link = `${window.location.origin}/?profissional=${profissional.id}`;
       try {
         await navigator.clipboard.writeText(link);
-        alert("Link copiado!");
+        alert("Link do cliente copiado!");
       } catch (err) {
         alert(link);
       }
     }}
   >
-    📋 Copiar link
+    📋 Copiar link do cliente
+  </button>
+
+  <p>💼 Link do profissional — para abrir o login direto</p>
+  <button
+    onClick={async () => {
+      const link = `${window.location.origin}/?profissional=${profissional.id}&login=1`;
+      try {
+        await navigator.clipboard.writeText(link);
+        alert("Link do profissional copiado!");
+      } catch (err) {
+        alert(link);
+      }
+    }}
+  >
+    📋 Copiar link do profissional
   </button>
 </div>
 
