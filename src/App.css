@@ -429,19 +429,22 @@ body,
   color: #dcf8c6;
 }
 
-.notificacao-fechar {
-  background: none;
-  border: none;
-  color: #ffffff;
-  font-size: 15px;
+.notificacao-clicavel {
   cursor: pointer;
-  margin-left: auto;
-  opacity: 0.85;
-  padding: 0 2px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.notificacao-fechar:hover {
-  opacity: 1;
+.notificacao-clicavel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+}
+
+.notificacao-confirmar {
+  margin-top: 4px;
+  font-size: 12px !important;
+  color: #25d366 !important;
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 @media (max-width: 480px) {

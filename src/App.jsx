@@ -653,16 +653,6 @@ useEffect(() => {
   };
 }, [profissionalLogado]);
 
-// Fecha a notificação de novo agendamento automaticamente após 6 segundos.
-useEffect(() => {
-  if (!notificacaoNovoAgendamento) return;
-  const timer = setTimeout(
-    () => setNotificacaoNovoAgendamento(null),
-    6000
-  );
-  return () => clearTimeout(timer);
-}, [notificacaoNovoAgendamento]);
-
 useEffect(() => {
   async function carregarServicos() {
     const { data: resultado, error } = await supabase
@@ -1607,7 +1597,11 @@ Criar profissional
   <div className="profissional-container">
 
 {notificacaoNovoAgendamento && (
-  <div className="notificacao-whatsapp">
+  <div
+    className="notificacao-whatsapp notificacao-clicavel"
+    onClick={() => setNotificacaoNovoAgendamento(null)}
+    title="Clique para confirmar que viu"
+  >
     <div className="notificacao-icone">
       <FaWhatsapp />
     </div>
@@ -1615,14 +1609,8 @@ Criar profissional
       <strong>Novo agendamento</strong>
       <span>👤 {notificacaoNovoAgendamento.nome}</span>
       <span>📅 {formatarDiaAgendado(notificacaoNovoAgendamento.data)}</span>
+      <span className="notificacao-confirmar">✓ Clique para confirmar que viu</span>
     </div>
-    <button
-      className="notificacao-fechar"
-      onClick={() => setNotificacaoNovoAgendamento(null)}
-      title="Fechar notificação"
-    >
-      ✕
-    </button>
   </div>
 )}
           
