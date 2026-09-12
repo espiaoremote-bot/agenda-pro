@@ -149,6 +149,8 @@ const [iconeSelecionado, setIconeSelecionado] = useState("💅");
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
+const [saldoHabilitado, setSaldoHabilitado] = useState(false);
+const [periodoSaldo, setPeriodoSaldo] = useState("semanal");
 const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
 const pedidosVistosRef = useRef(new Set());
 const primeiraCargaRef = useRef(true);
@@ -740,6 +742,15 @@ useEffect(() => {
   };
 }, [profissionalLogado]);
 
+// Carga a preferência do saldo de trabalhos guardada neste dispositivo.
+useEffect(() => {
+  if (profissionalLogado?.id) {
+    setSaldoHabilitado(
+      localStorage.getItem(`saldo_habilitado_${profissionalLogado.id}`) === "1"
+    );
+  }
+}, [profissionalLogado]);
+
 useEffect(() => {
   async function carregarServicos() {
     const { data: resultado, error } = await supabase
@@ -832,6 +843,27 @@ const diasAgendados = [...new Set(
     .filter((pedido) => pedido.status === "Agendado")
     .map((pedido) => pedido.data)
 )].sort();
+
+// Saldo de trabalhos concluídos (semanal / quinzenal / mensal).
+const diasPeriodoSaldo = {
+  semanal: 7,
+  quinzenal: 15,
+  mensal: 30,
+};
+const hojeSaldo = new Date();
+const hojeSaldoString = hojeSaldo.toLocaleDateString("sv-SE");
+const limiteSaldoDate = new Date();
+limiteSaldoDate.setDate(
+  limiteSaldoDate.getDate() - (diasPeriodoSaldo[periodoSaldo] || 30)
+);
+const limiteSaldoString = limiteSaldoDate.toLocaleDateString("sv-SE");
+
+const trabalhosConcluidos = pedidos.filter(
+  (pedido) =>
+    pedido.status === "Concluído" &&
+    pedido.data >= limiteSaldoString &&
+    pedido.data <= hojeSaldoString
+).length;
 
 function formatarDiaAgendado(dia) {
   const d = new Date(dia + "T00:00:00");
@@ -1840,6 +1872,35 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   </button>
 </div>
 
+<div className="saldo-config">
+  <button
+    style={{
+      padding:"12px",
+      background: saldoHabilitado ? "#d32f2f" : temaConfig.primary,
+      color:"white",
+      border:"none",
+      borderRadius:"12px",
+      cursor:"pointer",
+      width:"100%"
+    }}
+    onClick={() => {
+      const novo = !saldoHabilitado;
+      setSaldoHabilitado(novo);
+      localStorage.setItem(
+        `saldo_habilitado_${profissionalLogado?.id}`,
+        novo ? "1" : "0"
+      );
+    }}
+  >
+    {saldoHabilitado
+      ? "🚫 Desativar saldo de trabalhos"
+      : "💰 Ativar saldo de trabalhos"}
+  </button>
+  <small className="dica-dias-agendados">
+    Mostra quantos trabalhos foram concluídos por período (semanal, quinzenal, mensal).
+  </small>
+</div>
+
 <div className="tema-configuracao">
   <label>Cor do perfil</label>
   <div>
@@ -2329,6 +2390,42 @@ horariosTrabalho.filter(
   </div>
 
 </div>
+
+{saldoHabilitado && (
+  <div className="saldo-trabalhos-area">
+    <h3>💰 Saldo de trabalhos</h3>
+
+    <div className="saldo-periodos">
+      <button
+        className={periodoSaldo === "semanal" ? "saldo-periodo-ativo" : ""}
+        onClick={() => setPeriodoSaldo("semanal")}
+      >
+        Semanal
+      </button>
+      <button
+        className={periodoSaldo === "quinzenal" ? "saldo-periodo-ativo" : ""}
+        onClick={() => setPeriodoSaldo("quinzenal")}
+      >
+        Quinzenal
+      </button>
+      <button
+        className={periodoSaldo === "mensal" ? "saldo-periodo-ativo" : ""}
+        onClick={() => setPeriodoSaldo("mensal")}
+      >
+        Mensal
+      </button>
+    </div>
+
+    <p className="saldo-numero">{trabalhosConcluidos}</p>
+    <p className="saldo-legenda">
+      {periodoSaldo === "semanal"
+        ? "trabalhos concluídos nos últimos 7 dias"
+        : periodoSaldo === "quinzenal"
+        ? "trabalhos concluídos nos últimos 15 dias"
+        : "trabalhos concluídos nos últimos 30 dias"}
+    </p>
+  </div>
+)}
 
 {mostrarDiasAgendados && (
   <div className="dias-agendados-area">

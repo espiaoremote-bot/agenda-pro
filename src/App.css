@@ -826,6 +826,71 @@ select:focus {
 .link-profissional button {
   width:100%;
 }
+
+/* =====================================
+   SALDO DE TRABALHOS CONCLUÍDOS
+===================================== */
+
+.saldo-config {
+  margin: 20px 0;
+  padding: 15px;
+  background: var(--fundo);
+  border: 2px solid var(--cor-borda);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saldo-trabalhos-area {
+  background: var(--branco);
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.10);
+  padding: 20px;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.saldo-trabalhos-area h3 {
+  margin-top: 0;
+  color: var(--cor-primaria);
+}
+
+.saldo-periodos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.saldo-periodos button {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 2px solid var(--cor-borda);
+  background: var(--fundo);
+  color: var(--texto);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.saldo-periodo-ativo {
+  background: var(--cor-primaria) !important;
+  color: #fff !important;
+}
+
+.saldo-numero {
+  font-size: 48px;
+  font-weight: bold;
+  color: var(--cor-primaria);
+  margin-top: 10px;
+}
+
+.saldo-legenda {
+  font-size: 14px;
+  color: var(--texto-secundario);
+  margin-bottom: 5px;
+}
 * {
   outline: none !important;
 }
