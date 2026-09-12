@@ -500,6 +500,61 @@ useEffect(() => {
 
 }, []);
 
+// Restaura a sessão do profissional ao atualizar a página (F5),
+// sem precisar logar novamente. Valida no banco se ainda está ativo.
+useEffect(() => {
+  const paramsUrl = new URLSearchParams(window.location.search);
+  const idLink = Number(paramsUrl.get("profissional"));
+
+  // Em páginas de link público do cliente, não restaura a sessão.
+  if (idLink) return;
+
+  const salvo = localStorage.getItem("profissionalLogado");
+  if (!salvo) return;
+
+  async function restaurarSessao() {
+    try {
+      const dados = JSON.parse(salvo);
+      if (!dados?.id) {
+        localStorage.removeItem("profissionalLogado");
+        return;
+      }
+
+      const { data: atual, error } = await supabase
+        .from("profissionais")
+        .select("*")
+        .eq("id", dados.id)
+        .single();
+
+      if (error || !atual) {
+        // Perfil foi excluído / não existe mais.
+        localStorage.removeItem("profissionalLogado");
+        setTela("login");
+        setMensagemLogin("Este perfil não existe mais ou foi excluído.");
+        return;
+      }
+
+      if (!atual.ativo) {
+        // Perfil foi desativado pelo administrador.
+        localStorage.removeItem("profissionalLogado");
+        setTela("login");
+        setMensagemLogin("Este perfil foi desativado pelo administrador.");
+        return;
+      }
+
+      localStorage.setItem("profissionalLogado", JSON.stringify(atual));
+      setProfissionalLogado(atual);
+      setTemaSelecionado(atual.tema || "feminino");
+      setIconeSelecionado(atual.icone || (atual.tema === "masculino" ? "💈" : "💅"));
+      setTela(atual.tipo === "super_admin" ? "admin" : "profissional");
+    } catch (e) {
+      localStorage.removeItem("profissionalLogado");
+    }
+  }
+
+  restaurarSessao();
+}, []);
+
 useEffect(() => {
 
 async function carregarProfissionalCliente(){
@@ -872,6 +927,7 @@ if (!resultadoLogado.ativo) {
 }
 
 setProfissionalLogado(resultadoLogado);
+localStorage.setItem("profissionalLogado", JSON.stringify(resultadoLogado));
 setNotificacaoNovoAgendamento(null);
 setTemaSelecionado(resultadoLogado.tema || "feminino");
 setIconeSelecionado(resultadoLogado.icone || (resultadoLogado.tema === "masculino" ? "💈" : "💅"));
@@ -1586,7 +1642,11 @@ Criar profissional
 
 
     <button
-      onClick={() => setTela("inicio")}
+      onClick={() => {
+        localStorage.removeItem("profissionalLogado");
+        setProfissionalLogado(null);
+        setTela("inicio");
+      }}
     >
       Sair
     </button>
