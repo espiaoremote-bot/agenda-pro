@@ -620,10 +620,7 @@ useEffect(() => {
         );
 
         if (novos.length > 0) {
-          setNotificacaoNovoAgendamento({
-            nome: novos[0].nome,
-            data: novos[0].data,
-          });
+          setNotificacaoNovoAgendamento(novos[0]);
         }
       }
 
@@ -750,6 +747,11 @@ function formatarDiaAgendado(dia) {
   const d = new Date(dia + "T00:00:00");
   const nomesDias = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
   return `${nomesDias[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatarDataCompleta(dia) {
+  const d = new Date(dia + "T00:00:00");
+  return `${formatarDiaAgendado(dia)}/${d.getFullYear()}`;
 }
 
 if (carregandoPerfil) {
@@ -1608,7 +1610,9 @@ Criar profissional
     <div className="notificacao-conteudo">
       <strong>Novo agendamento</strong>
       <span>👤 {notificacaoNovoAgendamento.nome}</span>
-      <span>📅 {formatarDiaAgendado(notificacaoNovoAgendamento.data)}</span>
+      <span><FaWhatsapp /> {notificacaoNovoAgendamento.whatsapp}</span>
+      <span>{iconeAtivo} {notificacaoNovoAgendamento.servico}</span>
+      <span>📅 {formatarDataCompleta(notificacaoNovoAgendamento.data)} · ⏰ {notificacaoNovoAgendamento.horario}</span>
       <span className="notificacao-confirmar">✓ Clique para confirmar que viu</span>
     </div>
   </div>
