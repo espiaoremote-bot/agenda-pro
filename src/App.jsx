@@ -1838,31 +1838,6 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   >
     📋 Copiar link de agendamento
   </button>
-
-  <p>💼 Link do perfil profissional — para entrar no login direto</p>
-  <button
-    style={{
-      padding:"12px",
-      marginLeft:"0px",
-      background: temaConfig.primary,
-      color:"white",
-      border:"none",
-      borderRadius:"12px",
-      cursor:"pointer",
-      width:"100%"
-    }}
-    onClick={async () => {
-      try {
-        const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}&login=1`;
-        await navigator.clipboard.writeText(link);
-        alert("Link do perfil profissional copiado!");
-      } catch (err) {
-        alert(link);
-      }
-    }}
-  >
-    📋 Copiar link do perfil profissional
-  </button>
 </div>
 
 <div className="tema-configuracao">
