@@ -2146,6 +2146,7 @@ Adicionar serviço
 
         if(error){
           console.error(error);
+          alert("Erro ao excluir serviço: " + error.message);
           return;
         }
 
