@@ -2116,10 +2116,10 @@ Adicionar serviço
 <h3>📋 Serviços cadastrados</h3>
 
 {meusServicos.map((item) => (
-  <div key={item.id} className="servico-card">
+  <div key={item.id} className="servico-card" style={{ opacity: item.ativo ? 1 : 0.5, background: item.ativo ? "#ffffff" : "#f5f5f5" }}>
 
 <p>
-  {iconeAtivo} {item.nome}
+  {iconeAtivo} {item.nome}{!item.ativo && " (Inativo)"}
 </p>
 
 <p>
@@ -2133,35 +2133,54 @@ Adicionar serviço
     <button
       onClick={async () => {
 
-        const confirmar = window.confirm(
-          "Deseja excluir este serviço?"
-        );
+        if (item.ativo) {
+          const confirmar = window.confirm(
+            "Deseja desativar este serviço? (Ele não aparecerá mais para agendamento)"
+          );
 
-        if(!confirmar) return;
+          if(!confirmar) return;
 
-        const { error } = await supabase
-          .from("servicos")
-          .delete()
-          .eq("id", item.id);
+          const { error } = await supabase
+            .from("servicos")
+            .update({ ativo: false })
+            .eq("id", item.id);
 
-        if(error){
-          console.error(error);
-          alert("Erro ao excluir serviço: " + error.message);
-          return;
+          if(error){
+            console.error(error);
+            alert("Erro ao desativar serviço: " + error.message);
+            return;
+          }
+
+          setMeusServicos(
+            meusServicos.map((servico) => 
+              servico.id === item.id ? { ...servico, ativo: false } : servico
+            )
+          );
+        } else {
+          const { error } = await supabase
+            .from("servicos")
+            .update({ ativo: true })
+            .eq("id", item.id);
+
+          if(error){
+            console.error(error);
+            alert("Erro ao reativar serviço: " + error.message);
+            return;
+          }
+
+          setMeusServicos(
+            meusServicos.map((servico) => 
+              servico.id === item.id ? { ...servico, ativo: true } : servico
+            )
+          );
         }
-
-        setMeusServicos(
-          meusServicos.filter(
-            (servico) => servico.id !== item.id
-          )
-        );
 
       }}
     >
-      🗑️ Excluir
+      {item.ativo ? "🗑️ Desativar" : "♻️ Reativar"}
     </button>
 
-  </div>
+</div>
 ))}
 
 </div>
