@@ -2151,8 +2151,8 @@ Adicionar serviço
             return;
           }
 
-          setMeusServicos(
-            meusServicos.map((servico) => 
+          setMeusServicos(prev => 
+            prev.map((servico) => 
               servico.id === item.id ? { ...servico, ativo: false } : servico
             )
           );
@@ -2168,8 +2168,8 @@ Adicionar serviço
             return;
           }
 
-          setMeusServicos(
-            meusServicos.map((servico) => 
+          setMeusServicos(prev => 
+            prev.map((servico) => 
               servico.id === item.id ? { ...servico, ativo: true } : servico
             )
           );
