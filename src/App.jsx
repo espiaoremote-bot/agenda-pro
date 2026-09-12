@@ -1,7 +1,7 @@
 import Calendar from "react-calendar";
 import { FaWhatsapp } from "react-icons/fa";
 import "react-calendar/dist/Calendar.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
@@ -146,6 +146,9 @@ const [iconeSelecionado, setIconeSelecionado] = useState("💅");
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
+const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
+const pedidosVistosRef = useRef(new Set());
+const primeiraCargaRef = useRef(true);
 
 const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
 const temaConfig = getThemeConfig(temaAtivo);
@@ -592,6 +595,11 @@ useEffect(() => {
   let canal = null;
   let intervalo = null;
 
+  // Reinicia o controle de "já vistos" para este profissional,
+  // evitando notificar agendamentos antigos a cada novo login.
+  primeiraCargaRef.current = true;
+  pedidosVistosRef.current = new Set();
+
   const atualizarPedidos = async () => {
     const { data: resultado, error } = await supabase
       .from("agendamentos")
@@ -600,9 +608,33 @@ useEffect(() => {
       .order("id", { ascending: false });
 
     if (!error && Array.isArray(resultado)) {
+      // Na primeira carga só guarda os agendamentos que já existem,
+      // para não notificar os antigos quando o profissional entrar.
+      if (primeiraCargaRef.current) {
+        primeiraCargaRef.current = false;
+      } else {
+        const novos = resultado.filter(
+          (p) =>
+            p.status === "Agendado" &&
+            !pedidosVistosRef.current.has(p.id)
+        );
+
+        if (novos.length > 0) {
+          setNotificacaoNovoAgendamento({
+            nome: novos[0].nome,
+            data: novos[0].data,
+          });
+        }
+      }
+
+      pedidosVistosRef.current = new Set(resultado.map((p) => p.id));
       setPedidos(resultado);
     }
   };
+
+  // Sincronização imediata: os agendamentos que já existem entram na lista
+  // de "já vistos" e não disparam notificação.
+  atualizarPedidos();
 
   canal = supabase
     .channel(`agendamentos-realtime-${idProfissional}`)
@@ -620,6 +652,16 @@ useEffect(() => {
     if (intervalo) clearInterval(intervalo);
   };
 }, [profissionalLogado]);
+
+// Fecha a notificação de novo agendamento automaticamente após 6 segundos.
+useEffect(() => {
+  if (!notificacaoNovoAgendamento) return;
+  const timer = setTimeout(
+    () => setNotificacaoNovoAgendamento(null),
+    6000
+  );
+  return () => clearTimeout(timer);
+}, [notificacaoNovoAgendamento]);
 
 useEffect(() => {
   async function carregarServicos() {
@@ -838,6 +880,7 @@ if (!resultadoLogado.ativo) {
 }
 
 setProfissionalLogado(resultadoLogado);
+setNotificacaoNovoAgendamento(null);
 setTemaSelecionado(resultadoLogado.tema || "feminino");
 setIconeSelecionado(resultadoLogado.icone || (resultadoLogado.tema === "masculino" ? "💈" : "💅"));
 
@@ -1562,6 +1605,26 @@ Criar profissional
 
 {tela === "profissional" && (
   <div className="profissional-container">
+
+{notificacaoNovoAgendamento && (
+  <div className="notificacao-whatsapp">
+    <div className="notificacao-icone">
+      <FaWhatsapp />
+    </div>
+    <div className="notificacao-conteudo">
+      <strong>Novo agendamento</strong>
+      <span>👤 {notificacaoNovoAgendamento.nome}</span>
+      <span>📅 {formatarDiaAgendado(notificacaoNovoAgendamento.data)}</span>
+    </div>
+    <button
+      className="notificacao-fechar"
+      onClick={() => setNotificacaoNovoAgendamento(null)}
+      title="Fechar notificação"
+    >
+      ✕
+    </button>
+  </div>
+)}
           
 <div className="profissional-header">
 
