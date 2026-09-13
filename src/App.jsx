@@ -941,6 +941,11 @@ if (carregandoPerfil) {
 
 async function alternarAtivoProfissional(profissional) {
 
+  if (profissional.tipo === "super_admin") {
+    alert("O administrador não pode ser desativado.");
+    return;
+  }
+
   const { error } = await supabase
     .from("profissionais")
     .update({
@@ -1567,11 +1572,15 @@ Enviar pedido
     )}
     {profissionais.filter((p) => p.ativo).map((profissional) => (
       <div key={profissional.id} className="admin-sublista-item">
-        <span>👤 {profissional.nome}</span>
+        <span>👤 {profissional.nome}{profissional.tipo === "super_admin" && " 👑"}</span>
         {desbloqueadoAdmin ? (
-          <button onClick={() => alternarAtivoProfissional(profissional)}>
-            🚫 Desativar
-          </button>
+          profissional.tipo === "super_admin" ? (
+            <small>👑</small>
+          ) : (
+            <button onClick={() => alternarAtivoProfissional(profissional)}>
+              🚫 Desativar
+            </button>
+          )
         ) : (
           <small>🔒</small>
         )}
@@ -1588,11 +1597,15 @@ Enviar pedido
     )}
     {profissionais.filter((p) => !p.ativo).map((profissional) => (
       <div key={profissional.id} className="admin-sublista-item">
-        <span>👤 {profissional.nome}</span>
+        <span>👤 {profissional.nome}{profissional.tipo === "super_admin" && " 👑"}</span>
         {desbloqueadoAdmin ? (
-          <button onClick={() => alternarAtivoProfissional(profissional)}>
-            ✅ Ativar
-          </button>
+          profissional.tipo === "super_admin" ? (
+            <small>👑</small>
+          ) : (
+            <button onClick={() => alternarAtivoProfissional(profissional)}>
+              ✅ Ativar
+            </button>
+          )
         ) : (
           <small>🔒</small>
         )}
@@ -1665,11 +1678,15 @@ setTotalAgendamentos(count);
 
 {desbloqueadoAdmin && (
   <div className="profissional-botoes">
-    <button
-      onClick={() => alternarAtivoProfissional(profissional)}
-    >
-      {profissional.ativo ? "Desativar" : "Ativar"}
-    </button>
+    {profissional.tipo === "super_admin" ? (
+      <button disabled style={{ background: "#6b7280", cursor: "not-allowed" }}>
+        👑 Administrador
+      </button>
+    ) : (
+      <button onClick={() => alternarAtivoProfissional(profissional)}>
+        {profissional.ativo ? "Desativar" : "Ativar"}
+      </button>
+    )}
     <button
       onClick={async () => {
 
