@@ -1687,38 +1687,45 @@ setTotalAgendamentos(count);
         {profissional.ativo ? "Desativar" : "Ativar"}
       </button>
     )}
-    <button
-      onClick={async () => {
+    {profissional.tipo !== "super_admin" && (
+      <button
+        onClick={async () => {
 
-        const confirmar = window.confirm(
-          "Deseja realmente excluir este profissional?"
-        );
+          if (profissional.tipo === "super_admin") {
+            alert("O administrador não pode ser excluído.");
+            return;
+          }
 
-        if (!confirmar) return;
+          const confirmar = window.confirm(
+            "Deseja realmente excluir este profissional?"
+          );
 
-        const { error } = await supabase
-          .from("profissionais")
-          .delete()
-          .eq("id", profissional.id);
+          if (!confirmar) return;
 
-        if (error) {
-          console.error(error);
-          alert("Erro ao excluir profissional.");
-          return;
-        }
+          const { error } = await supabase
+            .from("profissionais")
+            .delete()
+            .eq("id", profissional.id);
 
-        const novosProfissionais = profissionais.filter(
-          (item) => item.id !== profissional.id
-        );
+          if (error) {
+            console.error(error);
+            alert("Erro ao excluir profissional.");
+            return;
+          }
 
-        setProfissionais(novosProfissionais);
+          const novosProfissionais = profissionais.filter(
+            (item) => item.id !== profissional.id
+          );
 
-        alert("Profissional excluído com sucesso!");
+          setProfissionais(novosProfissionais);
 
-      }}
-    >
-      🗑️ Excluir perfil
-    </button>
+          alert("Profissional excluído com sucesso!");
+
+        }}
+      >
+        🗑️ Excluir perfil
+      </button>
+    )}
 
     <button
       className="btn-editar"
