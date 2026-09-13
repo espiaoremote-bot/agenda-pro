@@ -380,8 +380,6 @@ setHorariosTrabalho((prev) =>
   prev.filter((hora) => !horariosDoPeriodo.includes(hora))
 );
 
-alert("Horários desmarcados!");
-
 } else {
 
 const novosHorarios = horariosDoPeriodo.filter(
@@ -414,8 +412,6 @@ setHorariosTrabalho([
     ...horariosDoPeriodo
   ])
 ]);
-
-alert("Horários marcados!");
 
 }
 
@@ -1942,25 +1938,7 @@ Criar profissional
 {tela === "profissional" && (
   <div className="profissional-container">
 
-{notificacaoNovoAgendamento && (
-  <div
-    className="notificacao-whatsapp notificacao-clicavel"
-    onClick={() => setNotificacaoNovoAgendamento(null)}
-    title="Clique para confirmar que viu"
-  >
-    <div className="notificacao-icone">
-      <FaWhatsapp />
-    </div>
-    <div className="notificacao-conteudo">
-      <strong>Novo agendamento</strong>
-      <span>👤 {notificacaoNovoAgendamento.nome}</span>
-      <span><FaWhatsapp /> {notificacaoNovoAgendamento.whatsapp}</span>
-      <span>{iconeAtivo} {notificacaoNovoAgendamento.servico}</span>
-      <span>📅 {formatarDataCompleta(notificacaoNovoAgendamento.data)} · ⏰ {notificacaoNovoAgendamento.horario}</span>
-      <span className="notificacao-confirmar">✓ Clique para confirmar que viu</span>
-    </div>
-  </div>
-)}
+
           
 <div className="profissional-header">
 
@@ -3089,6 +3067,25 @@ setMensagemErroProfissional("Agendamento cancelado!");
   </div>
 )}
 
+{profissionalLogado && notificacaoNovoAgendamento && (
+  <div
+    className="notificacao-whatsapp notificacao-clicavel"
+    onClick={() => setNotificacaoNovoAgendamento(null)}
+    title="Clique para confirmar que viu"
+  >
+    <div className="notificacao-icone">
+      <FaWhatsapp />
+    </div>
+    <div className="notificacao-conteudo">
+      <strong>Novo agendamento</strong>
+      <span>👤 {notificacaoNovoAgendamento.nome}</span>
+      <span><FaWhatsapp /> {notificacaoNovoAgendamento.whatsapp}</span>
+      <span>{iconeAtivo} {notificacaoNovoAgendamento.servico}</span>
+      <span>📅 {formatarDataCompleta(notificacaoNovoAgendamento.data)} · ⏰ {notificacaoNovoAgendamento.horario}</span>
+      <span className="notificacao-confirmar">✓ Clique para confirmar que viu</span>
+    </div>
+  </div>
+)}
     </div>
     <footer className="rodape">
       <p>
