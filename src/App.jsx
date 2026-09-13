@@ -1676,6 +1676,41 @@ setTotalAgendamentos(count);
 </div>
 
 
+{profissional.tipo !== "super_admin" && (
+  <div className="link-profissional">
+    <p>📅 Link do cliente — para o cliente agendar</p>
+    <button
+      onClick={async () => {
+        const link = `${window.location.origin}/?profissional=${profissional.id}`;
+        try {
+          await navigator.clipboard.writeText(link);
+          alert("Link do cliente copiado!");
+        } catch (err) {
+          alert(link);
+        }
+      }}
+    >
+      📋 Copiar link do cliente
+    </button>
+
+    <p>💼 Link do profissional — para abrir o login direto</p>
+    <button
+      onClick={async () => {
+        const link = `${window.location.origin}/?profissional=${profissional.id}&login=1`;
+        try {
+          await navigator.clipboard.writeText(link);
+          alert("Link do profissional copiado!");
+        } catch (err) {
+          alert(link);
+        }
+      }}
+    >
+      📋 Copiar link do profissional
+    </button>
+  </div>
+)}
+
+
 {desbloqueadoAdmin && (
   <div className="profissional-botoes">
     {profissional.tipo === "super_admin" ? (
