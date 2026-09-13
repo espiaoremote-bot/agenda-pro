@@ -327,7 +327,7 @@ const horariosFiltrados = listaHorarios.filter((hora) => {
 });
 async function marcarPeriodo(periodo){
 
-let horariosParaMarcar = listaHorarios.filter((hora)=>{
+let horariosDoPeriodo = listaHorarios.filter((hora)=>{
 
 const h = parseInt(hora.split(":")[0]);
 
@@ -347,11 +347,39 @@ return true;
 
 });
 
-
-const novosHorarios = horariosParaMarcar.filter(
-  (hora) => !horariosTrabalho.includes(hora)
+// Se TODOS os horários do período já estão marcados, desmarca tudo.
+// Caso contrário, marca os que faltam.
+const jaMarcadosCompletos = horariosDoPeriodo.every(
+  (hora) => horariosTrabalho.includes(hora)
 );
 
+if (jaMarcadosCompletos) {
+
+// Desmarcar: remove do banco e da lista
+const { error } = await supabase
+.from("horarios_trabalho")
+.delete()
+.eq("profissional_id", profissionalLogado.id)
+.eq("dia_semana", diaSelecionado)
+.in("horario", horariosDoPeriodo);
+
+if(error){
+console.error(error);
+alert("Erro ao desmarcar horários: " + error.message);
+return;
+}
+
+setHorariosTrabalho((prev) =>
+  prev.filter((hora) => !horariosDoPeriodo.includes(hora))
+);
+
+alert("Horários desmarcados!");
+
+} else {
+
+const novosHorarios = horariosDoPeriodo.filter(
+  (hora) => !horariosTrabalho.includes(hora)
+);
 
 if(novosHorarios.length > 0){
 
@@ -365,21 +393,24 @@ novosHorarios.map((hora)=>({
 }))
 );
 
-
 if(error){
 console.error(error);
+alert("Erro ao marcar horários: " + error.message);
 return;
 }
 
 }
 
-
 setHorariosTrabalho([
-...new Set([
-...horariosTrabalho,
-...horariosParaMarcar
-])
+  ...new Set([
+    ...horariosTrabalho,
+    ...horariosDoPeriodo
+  ])
 ]);
+
+alert("Horários marcados!");
+
+}
 
 }
 const horariosOcupados = pedidos
