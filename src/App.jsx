@@ -109,6 +109,10 @@ const [servicos, setServicos] = useState([]);
 const [novoServico, setNovoServico] = useState("");
 const [novoValor, setNovoValor] = useState("");
 const [novaDuracao, setNovaDuracao] = useState("");
+const [servicoEditandoId, setServicoEditandoId] = useState(null);
+const [editaNome, setEditaNome] = useState("");
+const [editaValor, setEditaValor] = useState("");
+const [editaDuracao, setEditaDuracao] = useState("");
 const [meusServicos, setMeusServicos] = useState([]);
 const [profissionais, setProfissionais] = useState([]);
 const [totalAgendamentos, setTotalAgendamentos] = useState(0);
@@ -2118,19 +2122,111 @@ Adicionar serviço
 {meusServicos.map((item) => (
   <div key={item.id} className="servico-card" style={{ opacity: item.ativo ? 1 : 0.5, background: item.ativo ? "#ffffff" : "#f5f5f5" }}>
 
+  {servicoEditandoId === item.id ? (
+    <div className="servico-editar">
+      <p><strong>✏️ Editando: {item.nome}</strong></p>
+
+      <input
+        placeholder="Nome do serviço"
+        value={editaNome}
+        onChange={(e) => setEditaNome(e.target.value)}
+      />
+
+      <input
+        placeholder="Valor"
+        type="number"
+        value={editaValor}
+        onChange={(e) => setEditaValor(e.target.value)}
+      />
+
+      <input
+        placeholder="Duração (ex: 1 hora)"
+        value={editaDuracao}
+        onChange={(e) => setEditaDuracao(e.target.value)}
+      />
+
+      <button
+        onClick={async () => {
+          if (!editaNome.trim()) {
+            alert("Digite o nome do serviço.");
+            return;
+          }
+
+          const { error } = await supabase
+            .from("servicos")
+            .update({
+              nome: editaNome,
+              valor: editaValor || null,
+              duracao: editaDuracao || null,
+            })
+            .eq("id", item.id);
+
+          if (error) {
+            console.error(error);
+            alert("Erro ao editar serviço: " + error.message);
+            return;
+          }
+
+          const atualizado = {
+            ...item,
+            nome: editaNome,
+            valor: editaValor || null,
+            duracao: editaDuracao || null,
+          };
+
+          setMeusServicos(prev =>
+            prev.map((servico) =>
+              servico.id === item.id ? atualizado : servico
+            )
+          );
+
+          setServicos(prev =>
+            prev.map((servico) =>
+              servico.id === item.id ? atualizado : servico
+            )
+          );
+
+          setServicoEditandoId(null);
+          alert("Serviço atualizado!");
+        }}
+      >
+        💾 Salvar alterações
+      </button>
+
+      <button
+        style={{ marginLeft: "8px", background: "#6b7280" }}
+        onClick={() => setServicoEditandoId(null)}
+      >
+        ❌ Cancelar
+      </button>
+    </div>
+  ) : (
+  <div>
 <p>
   {iconeAtivo} {item.nome}{!item.ativo && " (Inativo)"}
 </p>
 
 <p>
-  💰 R$ {item.valor}
+  💰 R$ {item.valor ?? 0}
 </p>
 
 <p>
-  ⏰ {item.duracao}
+  ⏰ {item.duracao || "—"}
 </p>
 
     <button
+      onClick={() => {
+        setServicoEditandoId(item.id);
+        setEditaNome(item.nome);
+        setEditaValor(item.valor || "");
+        setEditaDuracao(item.duracao || "");
+      }}
+    >
+      ✏️ Editar
+    </button>
+
+    <button
+      style={{ marginLeft: "8px" }}
       onClick={async () => {
 
         if (item.ativo) {
@@ -2156,6 +2252,12 @@ Adicionar serviço
               servico.id === item.id ? { ...servico, ativo: false } : servico
             )
           );
+
+          setServicos(prev => 
+            prev.map((servico) => 
+              servico.id === item.id ? { ...servico, ativo: false } : servico
+            )
+          );
         } else {
           const { error } = await supabase
             .from("servicos")
@@ -2169,6 +2271,12 @@ Adicionar serviço
           }
 
           setMeusServicos(prev => 
+            prev.map((servico) => 
+              servico.id === item.id ? { ...servico, ativo: true } : servico
+            )
+          );
+
+          setServicos(prev => 
             prev.map((servico) => 
               servico.id === item.id ? { ...servico, ativo: true } : servico
             )
@@ -2203,11 +2311,19 @@ Adicionar serviço
         }
 
         setMeusServicos(prev => prev.filter(s => s.id !== item.id));
+
+        setServicos(prev =>
+          prev.filter(s => s.id !== item.id)
+        );
+
         alert("Serviço excluído permanentemente!");
       }}
     >
       🗑️ Excluir
     </button>
+
+  </div>
+  )}
 
 </div>
 ))}

@@ -505,6 +505,17 @@ body,
   opacity: 0.9;
 }
 
+.servico-editar input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  background: #fafafa;
+  margin-bottom: 8px;
+  color: var(--texto);
+}
+
 
 .profissional-botoes {
   display:flex;
