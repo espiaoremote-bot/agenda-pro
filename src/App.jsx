@@ -2230,12 +2230,6 @@ Adicionar serviço
       onClick={async () => {
 
         if (item.ativo) {
-          const confirmar = window.confirm(
-            "Deseja desativar este serviço? (Ele não aparecerá mais para agendamento)"
-          );
-
-          if(!confirmar) return;
-
           const { error } = await supabase
             .from("servicos")
             .update({ ativo: false })
@@ -2258,6 +2252,8 @@ Adicionar serviço
               servico.id === item.id ? { ...servico, ativo: false } : servico
             )
           );
+
+          alert("Serviço desativado!");
         } else {
           const { error } = await supabase
             .from("servicos")
@@ -2281,6 +2277,8 @@ Adicionar serviço
               servico.id === item.id ? { ...servico, ativo: true } : servico
             )
           );
+
+          alert("Serviço reativado!");
         }
 
       }}
@@ -2291,14 +2289,6 @@ Adicionar serviço
     <button
       style={{ marginLeft: "8px", background: "#d32f2f" }}
       onClick={async () => {
-        const confirmar = window.confirm(
-          "⚠️ EXCLUIR PARA SEMPRE?\n\n" +
-          "Isso só funciona se NENHUM agendamento usar este serviço.\n" +
-          "Se houver agendamentos, o banco dará erro."
-        );
-
-        if(!confirmar) return;
-
         const { error } = await supabase
           .from("servicos")
           .delete()
