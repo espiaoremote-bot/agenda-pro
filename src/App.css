@@ -534,6 +534,42 @@ body,
   font-size: 14px;
 }
 
+/* Botões de período (Todos, Madrugada, Manhã, Tarde, Noite) */
+.periodos-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+/* No celular: grade de 2 colunas com a ordem pedida:
+   [Todos | Manhã]
+   [Tarde | Noite]
+   [  Madrugada (maior, centralizada) ] */
+@media (max-width: 600px) {
+  .periodos-botoes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .periodos-botoes button {
+    width: 100%;
+    padding: 10px 12px;
+  }
+
+  .periodos-botoes button:nth-child(1) { order: 1; } /* Todos */
+  .periodos-botoes button:nth-child(3) { order: 2; } /* Manhã */
+  .periodos-botoes button:nth-child(4) { order: 3; } /* Tarde */
+  .periodos-botoes button:nth-child(5) { order: 4; } /* Noite */
+  .periodos-botoes button:nth-child(2) {
+    order: 5;               /* Madrugada */
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: auto;
+  }
+}
+
 .admin-sublista {
   margin-top: 12px;
   border: 1px solid #ddd;

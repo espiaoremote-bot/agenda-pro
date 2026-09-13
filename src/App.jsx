@@ -2557,12 +2557,7 @@ value={dia}
 
 <h4>Escolha os horários:</h4>
 
-<div style={{
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  marginBottom: "15px"
-}}>
+<div className="periodos-botoes">
 
 <button 
 onClick={() => setPeriodoHorario("todos")}
