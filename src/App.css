@@ -534,6 +534,39 @@ body,
   font-size: 14px;
 }
 
+.admin-sublista {
+  margin-top: 12px;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.admin-sublista h4 {
+  margin: 0 0 10px;
+}
+
+.admin-sublista-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-sublista-item button {
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .profissional-botoes {
   display:flex;
   gap:10px;

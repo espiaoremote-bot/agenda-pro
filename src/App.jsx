@@ -160,6 +160,7 @@ const [periodoSaldo, setPeriodoSaldo] = useState("semanal");
 const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
 const pedidosVistosRef = useRef(new Set());
 const primeiraCargaRef = useRef(true);
+const [mostrarListaAdmin, setMostrarListaAdmin] = useState(null);
 
 const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
 const temaConfig = getThemeConfig(temaAtivo);
@@ -932,6 +933,29 @@ if (carregandoPerfil) {
   );
 }
 
+async function alternarAtivoProfissional(profissional) {
+
+  const { error } = await supabase
+    .from("profissionais")
+    .update({
+      ativo: !profissional.ativo
+    })
+    .eq("id", profissional.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao alterar o status do profissional: " + error.message);
+    return;
+  }
+
+  const { data } = await supabase
+    .from("profissionais")
+    .select("*");
+
+  setProfissionais(data);
+
+}
+
 return (
   <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
     <div className="app-content">
@@ -1441,7 +1465,12 @@ Enviar pedido
   </div>
 
 
-  <div className="resumo-card">
+  <div
+    className="resumo-card resumo-card-clicavel"
+    onClick={() =>
+      setMostrarListaAdmin(mostrarListaAdmin === "ativos" ? null : "ativos")
+    }
+  >
     <h3>🟢 Ativos</h3>
     <p>
       {
@@ -1453,12 +1482,57 @@ Enviar pedido
   </div>
 
 
-  <div className="resumo-card">
-    <h3>📅 Agendamentos</h3>
-    <p>{totalAgendamentos}</p>
+  <div
+    className="resumo-card resumo-card-clicavel"
+    onClick={() =>
+      setMostrarListaAdmin(mostrarListaAdmin === "desativados" ? null : "desativados")
+    }
+  >
+    <h3>🔴 Desativados</h3>
+    <p>
+      {
+        profissionais.filter(
+          (p) => !p.ativo
+        ).length
+      }
+    </p>
   </div>
 
 </div>
+
+{mostrarListaAdmin === "ativos" && (
+  <div className="admin-sublista">
+    <h4>🟢 Profissionais ativos</h4>
+    {profissionais.filter((p) => p.ativo).length === 0 && (
+      <p>Nenhum profissional ativo.</p>
+    )}
+    {profissionais.filter((p) => p.ativo).map((profissional) => (
+      <div key={profissional.id} className="admin-sublista-item">
+        <span>👤 {profissional.nome}</span>
+        <button onClick={() => alternarAtivoProfissional(profissional)}>
+          🚫 Desativar
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+
+{mostrarListaAdmin === "desativados" && (
+  <div className="admin-sublista">
+    <h4>🔴 Profissionais bloqueados</h4>
+    {profissionais.filter((p) => !p.ativo).length === 0 && (
+      <p>Nenhum profissional bloqueado.</p>
+    )}
+    {profissionais.filter((p) => !p.ativo).map((profissional) => (
+      <div key={profissional.id} className="admin-sublista-item">
+        <span>👤 {profissional.nome}</span>
+        <button onClick={() => alternarAtivoProfissional(profissional)}>
+          ✅ Ativar
+        </button>
+      </div>
+    ))}
+  </div>
+)}
     <div className="admin-secao">
     
 
@@ -1555,27 +1629,7 @@ setTotalAgendamentos(count);
 
 
 <button
-  onClick={async () => {
-
-    const { error } = await supabase
-      .from("profissionais")
-      .update({
-        ativo: !profissional.ativo
-      })
-      .eq("id", profissional.id);
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("profissionais")
-      .select("*");
-
-    setProfissionais(data);
-
-  }}
+  onClick={() => alternarAtivoProfissional(profissional)}
 >
   {profissional.ativo ? "Desativar" : "Ativar"}
 </button>
