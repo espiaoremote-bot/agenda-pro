@@ -2912,6 +2912,10 @@ if (temCancelado) {
 
 <p>{iconeAtivo} {pedido.servico}</p>
 
+<p>
+  💰 {Number(pedido.valor_servico || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+</p>
+
 <p>📅 {pedido.data}</p>
 
 <p>
