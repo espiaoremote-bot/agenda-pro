@@ -516,6 +516,23 @@ body,
   color: var(--texto);
 }
 
+.horarios-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.horarios-grade label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  font-size: 14px;
+}
 
 .profissional-botoes {
   display:flex;

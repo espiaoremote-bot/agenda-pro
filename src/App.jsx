@@ -2472,7 +2472,7 @@ onDoubleClick={() => marcarPeriodo("noite")}
 </div>
 
 
-<div>
+<div className="horarios-grade">
 
 
 {horariosFiltrados.map((hora) => (
@@ -2480,9 +2480,7 @@ onDoubleClick={() => marcarPeriodo("noite")}
 
 <label 
 key={hora}
-style={{display:"block"}}
 >
-
 
 <input
 type="checkbox"
