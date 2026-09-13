@@ -567,6 +567,36 @@ body,
   white-space: nowrap;
 }
 
+.admin-senha-area {
+  margin-top: 14px;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.admin-senha-area p {
+  margin: 0 0 10px;
+}
+
+.admin-senha-area input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  flex: 1;
+  min-width: 160px;
+}
+
+.admin-senha-area button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  cursor: pointer;
+}
+
 .profissional-botoes {
   display:flex;
   gap:10px;

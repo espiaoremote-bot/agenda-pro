@@ -87,6 +87,10 @@ console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
 
+// Senha do administrador (segunda senha) - necessária para desbloquear
+// as opções de gerenciamento: editar, desativar, excluir e ver senha.
+const SENHA_ADMIN_OPCOES = "9622";
+
 
 
 function App() {
@@ -161,6 +165,8 @@ const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(nul
 const pedidosVistosRef = useRef(new Set());
 const primeiraCargaRef = useRef(true);
 const [mostrarListaAdmin, setMostrarListaAdmin] = useState(null);
+const [desbloqueadoAdmin, setDesbloqueadoAdmin] = useState(false);
+const [senhaOpcoesAdmin, setSenhaOpcoesAdmin] = useState("");
 
 const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
 const temaConfig = getThemeConfig(temaAtivo);
@@ -1415,6 +1421,59 @@ Enviar pedido
 
     </div>
 
+    <div className="admin-senha-area">
+      {!desbloqueadoAdmin ? (
+        <>
+          <p>🔒 Área protegida — digite a senha do administrador para acessar as opções (editar, desativar, excluir, ver senha).</p>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <input
+              type="password"
+              placeholder="Senha do administrador"
+              value={senhaOpcoesAdmin}
+              onChange={(e) => setSenhaOpcoesAdmin(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (senhaOpcoesAdmin === SENHA_ADMIN_OPCOES) {
+                    setDesbloqueadoAdmin(true);
+                    setSenhaOpcoesAdmin("");
+                  } else {
+                    alert("Senha incorreta!");
+                    setSenhaOpcoesAdmin("");
+                  }
+                }
+              }}
+            />
+            <button
+              onClick={() => {
+                if (senhaOpcoesAdmin === SENHA_ADMIN_OPCOES) {
+                  setDesbloqueadoAdmin(true);
+                  setSenhaOpcoesAdmin("");
+                } else {
+                  alert("Senha incorreta!");
+                  setSenhaOpcoesAdmin("");
+                }
+              }}
+            >
+              🔓 Desbloquear opções
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p>✅ Área desbloqueada — as opções estão liberadas.</p>
+          <button
+            onClick={() => {
+              setDesbloqueadoAdmin(false);
+              setProfissionalEditando(null);
+              setMostrarSenha(false);
+            }}
+          >
+            🔒 Bloquear opções
+          </button>
+        </>
+      )}
+    </div>
+
     <div className="tema-configuracao">
       <label>Cor do perfil</label>
       <div>
@@ -1509,9 +1568,13 @@ Enviar pedido
     {profissionais.filter((p) => p.ativo).map((profissional) => (
       <div key={profissional.id} className="admin-sublista-item">
         <span>👤 {profissional.nome}</span>
-        <button onClick={() => alternarAtivoProfissional(profissional)}>
-          🚫 Desativar
-        </button>
+        {desbloqueadoAdmin ? (
+          <button onClick={() => alternarAtivoProfissional(profissional)}>
+            🚫 Desativar
+          </button>
+        ) : (
+          <small>🔒</small>
+        )}
       </div>
     ))}
   </div>
@@ -1526,9 +1589,13 @@ Enviar pedido
     {profissionais.filter((p) => !p.ativo).map((profissional) => (
       <div key={profissional.id} className="admin-sublista-item">
         <span>👤 {profissional.nome}</span>
-        <button onClick={() => alternarAtivoProfissional(profissional)}>
-          ✅ Ativar
-        </button>
+        {desbloqueadoAdmin ? (
+          <button onClick={() => alternarAtivoProfissional(profissional)}>
+            ✅ Ativar
+          </button>
+        ) : (
+          <small>🔒</small>
+        )}
       </div>
     ))}
   </div>
@@ -1595,93 +1662,65 @@ setTotalAgendamentos(count);
 
 </div>
 
-<div className="link-profissional">
-  <p>📅 Link do cliente — para o cliente agendar</p>
-  <button
-    onClick={async () => {
-      const link = `${window.location.origin}/?profissional=${profissional.id}`;
-      try {
-        await navigator.clipboard.writeText(link);
-        alert("Link do cliente copiado!");
-      } catch (err) {
-        alert(link);
-      }
-    }}
-  >
-    📋 Copiar link do cliente
-  </button>
 
-  <p>💼 Link do profissional — para abrir o login direto</p>
-  <button
-    onClick={async () => {
-      const link = `${window.location.origin}/?profissional=${profissional.id}&login=1`;
-      try {
-        await navigator.clipboard.writeText(link);
-        alert("Link do profissional copiado!");
-      } catch (err) {
-        alert(link);
-      }
-    }}
-  >
-    📋 Copiar link do profissional
-  </button>
-</div>
+{desbloqueadoAdmin && (
+  <div className="profissional-botoes">
+    <button
+      onClick={() => alternarAtivoProfissional(profissional)}
+    >
+      {profissional.ativo ? "Desativar" : "Ativar"}
+    </button>
+    <button
+      onClick={async () => {
 
+        const confirmar = window.confirm(
+          "Deseja realmente excluir este profissional?"
+        );
 
-<button
-  onClick={() => alternarAtivoProfissional(profissional)}
->
-  {profissional.ativo ? "Desativar" : "Ativar"}
-</button>
-<button
-  onClick={async () => {
+        if (!confirmar) return;
 
-    const confirmar = window.confirm(
-      "Deseja realmente excluir este profissional?"
-    );
+        const { error } = await supabase
+          .from("profissionais")
+          .delete()
+          .eq("id", profissional.id);
 
-    if (!confirmar) return;
+        if (error) {
+          console.error(error);
+          alert("Erro ao excluir profissional.");
+          return;
+        }
 
-    const { error } = await supabase
-      .from("profissionais")
-      .delete()
-      .eq("id", profissional.id);
+        const novosProfissionais = profissionais.filter(
+          (item) => item.id !== profissional.id
+        );
 
-    if (error) {
-      console.error(error);
-      alert("Erro ao excluir profissional.");
-      return;
-    }
+        setProfissionais(novosProfissionais);
 
-    const novosProfissionais = profissionais.filter(
-      (item) => item.id !== profissional.id
-    );
+        alert("Profissional excluído com sucesso!");
 
-    setProfissionais(novosProfissionais);
+      }}
+    >
+      🗑️ Excluir perfil
+    </button>
 
-    alert("Profissional excluído com sucesso!");
+    <button
+      className="btn-editar"
+      onClick={() => {
 
-  }}
->
-  🗑️ Excluir perfil
-</button>
+        setProfissionalEditando(profissional);
 
-<button
-  className="btn-editar"
-  onClick={() => {
+        setEditarNome(profissional.nome);
 
-    setProfissionalEditando(profissional);
+        setEditarSenha(profissional.senha);
 
-    setEditarNome(profissional.nome);
+        setMostrarSenha(false);
 
-    setEditarSenha(profissional.senha);
-
-    setMostrarSenha(false);
-
-  }}
->
-  ✏️ Editar
-</button>
+      }}
+    >
+      ✏️ Editar
+    </button>
+  </div>
+)}
  {profissionalEditando?.id === profissional.id && (
   <div style={{ marginTop: "10px" }}>
 
