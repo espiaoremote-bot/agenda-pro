@@ -121,6 +121,62 @@ function datasParaMeses(dataInicial, quantidadeMeses) {
   return datas;
 }
 
+// Junta os agendamentos que fazem parte da MESMA recorrência mensal de um pedido
+// (mesmo profissional, cliente, serviço e horário, em meses consecutivos).
+function mesesDaRecorrencia(pedidoReferencia, lista, idProfissional) {
+  const diffMesesEntre = (dataA, dataB) => {
+    const [anoA, mesA] = dataA.split("-").map(Number);
+    const [anoB, mesB] = dataB.split("-").map(Number);
+    return (anoA - anoB) * 12 + (mesA - mesB);
+  };
+
+  const semelhantes = Array.isArray(lista)
+    ? lista.filter(
+        (item) =>
+          item.profissional_id === idProfissional &&
+          item.status === "Agendado" &&
+          item.nome === pedidoReferencia.nome &&
+          item.profissional_id === pedidoReferencia.profissional_id &&
+          item.whatsapp === pedidoReferencia.whatsapp &&
+          item.servico === pedidoReferencia.servico &&
+          item.horario === pedidoReferencia.horario
+      )
+    : [];
+
+  if (semelhantes.length === 0) {
+    return [pedidoReferencia];
+  }
+
+  const ordenados = semelhantes.slice().sort((a, b) => (a.data < b.data ? -1 : 1));
+
+  // Union-find simples para agrupar meses consecutivos da mesma recorrência.
+  const pai = ordenados.map((_, indice) => indice);
+  const achar = (x) => {
+    if (pai[x] !== x) {
+      pai[x] = achar(pai[x]);
+    }
+    return pai[x];
+  };
+  const unir = (a, b) => {
+    pai[achar(a)] = achar(b);
+  };
+
+  for (let indice = 1; indice < ordenados.length; indice++) {
+    if (diffMesesEntre(ordenados[indice].data, ordenados[indice - 1].data) === 1) {
+      unir(indice, indice - 1);
+    }
+  }
+
+  const indiceClicado = ordenados.findIndex((item) => item.id === pedidoReferencia.id);
+  const raizGrupo = indiceClicado >= 0 ? achar(indiceClicado) : -1;
+
+  if (indiceClicado < 0) {
+    return [pedidoReferencia];
+  }
+
+  return ordenados.filter((item, indice) => achar(indice) === raizGrupo);
+}
+
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
@@ -3452,6 +3508,59 @@ setMensagemErroProfissional("Agendamento cancelado!");
 >
 ❌ Cancelar agendamento
 </button>
+
+{(() => {
+  const grupoRecorrencia = mesesDaRecorrencia(pedido, pedidos, profissionalLogado?.id);
+
+  // Só mostra se realmente for uma recorrência com mais de 1 mês.
+  if (grupoRecorrencia.length <= 1) {
+    return null;
+  }
+
+  return (
+    <button
+      onClick={async () => {
+        const confirmar = window.confirm(
+          `Cancelar toda a recorrência de ${pedido.nome} (${grupoRecorrencia.length} meses) no horário ${pedido.horario}?`
+        );
+
+        if (!confirmar) {
+          return;
+        }
+
+        const { error } = await supabase
+          .from("agendamentos")
+          .update({
+            status: "Cancelado",
+            datacancelamento: new Date().toLocaleString(),
+          })
+          .in("id", grupoRecorrencia.map((item) => item.id));
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        const { data, error: erroBusca } = await supabase
+          .from("agendamentos")
+          .select("*")
+          .eq("profissional_id", profissionalLogado.id)
+          .order("id", { ascending: false });
+
+        if (!erroBusca) {
+          setPedidos(data);
+        }
+
+        setMensagemProfissional("");
+        setMensagemErroProfissional(
+          `Recorrência cancelada! (${grupoRecorrencia.length} meses)`
+        );
+      }}
+    >
+      ❌ Cancelar recorrência ({grupoRecorrencia.length} meses)
+    </button>
+  );
+})()}
 
 </>
 
