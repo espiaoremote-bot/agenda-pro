@@ -263,6 +263,14 @@ const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
 const [tipoMensagemAgendarCliente, setTipoMensagemAgendarCliente] = useState("");
 const [horariosAgendarCliente, setHorariosAgendarCliente] = useState([]);
 const [mesesRecorrencia, setMesesRecorrencia] = useState(1);
+
+// Reagendamento (remarcar dia/horário) dentro da agenda do profissional.
+const [reagendandoPedido, setReagendandoPedido] = useState(null);
+const [novaDataReagendamento, setNovaDataReagendamento] = useState("");
+const [novoHorarioReagendamento, setNovoHorarioReagendamento] = useState("");
+const [horariosReagendamento, setHorariosReagendamento] = useState([]);
+const [mensagemReagendamento, setMensagemReagendamento] = useState("");
+const [tipoMensagemReagendamento, setTipoMensagemReagendamento] = useState("");
 const pedidosVistosRef = useRef(new Set());
 const primeiraCargaRef = useRef(true);
 const [mostrarListaAdmin, setMostrarListaAdmin] = useState(null);
@@ -707,6 +715,88 @@ useEffect(() => {
   carregarHorariosAgendarCliente();
 }, [profissionalLogado, mostrarAgendarCliente, data, pedidos]);
 
+// Horários livres para REAGENDAR um agendamento (formulário dentro da agenda).
+// Usa a mesma regra de ocupação da agenda: bloqueia apenas agendamentos ativos,
+// ignorando o próprio agendamento que está sendo remarcado.
+useEffect(() => {
+  async function carregarHorariosReagendamento() {
+    if (!profissionalLogado || !reagendandoPedido || !novaDataReagendamento) {
+      setHorariosReagendamento([]);
+      return;
+    }
+
+    const dataEscolhida = new Date(novaDataReagendamento + "T00:00:00");
+
+    const dias = [
+      "domingo",
+      "segunda",
+      "terça",
+      "quarta",
+      "quinta",
+      "sexta",
+      "sábado",
+    ];
+
+    const diaSemana = dias[dataEscolhida.getDay()];
+
+    const { data: horarios, error } = await supabase
+      .from("horarios_trabalho")
+      .select("horario")
+      .eq("profissional_id", profissionalLogado.id)
+      .eq("dia_semana", diaSemana);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const agora = new Date();
+
+    const hoje =
+      agora.getFullYear() +
+      "-" +
+      String(agora.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(agora.getDate()).padStart(2, "0");
+
+    const horariosOcupados = pedidos
+      .filter((item) => item.data === novaDataReagendamento)
+      .filter(
+        (item) =>
+          item.status === "Agendado" &&
+          item.horario_liberado !== true &&
+          item.id !== reagendandoPedido.id
+      )
+      .map((item) => item.horario);
+
+    const horariosLivres = horarios
+      .map((item) => item.horario)
+      .filter((hora) => !horariosOcupados.includes(hora))
+      .filter((hora) => {
+        // Se não for hoje, mantém todos os horários
+        if (novaDataReagendamento !== hoje) return true;
+
+        const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+
+        const horaAtual = agora.getHours();
+        const minutoAtual = agora.getMinutes();
+
+        if (
+          horaSlot < horaAtual ||
+          (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
+    setHorariosReagendamento(horariosLivres);
+  }
+
+  carregarHorariosReagendamento();
+}, [profissionalLogado, reagendandoPedido, novaDataReagendamento, pedidos]);
+
 const params = new URLSearchParams(window.location.search);
 
 console.log("URL COMPLETA:", window.location.href);
@@ -1142,6 +1232,132 @@ async function alternarAtivoProfissional(profissional) {
 
   setProfissionais(data);
 
+}
+
+// Remarca (reagenda) um cliente para um novo dia e/ou horário.
+async function salvarReagendamento() {
+  if (!reagendandoPedido) return;
+
+  setMensagemReagendamento("");
+  setTipoMensagemReagendamento("");
+
+  if (!novaDataReagendamento || !novoHorarioReagendamento) {
+    setMensagemReagendamento("Escolha o novo dia e horário.");
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  // Cliente não mudou de dia nem de horário.
+  if (
+    novaDataReagendamento === reagendandoPedido.data &&
+    novoHorarioReagendamento === reagendandoPedido.horario
+  ) {
+    setMensagemReagendamento("Este cliente já está neste dia e horário.");
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  const hojeData = new Date();
+
+  const hoje =
+    hojeData.getFullYear() +
+    "-" +
+    String(hojeData.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(hojeData.getDate()).padStart(2, "0");
+
+  if (novaDataReagendamento < hoje) {
+    setMensagemReagendamento(
+      "Não é possível reagendar para uma data que já passou."
+    );
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  const agora = new Date();
+
+  const dataHoraEscolhida = new Date(
+    `${novaDataReagendamento}T${novoHorarioReagendamento}:00`
+  );
+
+  if (dataHoraEscolhida < agora) {
+    setMensagemReagendamento("Esse horário já passou.");
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  // Confere se o novo dia/horário já está ocupado por outro agendamento ativo.
+  const { data: conflitos, error: erroBusca } = await supabase
+    .from("agendamentos")
+    .select("*")
+    .eq("profissional_id", profissionalLogado.id)
+    .eq("data", novaDataReagendamento)
+    .eq("horario", novoHorarioReagendamento)
+    .eq("status", "Agendado")
+    .neq("id", reagendandoPedido.id);
+
+  if (erroBusca) {
+    console.error(erroBusca);
+    setMensagemReagendamento(
+      "Ocorreu um erro ao conferir o horário. Tente novamente."
+    );
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  if (conflitos && conflitos.length > 0) {
+    setMensagemReagendamento(
+      "Esse dia e horário já estão ocupados por outro agendamento. Escolha outro."
+    );
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("agendamentos")
+    .update({
+      data: novaDataReagendamento,
+      horario: novoHorarioReagendamento,
+    })
+    .eq("id", reagendandoPedido.id);
+
+  if (error) {
+    if (error.code === "23505") {
+      setMensagemReagendamento(
+        "Esse horário acabou de ser reservado por outra pessoa. Escolha outro."
+      );
+      setTipoMensagemReagendamento("erro");
+      return;
+    }
+
+    console.error(error);
+    setMensagemReagendamento("Ocorreu um erro ao reagendar. Tente novamente.");
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  // Recarrega a agenda com os dados atualizados.
+  const { data: resultado, error: erroRecarga } = await supabase
+    .from("agendamentos")
+    .select("*")
+    .eq("profissional_id", profissionalLogado.id)
+    .order("id", { ascending: false });
+
+  if (!erroRecarga) {
+    setPedidos(resultado);
+  }
+
+  setMensagemProfissional(
+    `${reagendandoPedido.nome} remarcado(a) para ${formatarDataCompleta(novaDataReagendamento)} às ${novoHorarioReagendamento}!`
+  );
+  setMensagemErroProfissional("");
+
+  setReagendandoPedido(null);
+  setNovaDataReagendamento("");
+  setNovoHorarioReagendamento("");
+  setHorariosReagendamento([]);
+  setMensagemReagendamento("");
+  setTipoMensagemReagendamento("");
 }
 
 return (
@@ -3624,6 +3840,21 @@ setMensagemErroProfissional("Agendamento cancelado!");
 ❌ Cancelar agendamento
 </button>
 
+<button
+  onClick={() => {
+    setMensagemProfissional("");
+    setMensagemErroProfissional("");
+    setReagendandoPedido(pedido);
+    setNovaDataReagendamento(pedido.data);
+    setNovoHorarioReagendamento(pedido.horario);
+    setHorariosReagendamento([]);
+    setMensagemReagendamento("");
+    setTipoMensagemReagendamento("");
+  }}
+>
+  🔄 Reagendar
+</button>
+
 {(() => {
   const grupoRecorrencia = mesesDaRecorrencia(pedido, pedidos, profissionalLogado?.id);
 
@@ -3676,6 +3907,79 @@ setMensagemErroProfissional("Agendamento cancelado!");
     </button>
   );
 })()}
+
+{reagendandoPedido?.id === pedido.id && (
+  <div className="agendar-cliente-form reagendar-form">
+    <h3>🔄 Reagendar cliente</h3>
+
+    <small>
+      Agendamento atual: {formatarDataCompleta(pedido.data)} às{" "}
+      {pedido.horario}
+    </small>
+
+    {mensagemReagendamento && (
+      <p
+        style={{
+          color: tipoMensagemReagendamento === "erro" ? "red" : "green",
+        }}
+      >
+        {mensagemReagendamento}
+      </p>
+    )}
+
+    <label>Nova data</label>
+    <input
+      type="date"
+      value={novaDataReagendamento}
+      min={new Date().toLocaleDateString("sv-SE")}
+      onChange={(e) => {
+        setNovaDataReagendamento(e.target.value);
+        setNovoHorarioReagendamento("");
+        setMensagemReagendamento("");
+        setTipoMensagemReagendamento("");
+      }}
+    />
+
+    <label>Novo horário</label>
+    <select
+      value={novoHorarioReagendamento}
+      onChange={(e) => setNovoHorarioReagendamento(e.target.value)}
+    >
+      <option value="">Escolha o horário</option>
+
+      {horariosReagendamento.map((hora) => (
+        <option key={hora} value={hora}>
+          {hora}
+        </option>
+      ))}
+    </select>
+
+    {novaDataReagendamento && horariosReagendamento.length === 0 && (
+      <small>
+        Nenhum horário disponível para este dia. Escolha outra data.
+      </small>
+    )}
+
+    <button type="button" onClick={salvarReagendamento}>
+      ✓ Confirmar reagendamento
+    </button>
+
+    <button
+      type="button"
+      className="agendar-cliente-cancelar"
+      onClick={() => {
+        setReagendandoPedido(null);
+        setNovaDataReagendamento("");
+        setNovoHorarioReagendamento("");
+        setHorariosReagendamento([]);
+        setMensagemReagendamento("");
+        setTipoMensagemReagendamento("");
+      }}
+    >
+      ❌ Cancelar
+    </button>
+  </div>
+)}
 
 </>
 

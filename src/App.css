@@ -902,6 +902,21 @@ body,
   color: var(--texto-secundario);
 }
 
+/* Form de REAGENDAR dentro da agenda (usa o visual do agendar-cliente-form
+   com um fundo destacado para separar do card). */
+.reagendar-form {
+  background: var(--fundo);
+  border: 1px dashed var(--cor-borda);
+  border-radius: 14px;
+  padding: 14px;
+  margin: 14px 0 4px;
+}
+
+.reagendar-form h3,
+.reagendar-form small {
+  margin: 0;
+}
+
 
 /* =====================================
    HOVER
