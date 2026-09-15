@@ -368,6 +368,73 @@ body,
   color:#fff !important;
 }
 
+/* Exclusão em massa dos dias com agendamento */
+.dia-agendado-chip-selecionado {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+}
+
+.dia-agendado-qtd {
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.9;
+}
+
+.dias-agendados-area > .btn-config-principal {
+  width: 100%;
+  margin: 6px 0;
+}
+
+.exclusao-bar {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff1f1;
+  border: 1px dashed #fca5a5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exclusao-bar p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-secundario);
+}
+
+.exclusao-bar button {
+  width: 100%;
+  padding: 9px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.exclusao-bar .exclusao-confirmar {
+  background: #dc2626;
+  color: #fff;
+}
+
+.exclusao-bar .exclusao-confirmar:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
+.exclusao-bar .exclusao-confirmar:disabled {
+  background: #f1b5b5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.exclusao-bar .exclusao-limpar {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: var(--texto-secundario);
+}
+
 /* =====================================
    NOTIFICAÇÃO NOVO AGENDAMENTO (estilo WhatsApp)
 ===================================== */

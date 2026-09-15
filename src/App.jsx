@@ -253,6 +253,8 @@ const [mostrarSaldo, setMostrarSaldo] = useState(true);
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
+const [selecionarParaExcluir, setSelecionarParaExcluir] = useState(false);
+const [diasSelecionadosExclusao, setDiasSelecionadosExclusao] = useState([]);
 const [saldoHabilitado, setSaldoHabilitado] = useState(false);
 const [periodoSaldo, setPeriodoSaldo] = useState("semanal");
 const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
@@ -3241,31 +3243,144 @@ horariosTrabalho.filter(
   <div className="dias-agendados-area">
     <h3>🗓️ Dias com agendamento</h3>
 
+    <button
+      className="btn-config-principal"
+      onClick={() => {
+        const ativar = !selecionarParaExcluir;
+        setSelecionarParaExcluir(ativar);
+        if (ativar) {
+          setDiasSelecionadosExclusao([]);
+        }
+      }}
+    >
+      {selecionarParaExcluir
+        ? "✖ Sair do modo excluir"
+        : "🗑️ Selecionar para excluir"}
+    </button>
+
     {diasAgendados.length === 0 ? (
       <p>Nenhum dia agendado ainda.</p>
     ) : (
       <div className="dias-agendados-lista">
-        {diasAgendados.map((dia) => (
-          <button
-            key={dia}
-            className={
-              "dia-agendado-chip" +
-              (dia === dataSelecionadaFormatada
-                ? " dia-agendado-chip-ativo"
-                : "")
-            }
-            onClick={() =>
-              setDataSelecionada(new Date(dia + "T00:00:00"))
-            }
-          >
-            {formatarDiaAgendado(dia)}
-          </button>
-        ))}
+        {diasAgendados.map((dia) => {
+          const qtdAgendados = pedidos.filter(
+            (pedido) => pedido.data === dia && pedido.status === "Agendado"
+          ).length;
+
+          const diaSelecionado = diasSelecionadosExclusao.includes(dia);
+
+          return (
+            <button
+              key={dia}
+              className={
+                "dia-agendado-chip" +
+                (dia === dataSelecionadaFormatada
+                  ? " dia-agendado-chip-ativo"
+                  : "") +
+                (selecionarParaExcluir && diaSelecionado
+                  ? " dia-agendado-chip-selecionado"
+                  : "")
+              }
+              onClick={() => {
+                if (selecionarParaExcluir) {
+                  setDiasSelecionadosExclusao((atual) =>
+                    diaSelecionado
+                      ? atual.filter((d) => d !== dia)
+                      : [...atual, dia]
+                  );
+                  return;
+                }
+
+                setDataSelecionada(new Date(dia + "T00:00:00"));
+              }}
+            >
+              {formatarDiaAgendado(dia)}{" "}
+              <span className="dia-agendado-qtd">({qtdAgendados})</span>
+            </button>
+          );
+        })}
       </div>
     )}
 
+    {selecionarParaExcluir &&
+      (() => {
+        const totalAgendamentosDosDias = pedidos.filter(
+          (pedido) =>
+            pedido.status === "Agendado" &&
+            diasSelecionadosExclusao.includes(pedido.data)
+        ).length;
+
+        return (
+          <div className="exclusao-bar">
+            <p>
+              {diasSelecionadosExclusao.length === 0
+                ? "Clique nos dias para marcar. Depois exclua tudo de uma vez."
+                : `${diasSelecionadosExclusao.length} dia(s) marcado(s) - ${totalAgendamentosDosDias} agendamento(s) ativo(s).`}
+            </p>
+
+            <button
+              className="exclusao-confirmar"
+              disabled={diasSelecionadosExclusao.length === 0}
+              onClick={async () => {
+                if (totalAgendamentosDosDias === 0) {
+                  return;
+                }
+
+                const confirmar = window.confirm(
+                  `Excluir definitivamente ${totalAgendamentosDosDias} agendamento(s) dos dias selecionados?`
+                );
+
+                if (!confirmar) {
+                  return;
+                }
+
+                const { error } = await supabase
+                  .from("agendamentos")
+                  .delete()
+                  .eq("profissional_id", profissionalLogado.id)
+                  .in("data", diasSelecionadosExclusao)
+                  .eq("status", "Agendado");
+
+                if (error) {
+                  console.error(error);
+                  return;
+                }
+
+                const { data, error: erroBusca } = await supabase
+                  .from("agendamentos")
+                  .select("*")
+                  .eq("profissional_id", profissionalLogado.id)
+                  .order("id", { ascending: false });
+
+                if (!erroBusca) {
+                  setPedidos(data);
+                  localStorage.setItem("pedidos", JSON.stringify(data));
+                }
+
+                setDiasSelecionadosExclusao([]);
+                setSelecionarParaExcluir(false);
+                setMensagemErroProfissional(
+                  `Agendamentos excluídos! (${totalAgendamentosDosDias})`
+                );
+              }}
+            >
+              🗑️ Excluir agendamentos selecionados
+            </button>
+
+            <button
+              className="exclusao-limpar"
+              onClick={() => setDiasSelecionadosExclusao([])}
+            >
+              ✖ Limpar seleção
+            </button>
+          </div>
+        );
+      })()}
+
     <small className="dica-dias-agendados">
-      Clique em um dia para o calendário abrir nele.
+      {selecionarParaExcluir
+        ? "Marque os dias e exclua os agendamentos ativos de uma vez."
+        : "Clique em um dia para o calendário abrir nele."}
     </small>
   </div>
 )}
