@@ -769,6 +769,74 @@ body,
 
 
 /* =====================================
+   AGENDAR POR UM CLIENTE
+===================================== */
+
+.agendar-cliente-form {
+  background: var(--branco);
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.10);
+  padding: 20px;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agendar-cliente-form h3 {
+  color: var(--cor-primaria);
+  margin: 0;
+}
+
+.agendar-cliente-form small {
+  color: var(--texto-secundario);
+  display: block;
+}
+
+.agendar-cliente-form label {
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #555;
+}
+
+.agendar-cliente-form input,
+.agendar-cliente-form select {
+  width: 100%;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  background: #fafafa;
+}
+
+.agendar-cliente-form button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.agendar-cliente-form button:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
+.agendar-cliente-form .agendar-cliente-cancelar {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: var(--texto-secundario);
+}
+
+
+/* =====================================
    HOVER
 ===================================== */
 

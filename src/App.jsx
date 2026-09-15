@@ -83,6 +83,44 @@ const iconOptions = [
   { value: "🖋️​", label: "Tatuagem" },
 ];
  
+// Cria uma lista de datas mensais a partir da data inicial, repetindo o mesmo
+// dia e horário a cada mês. Ex.: dataInicial de janeiro com 3 meses => jan, fev, mar.
+// Dias inválidos (ex.: 31/01 + 1 mês) são ajustados para o último dia do mês.
+function datasParaMeses(dataInicial, quantidadeMeses) {
+  const quantidadeValida =
+    Number.isFinite(Number(quantidadeMeses)) && Number(quantidadeMeses) >= 1
+      ? Number(quantidadeMeses)
+      : 1;
+
+  const partes = dataInicial.split("-").map(Number);
+  const anoInicial = partes[0];
+  const mesInicial = partes[1]; // 1 a 12
+  const diaInicial = partes[2];
+
+  const datas = [];
+
+  for (let i = 0; i < quantidadeValida; i++) {
+    const primeiroDoMesAlvo = new Date(anoInicial, mesInicial - 1 + i, 1);
+    const ultimoDiaDoMes = new Date(
+      primeiroDoMesAlvo.getFullYear(),
+      primeiroDoMesAlvo.getMonth() + 1,
+      0
+    ).getDate();
+    const diaAlvo = Math.min(diaInicial, ultimoDiaDoMes);
+
+    const dataFormatada =
+      primeiroDoMesAlvo.getFullYear() +
+      "-" +
+      String(primeiroDoMesAlvo.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(diaAlvo).padStart(2, "0");
+
+    datas.push(dataFormatada);
+  }
+
+  return datas;
+}
+
 console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
@@ -162,6 +200,11 @@ const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
 const [saldoHabilitado, setSaldoHabilitado] = useState(false);
 const [periodoSaldo, setPeriodoSaldo] = useState("semanal");
 const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
+const [mostrarAgendarCliente, setMostrarAgendarCliente] = useState(false);
+const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
+const [tipoMensagemAgendarCliente, setTipoMensagemAgendarCliente] = useState("");
+const [horariosAgendarCliente, setHorariosAgendarCliente] = useState([]);
+const [mesesRecorrencia, setMesesRecorrencia] = useState(1);
 const pedidosVistosRef = useRef(new Set());
 const primeiraCargaRef = useRef(true);
 const [mostrarListaAdmin, setMostrarListaAdmin] = useState(null);
@@ -525,6 +568,86 @@ carregarHorariosCliente();
 
 
 }, [profissionalCliente, data, pedidos]);
+
+// Horários livres para AGENDAR POR um cliente (formulário dentro da área profissional).
+useEffect(() => {
+  async function carregarHorariosAgendarCliente() {
+    if (!profissionalLogado || !mostrarAgendarCliente || !data) {
+      setHorariosAgendarCliente([]);
+      return;
+    }
+
+    const dataEscolhida = new Date(data + "T00:00:00");
+
+    const dias = [
+      "domingo",
+      "segunda",
+      "terça",
+      "quarta",
+      "quinta",
+      "sexta",
+      "sábado"
+    ];
+
+    const diaSemana = dias[dataEscolhida.getDay()];
+
+    const { data: horarios, error } = await supabase
+      .from("horarios_trabalho")
+      .select("horario")
+      .eq("profissional_id", profissionalLogado.id)
+      .eq("dia_semana", diaSemana);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const agora = new Date();
+
+    const hoje =
+      agora.getFullYear() +
+      "-" +
+      String(agora.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(agora.getDate()).padStart(2, "0");
+
+    // Mesma lógica de ocupação da tela do cliente: bloqueia apenas
+    // agendamentos ativos ("Agendado" e ainda não liberados).
+    const horariosOcupadosAgora = pedidos
+      .filter((item) => item.data === data)
+      .filter(
+        (item) =>
+          item.status === "Agendado" && item.horario_liberado !== true
+      )
+      .map((item) => item.horario);
+
+    const horariosLivres = horarios
+      .map((item) => item.horario)
+      .filter((hora) => !horariosOcupadosAgora.includes(hora))
+      .filter((hora) => {
+        // Se não for hoje, mantém todos os horários
+        if (data !== hoje) return true;
+
+        const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+
+        const horaAtual = agora.getHours();
+        const minutoAtual = agora.getMinutes();
+
+        if (
+          horaSlot < horaAtual ||
+          (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
+    setHorariosAgendarCliente(horariosLivres);
+  }
+
+  carregarHorariosAgendarCliente();
+}, [profissionalLogado, mostrarAgendarCliente, data, pedidos]);
 
 const params = new URLSearchParams(window.location.search);
 
@@ -2006,6 +2129,296 @@ statusAtendimento === "Disponível"
 
 </button>
 
+
+<button
+  className="btn-config-principal"
+  onClick={() => {
+    const abrir = !mostrarAgendarCliente;
+    setMostrarAgendarCliente(abrir);
+    if (abrir) {
+      // Começa o formulário limpo
+      setNome("");
+      setWhatsapp("");
+      setServico("");
+      setValorServico(0);
+      setData("");
+      setHorario("");
+      setMesesRecorrencia(1);
+      setMensagemAgendarCliente("");
+      setTipoMensagemAgendarCliente("");
+    }
+  }}
+>
+  {mostrarAgendarCliente
+    ? "❌ Fechar agendamento por cliente"
+    : "📝 Agendar por um cliente"}
+</button>
+
+{mostrarAgendarCliente && (
+  <div className="agendar-cliente-form">
+    <h3>📝 Agendar por um cliente</h3>
+    <small>
+      Use esta opção quando o cliente não conseguir agendar sozinho,
+      por exemplo quando está sem celular.
+    </small>
+
+    {mensagemAgendarCliente && (
+      <p style={{ color: tipoMensagemAgendarCliente === "erro" ? "red" : "green" }}>
+        {mensagemAgendarCliente}
+      </p>
+    )}
+
+    <label>Nome do cliente</label>
+    <input
+      placeholder="Digite o nome do cliente"
+      value={nome}
+      maxLength="20"
+      onChange={(e) => {
+        const somenteLetras = e.target.value.replace(/[0-9]/g, "");
+        setNome(somenteLetras);
+      }}
+    />
+
+    <label>WhatsApp do cliente</label>
+    <input
+      placeholder="(00) 00000-0000"
+      value={whatsapp}
+      maxLength="15"
+      onChange={(e) => {
+        let numero = e.target.value.replace(/\D/g, "");
+
+        if (numero.length > 11) {
+          numero = numero.slice(0, 11);
+        }
+
+        if (numero.length <= 2) {
+          setWhatsapp(numero);
+        } else if (numero.length <= 7) {
+          setWhatsapp(`(${numero.slice(0, 2)}) ${numero.slice(2)}`);
+        } else {
+          setWhatsapp(`(${numero.slice(0, 2)}) ${numero.slice(2, 7)}-${numero.slice(7)}`);
+        }
+      }}
+    />
+
+    <label>Serviço</label>
+    <select
+      value={servico}
+      onChange={(e) => {
+        const selectedServico = e.target.value;
+        setServico(selectedServico);
+        const servicoEncontrado = meusServicos.find(
+          (item) => item.nome === selectedServico && item.ativo
+        );
+        setValorServico(servicoEncontrado?.valor || 0);
+      }}
+    >
+      <option value="">Escolha o serviço</option>
+
+      {meusServicos
+        .filter((item) => item.ativo)
+        .map((item) => (
+          <option key={item.id} value={item.nome}>
+            {iconeAtivo} {item.nome}{item.duracao ? ` - ⏰ ${item.duracao}` : ""}{item.valor ? ` - 💰 R$ ${item.valor}` : ""}
+          </option>
+        ))}
+    </select>
+
+    <label>Data</label>
+    <input
+      type="date"
+      value={data}
+      min={new Date().toLocaleDateString("sv-SE")}
+      onChange={(e) => setData(e.target.value)}
+    />
+
+    <label>Horário</label>
+    <select
+      value={horario}
+      onChange={(e) => setHorario(e.target.value)}
+    >
+      <option value="">Escolha o horário</option>
+
+      {horariosAgendarCliente.map((hora) => (
+        <option key={hora} value={hora}>
+          {hora}
+        </option>
+      ))}
+    </select>
+
+    <label>Repetir por quantos meses?</label>
+    <select
+      value={mesesRecorrencia}
+      onChange={(e) => {
+        const valor = Number(e.target.value);
+        setMesesRecorrencia(Number.isNaN(valor) || valor < 1 ? 1 : valor);
+      }}
+    >
+      {Array.from({ length: 12 }, (_, i) => i + 1).map((qtd) => (
+        <option key={qtd} value={qtd}>
+          {qtd === 1
+            ? "Somente este mês"
+            : `Repetir por ${qtd} ${qtd === 1 ? "mês" : "meses"}`}
+        </option>
+      ))}
+    </select>
+
+    {data && mesesRecorrencia > 1 && (
+      <small>
+        Vai bloquear o mesmo dia e horário em:{" "}
+        {datasParaMeses(data, mesesRecorrencia)
+          .map((dia) => formatarDataCompleta(dia))
+          .join(", ")}
+      </small>
+    )}
+
+    {data && horariosAgendarCliente.length === 0 && (
+      <small>Nenhum horário livre para este dia. Escolha outra data.</small>
+    )}
+
+    <button
+      onClick={async () => {
+        if (!nome || !whatsapp || !servico || !data || !horario) {
+          setMensagemAgendarCliente("Preencha todos os campos.");
+          setTipoMensagemAgendarCliente("erro");
+          return;
+        }
+
+        const hojeData = new Date();
+
+        const hoje =
+          hojeData.getFullYear() +
+          "-" +
+          String(hojeData.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(hojeData.getDate()).padStart(2, "0");
+
+        if (data < hoje) {
+          setMensagemAgendarCliente("Não é possível agendar uma data que já passou.");
+          setTipoMensagemAgendarCliente("erro");
+          return;
+        }
+
+        const agora = new Date();
+
+        const dataHoraEscolhida = new Date(`${data}T${horario}:00`);
+
+        if (dataHoraEscolhida < agora) {
+          setMensagemAgendarCliente("Esse horário já passou.");
+          setTipoMensagemAgendarCliente("erro");
+          return;
+        }
+
+        const numeroLimpo = whatsapp.replace(/\D/g, "");
+
+        if (numeroLimpo.length !== 11) {
+          setMensagemAgendarCliente("Digite um WhatsApp válido com 11 números.");
+          setTipoMensagemAgendarCliente("erro");
+          return;
+        }
+
+        // Lista de datas que serão reservadas: a data escolhida + N meses seguidos.
+        const datasDaRecorrencia = datasParaMeses(data, mesesRecorrencia);
+
+        // Confere se alguma dessas datas já está ocupada nesse horário.
+        const { data: conflitos, error: erroBusca } = await supabase
+          .from("agendamentos")
+          .select("*")
+          .eq("profissional_id", profissionalLogado.id)
+          .in("data", datasDaRecorrencia)
+          .eq("horario", horario)
+          .eq("status", "Agendado");
+
+        if (erroBusca) {
+          console.error(erroBusca);
+          return;
+        }
+
+        if (conflitos && conflitos.length > 0) {
+          setMensagemAgendarCliente(
+            `Esse horário já está reservado em ${formatarDataCompleta(conflitos[0].data)}. Escolha outro.`
+          );
+          setTipoMensagemAgendarCliente("erro");
+          return;
+        }
+
+        // Cria uma linha por mês com o mesmo dia e horário. Assim, todos os
+        // meses ficam bloqueados automaticamente (tela do cliente e agenda).
+        const linhasAgendamento = datasDaRecorrencia.map((dataAlvo) => ({
+          nome,
+          whatsapp,
+          servico,
+          valor_servico: valorServico,
+          data: dataAlvo,
+          horario,
+          status: "Agendado",
+          horario_liberado: false,
+          profissional_id: profissionalLogado.id,
+        }));
+
+        const { data: pedidosCriados, error } = await supabase
+          .from("agendamentos")
+          .insert(linhasAgendamento)
+          .select();
+
+        if (error) {
+          if (error.code === "23505") {
+            setMensagemAgendarCliente("Esse horário acabou de ser reservado por outra pessoa.");
+            setTipoMensagemAgendarCliente("erro");
+            return;
+          }
+
+          console.error(error);
+          setMensagemAgendarCliente("Ocorreu um erro ao reservar. Tente novamente.");
+          setTipoMensagemAgendarCliente("erro");
+          return;
+        }
+
+        console.log("Agendado por um cliente (recorrência):", pedidosCriados);
+
+        // Atualiza a lista de agendamentos do profissional (agenda e contadores).
+        const { data: resultado, error: erroRecarga } = await supabase
+          .from("agendamentos")
+          .select("*")
+          .eq("profissional_id", profissionalLogado.id)
+          .order("id", { ascending: false });
+
+        if (!erroRecarga) {
+          setPedidos(resultado);
+        }
+
+        const textoRecorrencia =
+          mesesRecorrencia > 1 ? ` Repetido por ${mesesRecorrencia} meses.` : "";
+
+        setMensagemAgendarCliente(
+          `Agendamento realizado com sucesso! ✔️${textoRecorrencia}`
+        );
+        setTipoMensagemAgendarCliente("sucesso");
+
+        setNome("");
+        setWhatsapp("");
+        setServico("");
+        setValorServico(0);
+        setData("");
+        setHorario("");
+        setMesesRecorrencia(1);
+      }}
+    >
+      ✓ Confirmar agendamento
+    </button>
+
+    <button
+      className="agendar-cliente-cancelar"
+      onClick={() => {
+        setMostrarAgendarCliente(false);
+        setMensagemAgendarCliente("");
+        setTipoMensagemAgendarCliente("");
+      }}
+    >
+      ❌ Cancelar
+    </button>
+  </div>
+)}
 
 <button
 className="btn-config-principal"
