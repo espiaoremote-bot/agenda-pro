@@ -121,6 +121,17 @@ function datasParaMeses(dataInicial, quantidadeMeses) {
   return datas;
 }
 
+// Cria uma linha vazia de serviço + dia + horário (tela do CLIENTE).
+function novoItemCliente() {
+  return { servico: "", data: "", horario: "", valor: 0 };
+}
+
+// Linha vazia usada no formulário do PROFISSIONAL ("Agendar por um cliente"),
+// que também pode repetir por vários meses.
+function novoItemAgendarCliente() {
+  return { servico: "", data: "", horario: "", valor: 0, meses: 1 };
+}
+
 // Junta os agendamentos que fazem parte da MESMA recorrência mensal de um pedido
 // (mesmo profissional, cliente, serviço e horário, em meses consecutivos).
 function mesesDaRecorrencia(pedidoReferencia, lista, idProfissional) {
@@ -224,7 +235,6 @@ const [editarNome, setEditarNome] = useState("");
 
 const [editarSenha, setEditarSenha] = useState("");
 const [whatsapp, setWhatsapp] = useState("");
-const [data, setData] = useState("");
 
 const [mensagem, setMensagem] = useState("");
 const [tipoMensagem, setTipoMensagem] = useState("");
@@ -237,9 +247,6 @@ const [pedidos, setPedidos] = useState([]);
 
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
-const [servico, setServico] = useState("");
-const [valorServico, setValorServico] = useState(0);
-const [horario, setHorario] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
 
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
@@ -261,8 +268,14 @@ const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(nul
 const [mostrarAgendarCliente, setMostrarAgendarCliente] = useState(false);
 const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
 const [tipoMensagemAgendarCliente, setTipoMensagemAgendarCliente] = useState("");
-const [horariosAgendarCliente, setHorariosAgendarCliente] = useState([]);
-const [mesesRecorrencia, setMesesRecorrencia] = useState(1);
+// Múltiplos serviços num mesmo agendamento (botão "➕").
+const [itensCliente, setItensCliente] = useState(() => [novoItemCliente()]);
+const [horariosPorLinhaCliente, setHorariosPorLinhaCliente] = useState({});
+const [itensAgendarCliente, setItensAgendarCliente] = useState(() => [
+  novoItemAgendarCliente(),
+]);
+const [horariosPorLinhaAgendarCliente, setHorariosPorLinhaAgendarCliente] =
+  useState({});
 
 // Reagendamento (remarcar dia/horário) dentro da agenda do profissional.
 const [reagendandoPedido, setReagendandoPedido] = useState(null);
@@ -356,7 +369,6 @@ const [horariosTrabalho, setHorariosTrabalho] = useState([]);
 const [periodoHorario, setPeriodoHorario] = useState("todos");
 
 
-const [horariosCliente, setHorariosCliente] = useState([]);
 const tema = 
 dadosProfissionalCliente?.tema === "masculino"
 ? "masculino"
@@ -525,195 +537,205 @@ setHorariosTrabalho([
 }
 
 }
-const horariosOcupados = pedidos
-  .filter((item) => {
-
-    if (item.data !== data) return false;
-
-    // continua bloqueando agendamentos ativos
-if (
-  item.status === "Agendado" &&
-  item.horario_liberado !== true
-) {
-  return true;
-}
-
-    return false;
-
-  })
-  .map((item) => item.horario);
-
 useEffect(() => {
-
-async function carregarHorariosCliente(){
-
-if(!profissionalCliente || !data){
-  setHorariosDisponiveis([]);
-  return;
-}
-
-
-// pega o dia da semana da data escolhida
-const dataEscolhida = new Date(data + "T00:00:00");
-
-const dias = [
-  "domingo",
-  "segunda",
-  "terça",
-  "quarta",
-  "quinta",
-  "sexta",
-  "sábado"
-];
-
-const diaSemana = dias[dataEscolhida.getDay()];
-
-
-const { data: horarios, error } = await supabase
-.from("horarios_trabalho")
-.select("horario")
-.eq("profissional_id", profissionalCliente)
-.eq("dia_semana", diaSemana);
-
-
-if(error){
-console.error(error);
-return;
-}
-
-
-const hojeData = new Date();
-
-const hoje = 
-hojeData.getFullYear() +
-"-" +
-String(hojeData.getMonth()+1).padStart(2,"0") +
-"-" +
-String(hojeData.getDate()).padStart(2,"0");
-
-const agora = new Date();
-
-const horariosDisponiveisFiltrados = horarios
-  .map(item => item.horario)
-  .filter(hora => !horariosOcupados.includes(hora))
-  .filter(hora => {
-
-    // Se não for hoje, mantém todos
-    if (data !== hoje) {
-      return true;
+  async function carregarHorariosCliente() {
+    if (!profissionalCliente) {
+      setHorariosPorLinhaCliente({});
+      return;
     }
 
-    const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+    const mapa = {};
 
-    const horaAtual = agora.getHours();
-    const minutoAtual = agora.getMinutes();
+    for (let i = 0; i < itensCliente.length; i++) {
+      const item = itensCliente[i];
 
-    // Bloqueia horários que já passaram
-if (
-  horaSlot < horaAtual ||
-  (horaSlot === horaAtual && minutoSlot <= minutoAtual)
-) {
-  return false;
-}
+      if (!item.data) {
+        mapa[i] = [];
+        continue;
+      }
 
-    return true;
-  });
+      const dataEscolhida = new Date(item.data + "T00:00:00");
 
-console.log("DATA ESCOLHIDA:", data);
-console.log("DIA SEMANA:", diaSemana);
-console.log("HORÁRIOS DO BANCO:", horarios);
-console.log("HORÁRIOS LIVRES:", horariosDisponiveisFiltrados);
+      const dias = [
+        "domingo",
+        "segunda",
+        "terça",
+        "quarta",
+        "quinta",
+        "sexta",
+        "sábado"
+      ];
 
-setHorariosCliente(horariosDisponiveisFiltrados);
+      const diaSemana = dias[dataEscolhida.getDay()];
 
+      const { data: horarios, error } = await supabase
+        .from("horarios_trabalho")
+        .select("horario")
+        .eq("profissional_id", profissionalCliente)
+        .eq("dia_semana", diaSemana);
 
-}
+      if (error) {
+        console.error(error);
+        continue;
+      }
 
+      const hojeData = new Date();
 
-carregarHorariosCliente();
+      const hoje =
+        hojeData.getFullYear() +
+        "-" +
+        String(hojeData.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(hojeData.getDate()).padStart(2, "0");
 
+      const agora = new Date();
 
-}, [profissionalCliente, data, pedidos]);
+      // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas.
+      const ocupadosBanco = pedidos
+        .filter((ped) => ped.data === item.data)
+        .filter(
+          (ped) => ped.status === "Agendado" && ped.horario_liberado !== true
+        )
+        .map((ped) => ped.horario);
+
+      const ocupadosOutrasLinhas = itensCliente
+        .map((outro, outroIndice) =>
+          outroIndice !== i && outro.data === item.data ? outro.horario : null
+        )
+        .filter(Boolean);
+
+      const horariosDisponiveisFiltrados = horarios
+        .map((linha) => linha.horario)
+        .filter((hora) => !ocupadosBanco.includes(hora))
+        .filter((hora) => !ocupadosOutrasLinhas.includes(hora))
+        .filter((hora) => {
+          // Se não for hoje, mantém todos
+          if (item.data !== hoje) {
+            return true;
+          }
+
+          const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+
+          const horaAtual = agora.getHours();
+          const minutoAtual = agora.getMinutes();
+
+          // Bloqueia horários que já passaram
+          if (
+            horaSlot < horaAtual ||
+            (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+          ) {
+            return false;
+          }
+
+          return true;
+        });
+
+      mapa[i] = horariosDisponiveisFiltrados;
+    }
+
+    setHorariosPorLinhaCliente(mapa);
+  }
+
+  carregarHorariosCliente();
+}, [profissionalCliente, itensCliente, pedidos]);
 
 // Horários livres para AGENDAR POR um cliente (formulário dentro da área profissional).
 useEffect(() => {
   async function carregarHorariosAgendarCliente() {
-    if (!profissionalLogado || !mostrarAgendarCliente || !data) {
-      setHorariosAgendarCliente([]);
+    if (!profissionalLogado || !mostrarAgendarCliente) {
+      setHorariosPorLinhaAgendarCliente({});
       return;
     }
 
-    const dataEscolhida = new Date(data + "T00:00:00");
+    const mapa = {};
 
-    const dias = [
-      "domingo",
-      "segunda",
-      "terça",
-      "quarta",
-      "quinta",
-      "sexta",
-      "sábado"
-    ];
+    for (let i = 0; i < itensAgendarCliente.length; i++) {
+      const item = itensAgendarCliente[i];
 
-    const diaSemana = dias[dataEscolhida.getDay()];
+      if (!item.data) {
+        mapa[i] = [];
+        continue;
+      }
 
-    const { data: horarios, error } = await supabase
-      .from("horarios_trabalho")
-      .select("horario")
-      .eq("profissional_id", profissionalLogado.id)
-      .eq("dia_semana", diaSemana);
+      const dataEscolhida = new Date(item.data + "T00:00:00");
 
-    if (error) {
-      console.error(error);
-      return;
+      const dias = [
+        "domingo",
+        "segunda",
+        "terça",
+        "quarta",
+        "quinta",
+        "sexta",
+        "sábado"
+      ];
+
+      const diaSemana = dias[dataEscolhida.getDay()];
+
+      const { data: horarios, error } = await supabase
+        .from("horarios_trabalho")
+        .select("horario")
+        .eq("profissional_id", profissionalLogado.id)
+        .eq("dia_semana", diaSemana);
+
+      if (error) {
+        console.error(error);
+        continue;
+      }
+
+      const agora = new Date();
+
+      const hoje =
+        agora.getFullYear() +
+        "-" +
+        String(agora.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(agora.getDate()).padStart(2, "0");
+
+      // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas.
+      const ocupadosBanco = pedidos
+        .filter((ped) => ped.data === item.data)
+        .filter(
+          (ped) => ped.status === "Agendado" && ped.horario_liberado !== true
+        )
+        .map((ped) => ped.horario);
+
+      const ocupadosOutrasLinhas = itensAgendarCliente
+        .map((outro, outroIndice) =>
+          outroIndice !== i && outro.data === item.data ? outro.horario : null
+        )
+        .filter(Boolean);
+
+      const horariosLivres = horarios
+        .map((linha) => linha.horario)
+        .filter((hora) => !ocupadosBanco.includes(hora))
+        .filter((hora) => !ocupadosOutrasLinhas.includes(hora))
+        .filter((hora) => {
+          // Se não for hoje, mantém todos os horários
+          if (item.data !== hoje) return true;
+
+          const [horaSlot, minutoSlot] = hora.split(":").map(Number);
+
+          const horaAtual = agora.getHours();
+          const minutoAtual = agora.getMinutes();
+
+          if (
+            horaSlot < horaAtual ||
+            (horaSlot === horaAtual && minutoSlot <= minutoAtual)
+          ) {
+            return false;
+          }
+
+          return true;
+        });
+
+      mapa[i] = horariosLivres;
     }
 
-    const agora = new Date();
-
-    const hoje =
-      agora.getFullYear() +
-      "-" +
-      String(agora.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(agora.getDate()).padStart(2, "0");
-
-    // Mesma lógica de ocupação da tela do cliente: bloqueia apenas
-    // agendamentos ativos ("Agendado" e ainda não liberados).
-    const horariosOcupadosAgora = pedidos
-      .filter((item) => item.data === data)
-      .filter(
-        (item) =>
-          item.status === "Agendado" && item.horario_liberado !== true
-      )
-      .map((item) => item.horario);
-
-    const horariosLivres = horarios
-      .map((item) => item.horario)
-      .filter((hora) => !horariosOcupadosAgora.includes(hora))
-      .filter((hora) => {
-        // Se não for hoje, mantém todos os horários
-        if (data !== hoje) return true;
-
-        const [horaSlot, minutoSlot] = hora.split(":").map(Number);
-
-        const horaAtual = agora.getHours();
-        const minutoAtual = agora.getMinutes();
-
-        if (
-          horaSlot < horaAtual ||
-          (horaSlot === horaAtual && minutoSlot <= minutoAtual)
-        ) {
-          return false;
-        }
-
-        return true;
-      });
-
-    setHorariosAgendarCliente(horariosLivres);
+    setHorariosPorLinhaAgendarCliente(mapa);
   }
 
   carregarHorariosAgendarCliente();
-}, [profissionalLogado, mostrarAgendarCliente, data, pedidos]);
+}, [profissionalLogado, mostrarAgendarCliente, itensAgendarCliente, pedidos]);
 
 // Horários livres para REAGENDAR um agendamento (formulário dentro da agenda).
 // Usa a mesma regra de ocupação da agenda: bloqueia apenas agendamentos ativos,
@@ -1109,7 +1131,6 @@ useEffect(() => {
 
 }, [profissionalLogado]);
 
-console.log("Horários ocupados:", horariosOcupados);
 console.log("PEDIDOS DETALHADOS:", pedidos);
 async function carregarHorariosTrabalho(){
 
@@ -1360,6 +1381,335 @@ async function salvarReagendamento() {
   setTipoMensagemReagendamento("");
 }
 
+// ---------------- Linhas de serviço (tela do CLIENTE) ----------------
+function atualizarLinhaCliente(indice, campo, valor) {
+  setItensCliente((prev) =>
+    prev.map((item, i) => {
+      if (i !== indice) return item;
+      const atualizado = { ...item, [campo]: valor };
+      if (campo === "servico") {
+        const servicoEncontrado = servicos.find(
+          (s) =>
+            s.nome === valor &&
+            s.profissional_id === profissionalCliente &&
+            s.ativo
+        );
+        atualizado.valor = servicoEncontrado?.valor || 0;
+      }
+      return atualizado;
+    })
+  );
+}
+
+function adicionarLinhaCliente() {
+  setItensCliente((prev) => [...prev, novoItemCliente()]);
+}
+
+function removerLinhaCliente(indice) {
+  setItensCliente((prev) =>
+    prev.length > 1 ? prev.filter((_, i) => i !== indice) : prev
+  );
+}
+
+// ---------------- Enviar pedido (tela do CLIENTE) ----------------
+async function enviarPedidoCliente() {
+  setMensagem("");
+  setTipoMensagem("");
+
+  if (!nome || !whatsapp) {
+    setMensagem("Preencha seu nome e WhatsApp.");
+    setTipoMensagem("erro");
+    return;
+  }
+
+  if (
+    itensCliente.some((item) => !item.servico || !item.data || !item.horario)
+  ) {
+    setMensagem("Preencha todos os campos de cada serviço.");
+    setTipoMensagem("erro");
+    return;
+  }
+
+  const numeroLimpo = whatsapp.replace(/\D/g, "");
+  if (numeroLimpo.length !== 11) {
+    setMensagem("Digite um WhatsApp válido com 11 números.");
+    setTipoMensagem("erro");
+    return;
+  }
+
+  const hojeData = new Date();
+  const hoje =
+    hojeData.getFullYear() +
+    "-" +
+    String(hojeData.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(hojeData.getDate()).padStart(2, "0");
+
+  for (const item of itensCliente) {
+    if (item.data < hoje) {
+      setMensagem("Não é possível agendar uma data que já passou.");
+      setTipoMensagem("erro");
+      return;
+    }
+    if (new Date(`${item.data}T${item.horario}:00`) < new Date()) {
+      setMensagem("Esse horário já passou.");
+      setTipoMensagem("erro");
+      return;
+    }
+  }
+
+  // Dois serviços não podem ficar no mesmo dia e horário.
+  const pares = itensCliente.map((item) => `${item.data}|${item.horario}`);
+  if (new Set(pares).size !== pares.length) {
+    setMensagem(
+      "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
+    );
+    setTipoMensagem("erro");
+    return;
+  }
+
+  const pedidosSalvos = [];
+
+  for (const item of itensCliente) {
+    const { data: horarioExistente, error: erroBusca } = await supabase
+      .from("agendamentos")
+      .select("*")
+      .eq("profissional_id", profissionalCliente)
+      .eq("data", item.data)
+      .eq("horario", item.horario)
+      .eq("status", "Agendado")
+      .maybeSingle();
+
+    if (erroBusca) {
+      console.error(erroBusca);
+      return;
+    }
+
+    if (horarioExistente) {
+      setMensagem("Esse horário já foi reservado. Escolha outro.");
+      setTipoMensagem("erro");
+      return;
+    }
+
+    const { data: pedidoSalvo, error } = await supabase
+      .from("agendamentos")
+      .insert([
+        {
+          nome,
+          whatsapp,
+          servico: item.servico,
+          valor_servico: item.valor,
+          data: item.data,
+          horario: item.horario,
+          status: "Agendado",
+          horario_liberado: false,
+          profissional_id: profissionalCliente,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        setMensagem("Esse horário acabou de ser reservado por outra pessoa.");
+        setTipoMensagem("erro");
+        return;
+      }
+      console.error(error);
+      return;
+    }
+
+    pedidosSalvos.push(pedidoSalvo);
+  }
+
+  if (pedidosSalvos.length > 0) {
+    setPedido(pedidosSalvos);
+  }
+
+  setPedidos((prev) => [...prev, ...pedidosSalvos]);
+
+  setMensagem(
+    ["cinza", "preto", "verde", "masculino"].includes(temaAtivo)
+      ? "Agendamento realizado com sucesso! ✔️"
+      : "Agendamento realizado com sucesso! ❤️"
+  );
+  setTipoMensagem("sucesso");
+  setMensagemProfissional("Novo pedido recebido!");
+  setMensagemErroProfissional("");
+
+  setNome("");
+  setWhatsapp("");
+  setItensCliente([novoItemCliente()]);
+}
+
+// ---------------- Linhas de serviço (agendar por um CLIENTE) ----------------
+function atualizarLinhaAgendarCliente(indice, campo, valor) {
+  setItensAgendarCliente((prev) =>
+    prev.map((item, i) => {
+      if (i !== indice) return item;
+      const atualizado = { ...item, [campo]: valor };
+      if (campo === "servico") {
+        const servicoEncontrado = meusServicos.find(
+          (s) => s.nome === valor && s.ativo
+        );
+        atualizado.valor = servicoEncontrado?.valor || 0;
+      }
+      return atualizado;
+    })
+  );
+}
+
+function adicionarLinhaAgendarCliente() {
+  setItensAgendarCliente((prev) => [...prev, novoItemAgendarCliente()]);
+}
+
+function removerLinhaAgendarCliente(indice) {
+  setItensAgendarCliente((prev) =>
+    prev.length > 1 ? prev.filter((_, i) => i !== indice) : prev
+  );
+}
+
+// ---------------- Enviar pedido (formulário do PROFISSIONAL) ----------------
+async function enviarPedidoAgendarCliente() {
+  setMensagemAgendarCliente("");
+  setTipoMensagemAgendarCliente("");
+
+  if (!nome || !whatsapp) {
+    setMensagemAgendarCliente("Preencha o nome e o WhatsApp do cliente.");
+    setTipoMensagemAgendarCliente("erro");
+    return;
+  }
+
+  if (
+    itensAgendarCliente.some(
+      (item) => !item.servico || !item.data || !item.horario
+    )
+  ) {
+    setMensagemAgendarCliente("Preencha todos os campos de cada serviço.");
+    setTipoMensagemAgendarCliente("erro");
+    return;
+  }
+
+  const numeroLimpo = whatsapp.replace(/\D/g, "");
+  if (numeroLimpo.length !== 11) {
+    setMensagemAgendarCliente("Digite um WhatsApp válido com 11 números.");
+    setTipoMensagemAgendarCliente("erro");
+    return;
+  }
+
+  const hojeData = new Date();
+  const hoje =
+    hojeData.getFullYear() +
+    "-" +
+    String(hojeData.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(hojeData.getDate()).padStart(2, "0");
+
+  for (const item of itensAgendarCliente) {
+    if (item.data < hoje) {
+      setMensagemAgendarCliente(
+        "Não é possível agendar uma data que já passou."
+      );
+      setTipoMensagemAgendarCliente("erro");
+      return;
+    }
+    if (new Date(`${item.data}T${item.horario}:00`) < new Date()) {
+      setMensagemAgendarCliente("Esse horário já passou.");
+      setTipoMensagemAgendarCliente("erro");
+      return;
+    }
+  }
+
+  // Dois serviços não podem ficar no mesmo dia e horário.
+  const pares = itensAgendarCliente.map(
+    (item) => `${item.data}|${item.horario}`
+  );
+  if (new Set(pares).size !== pares.length) {
+    setMensagemAgendarCliente(
+      "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
+    );
+    setTipoMensagemAgendarCliente("erro");
+    return;
+  }
+
+  let totalCriados = 0;
+
+  for (const item of itensAgendarCliente) {
+    const datasDaRecorrencia = datasParaMeses(item.data, item.meses);
+
+    const { data: conflitos, error: erroBusca } = await supabase
+      .from("agendamentos")
+      .select("*")
+      .eq("profissional_id", profissionalLogado.id)
+      .in("data", datasDaRecorrencia)
+      .eq("horario", item.horario)
+      .eq("status", "Agendado");
+
+    if (erroBusca) {
+      console.error(erroBusca);
+      return;
+    }
+
+    if (conflitos && conflitos.length > 0) {
+      setMensagemAgendarCliente(
+        `Esse horário já está reservado em ${formatarDataCompleta(conflitos[0].data)}. Escolha outro.`
+      );
+      setTipoMensagemAgendarCliente("erro");
+      return;
+    }
+
+    const linhasAgendamento = datasDaRecorrencia.map((dataAlvo) => ({
+      nome,
+      whatsapp,
+      servico: item.servico,
+      valor_servico: item.valor,
+      data: dataAlvo,
+      horario: item.horario,
+      status: "Agendado",
+      horario_liberado: false,
+      profissional_id: profissionalLogado.id,
+    }));
+
+    const { data: pedidosCriados, error } = await supabase
+      .from("agendamentos")
+      .insert(linhasAgendamento)
+      .select();
+
+    if (error) {
+      if (error.code === "23505") {
+        setMensagemAgendarCliente(
+          "Esse horário acabou de ser reservado por outra pessoa."
+        );
+        setTipoMensagemAgendarCliente("erro");
+        return;
+      }
+      console.error(error);
+      return;
+    }
+
+    totalCriados += pedidosCriados?.length || 0;
+  }
+
+  const { data: resultado, error: erroRecarga } = await supabase
+    .from("agendamentos")
+    .select("*")
+    .eq("profissional_id", profissionalLogado.id)
+    .order("id", { ascending: false });
+
+  if (!erroRecarga) {
+    setPedidos(resultado);
+  }
+
+  setMensagemAgendarCliente(
+    `Agendamento realizado com sucesso! ✔️ ${totalCriados} agendamento(s) criado(s).`
+  );
+  setTipoMensagemAgendarCliente("sucesso");
+
+  setNome("");
+  setWhatsapp("");
+  setItensAgendarCliente([novoItemAgendarCliente()]);
+}
+
 return (
   <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
     <div className="app-content">
@@ -1580,210 +1930,112 @@ onChange={(e) => {
   }
 }}
 />
-<label>
-  Serviço
-</label>
+{itensCliente.map((item, indice) => (
+  <div key={indice} className="linha-servico">
+    <label>
+      Serviço {indice + 1}
+    </label>
 
-<select
-  value={servico}
-  onChange={(e) => {
-    const selectedServico = e.target.value;
-    setServico(selectedServico);
-    const servicoEncontrado = servicos.find(
-      (item) => item.nome === selectedServico && item.profissional_id === profissionalCliente && item.ativo
-    );
-    setValorServico(servicoEncontrado?.valor || 0);
-  }}
->
-  <option value="">
-    Escolha o serviço
-  </option>
+    <select
+      value={item.servico}
+      onChange={(e) => {
+        atualizarLinhaCliente(indice, "servico", e.target.value);
+      }}
+    >
+      <option value="">
+        Escolha o serviço
+      </option>
 
-  {servicos
-    .filter(
-      (item) => 
-      item.profissional_id === profissionalCliente &&
-      item.ativo
-    )
-    .map((item) => (
-<option 
-key={item.id}
-value={item.nome}
->
-  {iconeAtivo} {item.nome}{item.duracao ? ` - ⏰ ${item.duracao}` : ""}{item.valor ? ` - 💰 R$ ${item.valor}` : ""}
-</option>
-    ))
-  }
+      {servicos
+        .filter(
+          (s) =>
+            s.profissional_id === profissionalCliente && s.ativo
+        )
+        .map((s) => (
+          <option
+            key={s.id}
+            value={s.nome}
+          >
+            {iconeAtivo} {s.nome}{s.duracao ? ` - ⏰ ${s.duracao}` : ""}{s.valor ? ` - 💰 R$ ${s.valor}` : ""}
+          </option>
+        ))}
+    </select>
 
-</select>
+    <label>Data</label>
 
-<label>Data</label>
+    <input
+      type="date"
+      value={item.data}
+      min={new Date().toLocaleDateString("sv-SE")}
+      onChange={(e) => atualizarLinhaCliente(indice, "data", e.target.value)}
+    />
 
-<input
-  type="date"
-  value={data}
-  min={new Date().toLocaleDateString("sv-SE")}
-  onChange={(e) => setData(e.target.value)}
-/>
-<label>Horário</label>
-  <select
-  value={horario}
-  onChange={(e) => setHorario(e.target.value)}
->
-  <option value="">
-    Escolha o horário
-  </option>
+    <label>Horário</label>
+    <select
+      value={item.horario}
+      onChange={(e) => atualizarLinhaCliente(indice, "horario", e.target.value)}
+    >
+      <option value="">
+        Escolha o horário
+      </option>
 
-{horariosCliente.map((hora) => (
+      {(horariosPorLinhaCliente[indice] || []).map((hora) => (
+        <option
+          key={hora}
+          value={hora}
+        >
+          {hora}
+        </option>
+      ))}
+    </select>
 
-<option
-  key={hora}
-  value={hora}
->
-  {hora}
-</option>
+    {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
+      <small>Nenhum horário livre para este dia. Escolha outra data.</small>
+    )}
 
+    {indice > 0 && (
+      <button
+        type="button"
+        className="linha-remover"
+        onClick={() => removerLinhaCliente(indice)}
+      >
+        ✖ Remover este serviço
+      </button>
+    )}
+  </div>
 ))}
 
-</select>
+<button
+  type="button"
+  className="linha-adicionar"
+  onClick={adicionarLinhaCliente}
+>
+  ➕ Adicionar outro serviço
+</button>
 
 <button
 style={{
   backgroundColor: temaConfig.primary,
 }}
-onClick={async () => {
-
-  
-
-  console.log("CLIQUEI NO BOTÃO ENVIAR");
-
-if (!nome || !whatsapp || !servico || !data || !horario) {
-  setMensagem("Preencha todos os campos.");
-  setTipoMensagem("erro");
-  return;
-}
-
-const hojeData = new Date();
-
-const hoje = 
-hojeData.getFullYear() +
-"-" +
-String(hojeData.getMonth() + 1).padStart(2,"0") +
-"-" +
-String(hojeData.getDate()).padStart(2,"0");
-
-if (data < hoje) {
-  setMensagem("Não é possível agendar uma data que já passou.");
-  setTipoMensagem("erro");
-  return;
-}
-
-const agora = new Date();
-
-const dataHoraEscolhida = new Date(
-  `${data}T${horario}:00`
-);
-
-if (dataHoraEscolhida < agora) {
-  setMensagem("Esse horário já passou.");
-  setTipoMensagem("erro");
-  return;
-}
-
-const numeroLimpo = whatsapp.replace(/\D/g, "");
-
-if (numeroLimpo.length !== 11) {
-  setMensagem("Digite um WhatsApp válido com 11 números.");
-  setTipoMensagem("erro");
-  return;
-}
-const { data: horarioExistente, error: erroBusca } = await supabase
-  .from("agendamentos")
-  .select("*")
-  .eq("profissional_id", profissionalCliente)
-  .eq("data", data)
-  .eq("horario", horario)
-  .eq("status", "Agendado")
-  .maybeSingle();
-
-  if (erroBusca) {
-  console.error(erroBusca);
-  return;
-}
-
-
-if (horarioExistente) {
-
-  setMensagem("Esse horário já foi reservado. Escolha outro.");
-  setTipoMensagem("erro");
-
-  return;
-}
-
-
-const { data: pedidoSalvo, error } = await supabase
-  .from("agendamentos")
-.insert([
-{
-  nome,
-  whatsapp,
-  servico,
-  valor_servico: valorServico,
-  data,
-  horario,
-  status: "Agendado",
-  horario_liberado: false,
-  profissional_id: profissionalCliente,
-}
-])
-  .select()
-  .single();
-
-if (error) {
-
-  if (error.code === "23505") {
-    setMensagem("Esse horário acabou de ser reservado por outra pessoa.");
-    setTipoMensagem("erro");
-    return;
-  }
-
-  console.error(error);
-  return;
-}
-
-setPedido(pedidoSalvo);
-
-setPedidos([
-  ...pedidos,
-  pedidoSalvo
-]);
-
-setMensagem(["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "Agendamento realizado com sucesso! ✔️" : "Agendamento realizado com sucesso! ❤️");
-setTipoMensagem("sucesso");
-setMensagemProfissional("Novo pedido recebido!");
-setMensagemErroProfissional("");
-
-
-setNome("");
-setWhatsapp("");
-setServico("");
-setValorServico(0);
-setData("");
-setHorario("");
-  }}
+onClick={enviarPedidoCliente}
 >
 Enviar pedido
 </button>
   {pedido && (
 <div>
-    <h3>Pedido salvo:</h3>
-    <p>Nome: {pedido.nome}</p>
-    <p>WhatsApp: {pedido.whatsapp}</p>
-    <p>
-      Serviço: {iconeAtivo} {pedido.servico}
-    </p>
-    <p>Data: {pedido.data}</p>
-    <p>Horário: {pedido.horario}</p>
+    <h3>
+      Pedido{pedido.length > 1 ? "s" : ""} salvo{pedido.length > 1 ? "s" : ""}:
+    </h3>
+    {pedido.map((p, indice) => (
+      <div key={indice} className="pedido-salvo-linha">
+        <p>Nome: {p.nome}</p>
+        <p>WhatsApp: {p.whatsapp}</p>
+        <p>Serviço: {iconeAtivo} {p.servico}</p>
+        <p>Data: {p.data}</p>
+        <p>Horário: {p.horario}</p>
+        {indice < pedido.length - 1 && <hr />}
+      </div>
+    ))}
 </div>
 )}
 
@@ -2413,11 +2665,7 @@ statusAtendimento === "Disponível"
       // Começa o formulário limpo
       setNome("");
       setWhatsapp("");
-      setServico("");
-      setValorServico(0);
-      setData("");
-      setHorario("");
-      setMesesRecorrencia(1);
+      setItensAgendarCliente([novoItemAgendarCliente()]);
       setMensagemAgendarCliente("");
       setTipoMensagemAgendarCliente("");
     }
@@ -2475,208 +2723,109 @@ statusAtendimento === "Disponível"
       }}
     />
 
-    <label>Serviço</label>
-    <select
-      value={servico}
-      onChange={(e) => {
-        const selectedServico = e.target.value;
-        setServico(selectedServico);
-        const servicoEncontrado = meusServicos.find(
-          (item) => item.nome === selectedServico && item.ativo
-        );
-        setValorServico(servicoEncontrado?.valor || 0);
-      }}
-    >
-      <option value="">Escolha o serviço</option>
+    {itensAgendarCliente.map((item, indice) => (
+      <div key={indice} className="linha-servico">
+        <label>Serviço {indice + 1}</label>
+        <select
+          value={item.servico}
+          onChange={(e) =>
+            atualizarLinhaAgendarCliente(indice, "servico", e.target.value)
+          }
+        >
+          <option value="">Escolha o serviço</option>
 
-      {meusServicos
-        .filter((item) => item.ativo)
-        .map((item) => (
-          <option key={item.id} value={item.nome}>
-            {iconeAtivo} {item.nome}{item.duracao ? ` - ⏰ ${item.duracao}` : ""}{item.valor ? ` - 💰 R$ ${item.valor}` : ""}
-          </option>
-        ))}
-    </select>
+          {meusServicos
+            .filter((s) => s.ativo)
+            .map((s) => (
+              <option key={s.id} value={s.nome}>
+                {iconeAtivo} {s.nome}{s.duracao ? ` - ⏰ ${s.duracao}` : ""}{s.valor ? ` - 💰 R$ ${s.valor}` : ""}
+              </option>
+            ))}
+        </select>
 
-    <label>Data</label>
-    <input
-      type="date"
-      value={data}
-      min={new Date().toLocaleDateString("sv-SE")}
-      onChange={(e) => setData(e.target.value)}
-    />
+        <label>Data</label>
+        <input
+          type="date"
+          value={item.data}
+          min={new Date().toLocaleDateString("sv-SE")}
+          onChange={(e) =>
+            atualizarLinhaAgendarCliente(indice, "data", e.target.value)
+          }
+        />
 
-    <label>Horário</label>
-    <select
-      value={horario}
-      onChange={(e) => setHorario(e.target.value)}
-    >
-      <option value="">Escolha o horário</option>
+        <label>Horário</label>
+        <select
+          value={item.horario}
+          onChange={(e) =>
+            atualizarLinhaAgendarCliente(indice, "horario", e.target.value)
+          }
+        >
+          <option value="">Escolha o horário</option>
 
-      {horariosAgendarCliente.map((hora) => (
-        <option key={hora} value={hora}>
-          {hora}
-        </option>
-      ))}
-    </select>
+          {(horariosPorLinhaAgendarCliente[indice] || []).map((hora) => (
+            <option key={hora} value={hora}>
+              {hora}
+            </option>
+          ))}
+        </select>
 
-    <label>Repetir por quantos meses?</label>
-    <select
-      value={mesesRecorrencia}
-      onChange={(e) => {
-        const valor = Number(e.target.value);
-        setMesesRecorrencia(Number.isNaN(valor) || valor < 1 ? 1 : valor);
-      }}
-    >
-      {Array.from({ length: 12 }, (_, i) => i + 1).map((qtd) => (
-        <option key={qtd} value={qtd}>
-          {qtd === 1
-            ? "Somente este mês"
-            : `Repetir por ${qtd} ${qtd === 1 ? "mês" : "meses"}`}
-        </option>
-      ))}
-    </select>
+        {item.data &&
+          (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
+            <small>Nenhum horário livre para este dia. Escolha outra data.</small>
+          )}
 
-    {data && mesesRecorrencia > 1 && (
-      <small>
-        Vai bloquear o mesmo dia e horário em:{" "}
-        {datasParaMeses(data, mesesRecorrencia)
-          .map((dia) => formatarDataCompleta(dia))
-          .join(", ")}
-      </small>
-    )}
+        <label>Repetir por quantos meses?</label>
+        <select
+          value={item.meses}
+          onChange={(e) => {
+            const valor = Number(e.target.value);
+            atualizarLinhaAgendarCliente(
+              indice,
+              "meses",
+              Number.isNaN(valor) || valor < 1 ? 1 : valor
+            );
+          }}
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((qtd) => (
+            <option key={qtd} value={qtd}>
+              {qtd === 1
+                ? "Somente este mês"
+                : `Repetir por ${qtd} ${qtd === 1 ? "mês" : "meses"}`}
+            </option>
+          ))}
+        </select>
 
-    {data && horariosAgendarCliente.length === 0 && (
-      <small>Nenhum horário livre para este dia. Escolha outra data.</small>
-    )}
+        {item.data && item.meses > 1 && (
+          <small>
+            Vai bloquear o mesmo dia e horário em:{" "}
+            {datasParaMeses(item.data, item.meses)
+              .map((dia) => formatarDataCompleta(dia))
+              .join(", ")}
+          </small>
+        )}
+
+        {indice > 0 && (
+          <button
+            type="button"
+            className="linha-remover"
+            onClick={() => removerLinhaAgendarCliente(indice)}
+          >
+            ✖ Remover este serviço
+          </button>
+        )}
+      </div>
+    ))}
 
     <button
-      onClick={async () => {
-        if (!nome || !whatsapp || !servico || !data || !horario) {
-          setMensagemAgendarCliente("Preencha todos os campos.");
-          setTipoMensagemAgendarCliente("erro");
-          return;
-        }
+      type="button"
+      className="linha-adicionar"
+      onClick={adicionarLinhaAgendarCliente}
+    >
+      ➕ Adicionar outro serviço
+    </button>
 
-        const hojeData = new Date();
-
-        const hoje =
-          hojeData.getFullYear() +
-          "-" +
-          String(hojeData.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(hojeData.getDate()).padStart(2, "0");
-
-        if (data < hoje) {
-          setMensagemAgendarCliente("Não é possível agendar uma data que já passou.");
-          setTipoMensagemAgendarCliente("erro");
-          return;
-        }
-
-        const agora = new Date();
-
-        const dataHoraEscolhida = new Date(`${data}T${horario}:00`);
-
-        if (dataHoraEscolhida < agora) {
-          setMensagemAgendarCliente("Esse horário já passou.");
-          setTipoMensagemAgendarCliente("erro");
-          return;
-        }
-
-        const numeroLimpo = whatsapp.replace(/\D/g, "");
-
-        if (numeroLimpo.length !== 11) {
-          setMensagemAgendarCliente("Digite um WhatsApp válido com 11 números.");
-          setTipoMensagemAgendarCliente("erro");
-          return;
-        }
-
-        // Lista de datas que serão reservadas: a data escolhida + N meses seguidos.
-        const datasDaRecorrencia = datasParaMeses(data, mesesRecorrencia);
-
-        // Confere se alguma dessas datas já está ocupada nesse horário.
-        const { data: conflitos, error: erroBusca } = await supabase
-          .from("agendamentos")
-          .select("*")
-          .eq("profissional_id", profissionalLogado.id)
-          .in("data", datasDaRecorrencia)
-          .eq("horario", horario)
-          .eq("status", "Agendado");
-
-        if (erroBusca) {
-          console.error(erroBusca);
-          return;
-        }
-
-        if (conflitos && conflitos.length > 0) {
-          setMensagemAgendarCliente(
-            `Esse horário já está reservado em ${formatarDataCompleta(conflitos[0].data)}. Escolha outro.`
-          );
-          setTipoMensagemAgendarCliente("erro");
-          return;
-        }
-
-        // Cria uma linha por mês com o mesmo dia e horário. Assim, todos os
-        // meses ficam bloqueados automaticamente (tela do cliente e agenda).
-        const linhasAgendamento = datasDaRecorrencia.map((dataAlvo) => ({
-          nome,
-          whatsapp,
-          servico,
-          valor_servico: valorServico,
-          data: dataAlvo,
-          horario,
-          status: "Agendado",
-          horario_liberado: false,
-          profissional_id: profissionalLogado.id,
-        }));
-
-        const { data: pedidosCriados, error } = await supabase
-          .from("agendamentos")
-          .insert(linhasAgendamento)
-          .select();
-
-        if (error) {
-          if (error.code === "23505") {
-            setMensagemAgendarCliente("Esse horário acabou de ser reservado por outra pessoa.");
-            setTipoMensagemAgendarCliente("erro");
-            return;
-          }
-
-          console.error(error);
-          setMensagemAgendarCliente("Ocorreu um erro ao reservar. Tente novamente.");
-          setTipoMensagemAgendarCliente("erro");
-          return;
-        }
-
-        console.log("Agendado por um cliente (recorrência):", pedidosCriados);
-
-        // Atualiza a lista de agendamentos do profissional (agenda e contadores).
-        const { data: resultado, error: erroRecarga } = await supabase
-          .from("agendamentos")
-          .select("*")
-          .eq("profissional_id", profissionalLogado.id)
-          .order("id", { ascending: false });
-
-        if (!erroRecarga) {
-          setPedidos(resultado);
-        }
-
-        const textoRecorrencia =
-          mesesRecorrencia > 1 ? ` Repetido por ${mesesRecorrencia} meses.` : "";
-
-        setMensagemAgendarCliente(
-          `Agendamento realizado com sucesso! ✔️${textoRecorrencia}`
-        );
-        setTipoMensagemAgendarCliente("sucesso");
-
-        setNome("");
-        setWhatsapp("");
-        setServico("");
-        setValorServico(0);
-        setData("");
-        setHorario("");
-        setMesesRecorrencia(1);
-      }}
+    <button
+      onClick={enviarPedidoAgendarCliente}
     >
       ✓ Confirmar agendamento
     </button>
@@ -2724,8 +2873,8 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       width:"100%"
     }}
     onClick={async () => {
+      const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}`;
       try {
-        const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}`;
         await navigator.clipboard.writeText(link);
         alert("Link de agendamento copiado!");
       } catch (err) {
