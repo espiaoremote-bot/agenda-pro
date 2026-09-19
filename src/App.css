@@ -323,6 +323,75 @@ body,
   word-break: break-all;
 }
 
+/* ================================
+   FOLGAS EM DATAS ESPECÍFICAS
+================================ */
+.folga-data-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.folga-data-config input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: white;
+  color: var(--texto);
+}
+
+@media (max-width: 600px) {
+  .folga-data-config input {
+    width: 100%;
+  }
+
+  .folga-data-config button {
+    width: 100%;
+  }
+}
+
+.folga-data-config button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  cursor: pointer;
+}
+
+.folga-data-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.folga-data-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #f87171;
+  border-radius: 20px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.folga-data-chip button {
+  background: transparent;
+  border: none;
+  color: #b91c1c;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
 .cliente-card button {
   width:100%;
   margin-top:10px;
