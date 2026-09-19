@@ -295,6 +295,9 @@ const [pixBanco, setPixBanco] = useState("");
 const [pixNome, setPixNome] = useState("");
 // Feedback de "copiada" na tela do cliente.
 const [pixCopiada, setPixCopiada] = useState(false);
+// Mensagem de feedback do salvamento do Pix (aparece ao lado do botão).
+const [pixMensagem, setPixMensagem] = useState("");
+const [pixMensagemTipo, setPixMensagemTipo] = useState("");
  
 const [temaSelecionado, setTemaSelecionado] = useState("feminino");
 const [iconeSelecionado, setIconeSelecionado] = useState("💅");
@@ -3201,7 +3204,10 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       placeholder="Chave Pix (celular, CPF ou email)"
       value={pixChave}
       maxLength="50"
-      onChange={(e) => setPixChave(e.target.value)}
+      onChange={(e) => {
+        setPixChave(e.target.value);
+        setPixMensagem("");
+      }}
     />
     <input
       type="text"
@@ -3209,14 +3215,20 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       placeholder="Banco (ex.: Nubank, Itaú...)"
       value={pixBanco}
       maxLength="30"
-      onChange={(e) => setPixBanco(e.target.value)}
+      onChange={(e) => {
+        setPixBanco(e.target.value);
+        setPixMensagem("");
+      }}
     />
     <input
       type="text"
       placeholder="Nome do titular (opcional)"
       value={pixNome}
       maxLength="30"
-      onChange={(e) => setPixNome(e.target.value)}
+      onChange={(e) => {
+        setPixNome(e.target.value);
+        setPixMensagem("");
+      }}
     />
     <datalist id="lista-bancos">
       {[
@@ -3255,7 +3267,8 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
         if (error) {
           console.error(error);
-          alert("Erro ao salvar o PIX: " + error.message);
+          setPixMensagem("❌ Erro ao salvar o PIX: " + error.message);
+          setPixMensagemTipo("erro");
           return;
         }
 
@@ -3266,11 +3279,24 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
           nome_pix: nomeLimpo,
         });
 
-        setMensagemProfissional("💠 Pix de pagamento atualizado!");
+        setPixMensagem("✅ Pix salvo com sucesso!");
+        setPixMensagemTipo("sucesso");
       }}
     >
       Salvar PIX
     </button>
+
+    {pixMensagem && (
+      <p
+        style={{
+          color: pixMensagemTipo === "erro" ? "red" : "green",
+          margin: "10px 0 0",
+          fontWeight: "bold",
+        }}
+      >
+        {pixMensagem}
+      </p>
+    )}
   </div>
 </div>
 
