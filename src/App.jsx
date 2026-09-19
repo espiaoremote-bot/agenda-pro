@@ -496,6 +496,9 @@ const [dataFolga, setDataFolga] = useState("");
 // Mensagem inline da seção de folgas em datas específicas.
 const [folgaDataMensagem, setFolgaDataMensagem] = useState("");
 const [folgaDataMensagemTipo, setFolgaDataMensagemTipo] = useState("");
+// Mensagem inline do botão "copiar horários para todos os dias".
+const [copiarHorariosMensagem, setCopiarHorariosMensagem] = useState("");
+const [copiarHorariosMensagemTipo, setCopiarHorariosMensagemTipo] = useState("");
 
 
 const tema = 
@@ -662,6 +665,76 @@ setHorariosTrabalho([
     ...horariosDoPeriodo
   ])
 ]);
+
+}
+
+// Copia os horários marcados no dia atual para TODOS os dias da semana,
+// substituindo os horários dos outros dias (as folgas continuam intactas).
+async function copiarHorariosParaTodosDias() {
+
+if (!profissionalLogado?.id) return;
+
+if (horariosTrabalho.length === 0) {
+setCopiarHorariosMensagem(
+  "Marque pelo menos um horário no dia atual para poder copiar."
+);
+setCopiarHorariosMensagemTipo("erro");
+return;
+}
+
+const diasAlvo = diasSemana.filter((dia) => dia !== diaSelecionado);
+
+const confirmou = window.confirm(
+  `Definir os ${horariosTrabalho.length} horários de "${diaSelecionado}" para TODOS os dias da semana?\n\nOs horários atuais dos outros dias serão substituídos.`
+);
+
+if (!confirmou) return;
+
+// Apaga os horários reais dos outros dias (mantém as marcações de FOLGA).
+const { error: erroApagar } = await supabase
+.from("horarios_trabalho")
+.delete()
+.eq("profissional_id", profissionalLogado.id)
+.in("dia_semana", diasAlvo)
+.neq("horario", "FOLGA");
+
+if (erroApagar) {
+console.error(erroApagar);
+setCopiarHorariosMensagem("❌ Erro ao copiar os horários: " + erroApagar.message);
+setCopiarHorariosMensagemTipo("erro");
+return;
+}
+
+// Insere os horários do dia atual em todos os outros dias.
+const linhas = [];
+
+for (const dia of diasAlvo) {
+for (const hora of horariosTrabalho) {
+linhas.push({
+  profissional_id: profissionalLogado.id,
+  dia_semana: dia,
+  horario: hora,
+});
+}
+}
+
+if (linhas.length > 0) {
+const { error: erroInserir } = await supabase
+  .from("horarios_trabalho")
+  .insert(linhas);
+
+if (erroInserir) {
+  console.error(erroInserir);
+  setCopiarHorariosMensagem("❌ Erro ao copiar os horários: " + erroInserir.message);
+  setCopiarHorariosMensagemTipo("erro");
+  return;
+}
+}
+
+setCopiarHorariosMensagem(
+  `✅ ${horariosTrabalho.length} horários copiados para ${diasAlvo.length} dia(s) da semana!`
+);
+setCopiarHorariosMensagemTipo("sucesso");
 
 }
 
@@ -3769,6 +3842,7 @@ onChange={async (e)=>{
 const novoDia = e.target.value;
 
 setDiaSelecionado(novoDia);
+setCopiarHorariosMensagem("");
 
 
 const { data: resultado, error } = await supabase
@@ -4034,6 +4108,31 @@ onDoubleClick={() => marcarPeriodo("noite")}
 >
 🌃 Noite
 </button>
+
+</div>
+
+<div className="btn-copiar-bloco">
+
+<button
+type="button"
+className="btn-copiar-horarios"
+onClick={copiarHorariosParaTodosDias}
+>
+📋 Copiar estes horários para todos os dias
+</button>
+
+{copiarHorariosMensagem && (
+<p
+style={{
+  color: copiarHorariosMensagemTipo === "erro" ? "red" : "green",
+  margin: "8px 0 0",
+  fontWeight: "bold",
+  fontSize: "14px",
+}}
+>
+{copiarHorariosMensagem}
+</p>
+)}
 
 </div>
 

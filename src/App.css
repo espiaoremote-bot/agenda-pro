@@ -392,6 +392,28 @@ body,
   line-height: 1;
 }
 
+/* ================================
+   COPIAR HORÁRIOS PARA TODOS OS DIAS
+================================ */
+.btn-copiar-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.btn-copiar-horarios {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .btn-copiar-horarios {
+    width: 100%;
+  }
+}
+
 .cliente-card button {
   width:100%;
   margin-top:10px;
