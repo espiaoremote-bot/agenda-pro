@@ -132,6 +132,42 @@ function novoItemAgendarCliente() {
   return { servico: "", data: "", horario: "", valor: 0, meses: 1 };
 }
 
+// Nomes dos dias da semana na ordem do Date.getDay() (0 = domingo, 1 = segunda...).
+const diasSemanaPorIndice = [
+  "domingo",
+  "segunda",
+  "terça",
+  "quarta",
+  "quinta",
+  "sexta",
+  "sábado",
+];
+
+// Devolve o nome (minúsculo) do dia da semana de uma data no formato "AAAA-MM-DD".
+function diaSemanaDaData(dataISO) {
+  return dataISO
+    ? diasSemanaPorIndice[new Date(dataISO + "T00:00:00").getDay()]
+    : "";
+}
+
+// Busca os dias marcados como FOLGA de um profissional. A folga fica guardada
+// na tabela "horarios_trabalho" como uma linha especial com horario = "FOLGA"
+// (não é um horário real de atendimento, é só a marcação de folga do dia).
+async function buscarDiasFolga(idProfissional) {
+  const { data, error } = await supabase
+    .from("horarios_trabalho")
+    .select("dia_semana")
+    .eq("profissional_id", idProfissional)
+    .eq("horario", "FOLGA");
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return (data || []).map((linha) => linha.dia_semana);
+}
+
 // Junta os agendamentos que fazem parte da MESMA recorrência mensal de um pedido
 // (mesmo profissional, cliente, serviço e horário, em meses consecutivos).
 function mesesDaRecorrencia(pedidoReferencia, lista, idProfissional) {
@@ -353,6 +389,19 @@ carregarHorariosProfissional();
 
 }, [profissionalLogado]);
 
+useEffect(() => {
+  async function carregarDiasFolga() {
+    if (!profissionalLogado) {
+      setDiasFolga([]);
+      return;
+    }
+    const dias = await buscarDiasFolga(profissionalLogado.id);
+    setDiasFolga(dias);
+  }
+
+  carregarDiasFolga();
+}, [profissionalLogado]);
+
 const diasSemana = [
   "segunda",
   "terça",
@@ -367,6 +416,11 @@ const [diaSelecionado, setDiaSelecionado] = useState("segunda");
 const [horariosTrabalho, setHorariosTrabalho] = useState([]);
 
 const [periodoHorario, setPeriodoHorario] = useState("todos");
+
+// Dias da semana marcados como FOLGA (ninguém consegue agendar nesses dias).
+const [diasFolga, setDiasFolga] = useState([]);
+// Dias de folga vistos na tela do CLIENTE (do profissional que está agendando).
+const [diasFolgaCliente, setDiasFolgaCliente] = useState([]);
 
 
 const tema = 
@@ -546,6 +600,12 @@ useEffect(() => {
 
     const mapa = {};
 
+    // Dias de folga do profissional que o cliente está vendo.
+    const diasFolgaDoProfissional = profissionalCliente
+      ? await buscarDiasFolga(profissionalCliente)
+      : [];
+    setDiasFolgaCliente(diasFolgaDoProfissional);
+
     for (let i = 0; i < itensCliente.length; i++) {
       const item = itensCliente[i];
 
@@ -556,17 +616,13 @@ useEffect(() => {
 
       const dataEscolhida = new Date(item.data + "T00:00:00");
 
-      const dias = [
-        "domingo",
-        "segunda",
-        "terça",
-        "quarta",
-        "quinta",
-        "sexta",
-        "sábado"
-      ];
+      const diaSemana = diasSemanaPorIndice[dataEscolhida.getDay()];
 
-      const diaSemana = dias[dataEscolhida.getDay()];
+      // Dia de folga: nenhum horário fica disponível para o cliente.
+      if (diasFolgaDoProfissional.includes(diaSemana)) {
+        mapa[i] = [];
+        continue;
+      }
 
       const { data: horarios, error } = await supabase
         .from("horarios_trabalho")
@@ -649,6 +705,9 @@ useEffect(() => {
 
     const mapa = {};
 
+    // Dias de folga do profissional logado.
+    const diasFolgaDoProfissional = await buscarDiasFolga(profissionalLogado.id);
+
     for (let i = 0; i < itensAgendarCliente.length; i++) {
       const item = itensAgendarCliente[i];
 
@@ -659,17 +718,13 @@ useEffect(() => {
 
       const dataEscolhida = new Date(item.data + "T00:00:00");
 
-      const dias = [
-        "domingo",
-        "segunda",
-        "terça",
-        "quarta",
-        "quinta",
-        "sexta",
-        "sábado"
-      ];
+      const diaSemana = diasSemanaPorIndice[dataEscolhida.getDay()];
 
-      const diaSemana = dias[dataEscolhida.getDay()];
+      // Dia de folga: nenhum horário fica disponível.
+      if (diasFolgaDoProfissional.includes(diaSemana)) {
+        mapa[i] = [];
+        continue;
+      }
 
       const { data: horarios, error } = await supabase
         .from("horarios_trabalho")
@@ -749,17 +804,19 @@ useEffect(() => {
 
     const dataEscolhida = new Date(novaDataReagendamento + "T00:00:00");
 
-    const dias = [
-      "domingo",
-      "segunda",
-      "terça",
-      "quarta",
-      "quinta",
-      "sexta",
-      "sábado",
-    ];
+    // Dia de folga: nenhum horário fica livre para reagendar.
+    const diasFolgaDoProfissional = await buscarDiasFolga(profissionalLogado.id);
 
-    const diaSemana = dias[dataEscolhida.getDay()];
+    if (
+      diasFolgaDoProfissional.includes(
+        diasSemanaPorIndice[dataEscolhida.getDay()]
+      )
+    ) {
+      setHorariosReagendamento([]);
+      return;
+    }
+
+    const diaSemana = diasSemanaPorIndice[dataEscolhida.getDay()];
 
     const { data: horarios, error } = await supabase
       .from("horarios_trabalho")
@@ -1151,7 +1208,9 @@ async function carregarHorariosTrabalho(){
 
 
 setHorariosTrabalho(
-  resultado.map((item) => item.horario)
+  resultado
+    .filter((item) => item.horario !== "FOLGA")
+    .map((item) => item.horario)
 );
 
 }
@@ -1290,6 +1349,16 @@ async function salvarReagendamento() {
   if (novaDataReagendamento < hoje) {
     setMensagemReagendamento(
       "Não é possível reagendar para uma data que já passou."
+    );
+    setTipoMensagemReagendamento("erro");
+    return;
+  }
+
+  // Não permite reagendar para um dia de folga.
+  const diasFolgaDoProfissional = await buscarDiasFolga(profissionalLogado.id);
+  if (diasFolgaDoProfissional.includes(diaSemanaDaData(novaDataReagendamento))) {
+    setMensagemReagendamento(
+      "Este dia é folga. Escolha outra data para reagendar."
     );
     setTipoMensagemReagendamento("erro");
     return;
@@ -1445,9 +1514,16 @@ async function enviarPedidoCliente() {
     "-" +
     String(hojeData.getDate()).padStart(2, "0");
 
+  const diasFolgaDoProfissional = await buscarDiasFolga(profissionalCliente);
+
   for (const item of itensCliente) {
     if (item.data < hoje) {
       setMensagem("Não é possível agendar uma data que já passou.");
+      setTipoMensagem("erro");
+      return;
+    }
+    if (diasFolgaDoProfissional.includes(diaSemanaDaData(item.data))) {
+      setMensagem("Este dia é folga do profissional. Escolha outra data.");
       setTipoMensagem("erro");
       return;
     }
@@ -1605,10 +1681,19 @@ async function enviarPedidoAgendarCliente() {
     "-" +
     String(hojeData.getDate()).padStart(2, "0");
 
+  const diasFolgaDoProfissional = await buscarDiasFolga(profissionalLogado.id);
+
   for (const item of itensAgendarCliente) {
     if (item.data < hoje) {
       setMensagemAgendarCliente(
         "Não é possível agendar uma data que já passou."
+      );
+      setTipoMensagemAgendarCliente("erro");
+      return;
+    }
+    if (diasFolgaDoProfissional.includes(diaSemanaDaData(item.data))) {
+      setMensagemAgendarCliente(
+        "Este dia é folga. Ninguém pode agendar nele. Escolha outra data."
       );
       setTipoMensagemAgendarCliente("erro");
       return;
@@ -1990,7 +2075,11 @@ onChange={(e) => {
     </select>
 
     {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
-      <small>Nenhum horário livre para este dia. Escolha outra data.</small>
+      <small>
+        {diasFolgaCliente.includes(diaSemanaDaData(item.data))
+          ? "🚫 Este dia é folga do profissional. Escolha outra data."
+          : "Nenhum horário livre para este dia. Escolha outra data."}
+      </small>
     )}
 
     {indice > 0 && (
@@ -2771,7 +2860,11 @@ statusAtendimento === "Disponível"
 
         {item.data &&
           (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
-            <small>Nenhum horário livre para este dia. Escolha outra data.</small>
+            <small>
+              {diasFolga.includes(diaSemanaDaData(item.data))
+                ? "🚫 Este dia é folga. Ninguém pode agendar nele."
+                : "Nenhum horário livre para este dia. Escolha outra data."}
+            </small>
           )}
 
         <label>Repetir por quantos meses?</label>
@@ -3336,7 +3429,7 @@ Adicionar serviço
 
 {mostrarConfiguracaoHorarios && (
 
-<div className="config-horarios">
+<div className={`config-horarios${diasFolga.includes(diaSelecionado) ? " dia-folga-ativo" : ""}`}>
 
 <h3>⏰ Meus horários de atendimento</h3>
 
@@ -3366,7 +3459,9 @@ return;
 
 
 setHorariosTrabalho(
-  resultado.map((item) => item.horario.slice(0,5))
+  resultado
+    .filter((item) => item.horario !== "FOLGA")
+    .map((item) => item.horario.slice(0,5))
 );
 
 
@@ -3381,7 +3476,7 @@ key={dia}
 value={dia}
 >
 
-{dia}
+{dia}{diasFolga.includes(dia) ? " 🚫" : ""}
 
 </option>
 
@@ -3391,7 +3486,90 @@ value={dia}
 
 
 
+<h4>🚫 Dias de folga</h4>
+
+<p className="dica-folga">
+  Marque os dias em que ninguém poderá agendar. O dia fica todo bloqueado.
+</p>
+
+<div className="dias-folga-grade">
+
+  {diasSemana.map((dia) => {
+
+    const ehFolga = diasFolga.includes(dia);
+
+    return (
+
+      <label
+        key={dia}
+        className={ehFolga ? "dia-folga-ativo" : ""}
+      >
+
+        <input
+          type="checkbox"
+          checked={ehFolga}
+          onChange={async (e) => {
+
+            const marcado = e.target.checked;
+
+            if (marcado) {
+
+              const { error } = await supabase
+                .from("horarios_trabalho")
+                .insert([
+                  {
+                    profissional_id: profissionalLogado.id,
+                    dia_semana: dia,
+                    horario: "FOLGA",
+                  },
+                ]);
+
+              if (error) {
+                console.error(error);
+                alert("Erro ao marcar o dia de folga: " + error.message);
+                return;
+              }
+
+              setDiasFolga((prev) => [...prev, dia]);
+
+            } else {
+
+              const { error } = await supabase
+                .from("horarios_trabalho")
+                .delete()
+                .eq("profissional_id", profissionalLogado.id)
+                .eq("dia_semana", dia)
+                .eq("horario", "FOLGA");
+
+              if (error) {
+                console.error(error);
+                alert("Erro ao remover o dia de folga: " + error.message);
+                return;
+              }
+
+              setDiasFolga((prev) => prev.filter((item) => item !== dia));
+
+            }
+
+          }}
+        />
+
+        {dia.charAt(0).toUpperCase() + dia.slice(1)}
+
+      </label>
+
+    );
+
+  })}
+
+</div>
+
 <h4>Escolha os horários:</h4>
+
+<p className="aviso-folga">
+  🚫 Este dia está marcado como folga. Retire a folga dele para poder escolher
+  horários.
+</p>
 
 <div className="periodos-botoes">
 
@@ -3793,6 +3971,11 @@ if (temAgendado) {
 if (temCancelado) {
   return "dia-cancelado";
 }
+
+// Dia de folga do profissional (ninguém consegue agendar nesse dia).
+if (diasFolga.includes(diaSemanaDaData(dataFormatada))) {
+  return "dia-folga";
+}
   }
 
   return null;
@@ -4105,7 +4288,9 @@ setMensagemErroProfissional("Agendamento cancelado!");
 
     {novaDataReagendamento && horariosReagendamento.length === 0 && (
       <small>
-        Nenhum horário disponível para este dia. Escolha outra data.
+        {diasFolga.includes(diaSemanaDaData(novaDataReagendamento))
+          ? "🚫 Este dia é folga. Escolha outra data."
+          : "Nenhum horário disponível para este dia. Escolha outra data."}
       </small>
     )}
 

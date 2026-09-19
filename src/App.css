@@ -1269,6 +1269,68 @@ button.btn.cadastrar {
   gap:5px;
   align-items:center;
 }
+
+/* ================================
+   DIAS DE FOLGA (caixinhas por dia)
+================================ */
+.dias-folga-grade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.dias-folga-grade label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dias-folga-grade label.dia-folga-ativo {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.dica-folga {
+  color: #777;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.aviso-folga {
+  display: none;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+/* Quando o dia selecionado é folga, esconde a grade de horários
+   e mostra o aviso de folga. */
+.config-horarios.dia-folga-ativo .periodos-botoes,
+.config-horarios.dia-folga-ativo .horarios-grade {
+  display: none;
+}
+
+.config-horarios.dia-folga-ativo .aviso-folga {
+  display: block;
+}
+
+/* Dia de folga no calendário da agenda do profissional */
+.react-calendar__tile.dia-folga {
+  background: #fee2e2;
+  border-radius: 8px;
+}
 /* ================================
    TELA INICIAL CENTRALIZADA
 ================================ */
