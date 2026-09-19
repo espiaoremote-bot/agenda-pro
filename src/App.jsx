@@ -292,6 +292,7 @@ const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(f
 // Pix de pagamento cadastrado pelo profissional (chave + banco).
 const [pixChave, setPixChave] = useState("");
 const [pixBanco, setPixBanco] = useState("");
+const [pixNome, setPixNome] = useState("");
 // Feedback de "copiada" na tela do cliente.
 const [pixCopiada, setPixCopiada] = useState(false);
  
@@ -415,7 +416,7 @@ useEffect(() => {
 
   supabase
     .from("profissionais")
-    .select("chave_pix, banco_pix")
+    .select("chave_pix, banco_pix, nome_pix")
     .eq("id", profissionalLogado.id)
     .single()
     .then(({ data, error }) => {
@@ -425,6 +426,7 @@ useEffect(() => {
       }
       setPixChave(data?.chave_pix || "");
       setPixBanco(data?.banco_pix || "");
+      setPixNome(data?.nome_pix || "");
     });
 }, [mostrarConfiguracoes, profissionalLogado?.id]);
 
@@ -2146,6 +2148,12 @@ Enviar pedido
     </p>
   )}
 
+  {dadosProfissionalCliente.nome_pix && (
+    <p>
+      <strong>Nome:</strong> {dadosProfissionalCliente.nome_pix}
+    </p>
+  )}
+
   <p className="pix-frase">Toque na chave para copiar:</p>
 
   <div
@@ -3203,6 +3211,13 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       maxLength="30"
       onChange={(e) => setPixBanco(e.target.value)}
     />
+    <input
+      type="text"
+      placeholder="Nome do titular (opcional)"
+      value={pixNome}
+      maxLength="30"
+      onChange={(e) => setPixNome(e.target.value)}
+    />
     <datalist id="lista-bancos">
       {[
         "Nubank",
@@ -3227,10 +3242,15 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
         const chaveLimpa = pixChave.trim();
         const bancoLimpo = pixBanco.trim();
+        const nomeLimpo = pixNome.trim();
 
         const { error } = await supabase
           .from("profissionais")
-          .update({ chave_pix: chaveLimpa, banco_pix: bancoLimpo })
+          .update({
+            chave_pix: chaveLimpa,
+            banco_pix: bancoLimpo,
+            nome_pix: nomeLimpo,
+          })
           .eq("id", profissionalLogado.id);
 
         if (error) {
@@ -3243,6 +3263,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
           ...profissionalLogado,
           chave_pix: chaveLimpa,
           banco_pix: bancoLimpo,
+          nome_pix: nomeLimpo,
         });
 
         setMensagemProfissional("💠 Pix de pagamento atualizado!");
