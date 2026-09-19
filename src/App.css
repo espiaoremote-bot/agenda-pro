@@ -250,6 +250,79 @@ body,
   cursor:pointer;
 }
 
+/* ================================
+   PIX (configuração + painel do cliente)
+================================ */
+.pix-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.pix-configuracao input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: white;
+  color: var(--texto);
+  width: 240px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .pix-configuracao input {
+    width: 100%;
+  }
+}
+
+.pix-cliente {
+  margin-top: 16px;
+  padding: 14px;
+  border: 2px dashed var(--cor-primaria);
+  border-radius: 14px;
+  background: #f8faff;
+  text-align: center;
+}
+
+.pix-cliente h3 {
+  margin: 0 0 8px;
+}
+
+.pix-cliente p {
+  margin: 4px 0;
+  word-break: break-all;
+}
+
+.pix-cliente button {
+  margin-top: 10px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  cursor: pointer;
+}
+
+.pix-frase {
+  color: #777;
+  font-size: 13px;
+  margin: 8px 0 6px;
+}
+
+.pix-chave-copia {
+  display: inline-block;
+  padding: 10px 14px;
+  border: 2px dashed var(--cor-primaria);
+  border-radius: 10px;
+  background: white;
+  font-weight: bold;
+  color: var(--texto);
+  cursor: pointer;
+  user-select: all;
+  word-break: break-all;
+}
+
 .cliente-card button {
   width:100%;
   margin-top:10px;

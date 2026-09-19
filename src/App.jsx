@@ -288,6 +288,12 @@ const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(f
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
  
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
+
+// Pix de pagamento cadastrado pelo profissional (chave + banco).
+const [pixChave, setPixChave] = useState("");
+const [pixBanco, setPixBanco] = useState("");
+// Feedback de "copiada" na tela do cliente.
+const [pixCopiada, setPixCopiada] = useState(false);
  
 const [temaSelecionado, setTemaSelecionado] = useState("feminino");
 const [iconeSelecionado, setIconeSelecionado] = useState("💅");
@@ -401,6 +407,26 @@ useEffect(() => {
 
   carregarDiasFolga();
 }, [profissionalLogado]);
+
+// Quando o profissional abre as Configurações, carrega do banco os dados
+// atuais do Pix (chave + banco) cadastrados no perfil dele.
+useEffect(() => {
+  if (!mostrarConfiguracoes || !profissionalLogado?.id) return;
+
+  supabase
+    .from("profissionais")
+    .select("chave_pix, banco_pix")
+    .eq("id", profissionalLogado.id)
+    .single()
+    .then(({ data, error }) => {
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setPixChave(data?.chave_pix || "");
+      setPixBanco(data?.banco_pix || "");
+    });
+}, [mostrarConfiguracoes, profissionalLogado?.id]);
 
 const diasSemana = [
   "segunda",
@@ -2110,6 +2136,54 @@ onClick={enviarPedidoCliente}
 >
 Enviar pedido
 </button>
+  {dadosProfissionalCliente?.chave_pix && (
+<div className="pix-cliente">
+  <h3>💠 Pagamento via Pix</h3>
+
+  {dadosProfissionalCliente.banco_pix && (
+    <p>
+      <strong>Banco:</strong> {dadosProfissionalCliente.banco_pix}
+    </p>
+  )}
+
+  <p className="pix-frase">Toque na chave para copiar:</p>
+
+  <div
+    className="pix-chave-copia"
+    title="Clique para copiar"
+    onClick={async () => {
+      try {
+        await navigator.clipboard.writeText(
+          dadosProfissionalCliente.chave_pix
+        );
+        setPixCopiada(true);
+        setTimeout(() => setPixCopiada(false), 2000);
+      } catch (e) {
+        alert(dadosProfissionalCliente.chave_pix);
+      }
+    }}
+  >
+    {dadosProfissionalCliente.chave_pix}
+  </div>
+
+  <button
+    type="button"
+    onClick={async () => {
+      try {
+        await navigator.clipboard.writeText(
+          dadosProfissionalCliente.chave_pix
+        );
+        setPixCopiada(true);
+        setTimeout(() => setPixCopiada(false), 2000);
+      } catch (e) {
+        alert(dadosProfissionalCliente.chave_pix);
+      }
+    }}
+  >
+    {pixCopiada ? "✅ Chave Pix copiada!" : "📋 Copiar chave Pix"}
+  </button>
+</div>
+)}
   {pedido && (
 <div>
     <h3>
@@ -3107,6 +3181,74 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       }}
     >
       Salvar ícone
+    </button>
+  </div>
+</div>
+
+<div className="tema-configuracao pix-configuracao">
+  <label>💠 Pix para pagamento</label>
+  <div className="pix-campos">
+    <input
+      type="text"
+      placeholder="Chave Pix (celular, CPF ou email)"
+      value={pixChave}
+      maxLength="50"
+      onChange={(e) => setPixChave(e.target.value)}
+    />
+    <input
+      type="text"
+      list="lista-bancos"
+      placeholder="Banco (ex.: Nubank, Itaú...)"
+      value={pixBanco}
+      maxLength="30"
+      onChange={(e) => setPixBanco(e.target.value)}
+    />
+    <datalist id="lista-bancos">
+      {[
+        "Nubank",
+        "Itaú",
+        "Bradesco",
+        "Banco do Brasil",
+        "Caixa",
+        "Santander",
+        "Banco Inter",
+        "Mercado Pago",
+        "PicPay",
+        "PagBank",
+      ].map((banco) => (
+        <option key={banco} value={banco} />
+      ))}
+    </datalist>
+  </div>
+  <div>
+    <button
+      onClick={async () => {
+        if (!profissionalLogado?.id) return;
+
+        const chaveLimpa = pixChave.trim();
+        const bancoLimpo = pixBanco.trim();
+
+        const { error } = await supabase
+          .from("profissionais")
+          .update({ chave_pix: chaveLimpa, banco_pix: bancoLimpo })
+          .eq("id", profissionalLogado.id);
+
+        if (error) {
+          console.error(error);
+          alert("Erro ao salvar o PIX: " + error.message);
+          return;
+        }
+
+        setProfissionalLogado({
+          ...profissionalLogado,
+          chave_pix: chaveLimpa,
+          banco_pix: bancoLimpo,
+        });
+
+        setMensagemProfissional("💠 Pix de pagamento atualizado!");
+      }}
+    >
+      Salvar PIX
     </button>
   </div>
 </div>
