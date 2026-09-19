@@ -298,6 +298,11 @@ const [pixCopiada, setPixCopiada] = useState(false);
 // Mensagem de feedback do salvamento do Pix (aparece ao lado do botão).
 const [pixMensagem, setPixMensagem] = useState("");
 const [pixMensagemTipo, setPixMensagemTipo] = useState("");
+// Mensagens inline dos botões "Salvar cor" e "Salvar ícone".
+const [corMensagem, setCorMensagem] = useState("");
+const [corMensagemTipo, setCorMensagemTipo] = useState("");
+const [iconeMensagem, setIconeMensagem] = useState("");
+const [iconeMensagemTipo, setIconeMensagemTipo] = useState("");
  
 const [temaSelecionado, setTemaSelecionado] = useState("feminino");
 const [iconeSelecionado, setIconeSelecionado] = useState("💅");
@@ -3117,7 +3122,10 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   <div>
     <select
       value={temaSelecionado}
-      onChange={(e) => setTemaSelecionado(e.target.value)}
+      onChange={(e) => {
+        setTemaSelecionado(e.target.value);
+        setCorMensagem("");
+      }}
     >
       {themeOptions.map((tema) => (
         <option key={tema.value} value={tema.value}>
@@ -3136,7 +3144,8 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
         if (error) {
           console.error(error);
-          alert("Erro ao salvar a cor do perfil.");
+          setCorMensagem("❌ Erro ao salvar a cor do perfil.");
+          setCorMensagemTipo("erro");
           return;
         }
 
@@ -3145,13 +3154,24 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
           tema: temaSelecionado,
         });
 
-        setMensagemProfissional(
-          `Cor atualizada para ${themeOptions.find((item) => item.value === temaSelecionado)?.label || "tema"}!`
-        );
+        setCorMensagem("✅ Cor atualizada com sucesso!");
+        setCorMensagemTipo("sucesso");
       }}
     >
       Salvar cor
     </button>
+
+    {corMensagem && (
+      <p
+        style={{
+          color: corMensagemTipo === "erro" ? "red" : "green",
+          margin: "10px 0 0",
+          fontWeight: "bold",
+        }}
+      >
+        {corMensagem}
+      </p>
+    )}
   </div>
 </div>
 
@@ -3160,7 +3180,10 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   <div>
     <select
       value={iconeSelecionado}
-      onChange={(e) => setIconeSelecionado(e.target.value)}
+      onChange={(e) => {
+        setIconeSelecionado(e.target.value);
+        setIconeMensagem("");
+      }}
     >
       {iconOptions.map((icone) => (
         <option key={icone.value} value={icone.value}>
@@ -3179,7 +3202,8 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
         if (error) {
           console.error(error);
-          alert("Erro ao salvar o ícone do perfil.");
+          setIconeMensagem("❌ Erro ao salvar o ícone do perfil.");
+          setIconeMensagemTipo("erro");
           return;
         }
 
@@ -3188,11 +3212,24 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
           icone: iconeSelecionado,
         });
 
-        setMensagemProfissional("Ícone do perfil atualizado!");
+        setIconeMensagem("✅ Ícone atualizado com sucesso!");
+        setIconeMensagemTipo("sucesso");
       }}
     >
       Salvar ícone
     </button>
+
+    {iconeMensagem && (
+      <p
+        style={{
+          color: iconeMensagemTipo === "erro" ? "red" : "green",
+          margin: "10px 0 0",
+          fontWeight: "bold",
+        }}
+      >
+        {iconeMensagem}
+      </p>
+    )}
   </div>
 </div>
 
