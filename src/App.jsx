@@ -1424,12 +1424,13 @@ limiteSaldoDate.setDate(
 const limiteSaldoString = limiteSaldoDate.toLocaleDateString("sv-SE");
 
 const trabalhosConcluidos = pedidos
-  .filter(
-    (pedido) =>
-      pedido.status === "Concluído" &&
-      pedido.data >= limiteSaldoString &&
-      pedido.data <= hojeSaldoString
-  )
+  .filter((pedido) => {
+    if (pedido.status !== "Concluído") return false;
+    // Conta pelo dia EM QUE O TRABALHO FOI FINALIZADO (dataconcluido).
+    // Para trabalhos antigos que não têm essa data, usa o dia agendado (pedido.data).
+    const dataConcluido = pedido.dataconcluido || pedido.data;
+    return dataConcluido >= limiteSaldoString && dataConcluido <= hojeSaldoString;
+  })
   .reduce((soma, pedido) => soma + (Number(pedido.valor_servico) || 0), 0);
 
 function formatarDiaAgendado(dia) {
@@ -4566,9 +4567,14 @@ pedido.status === "Agendado"
 </p>
 
 </div>
-{(pedido.status === "Cancelado" || pedido.status === "Concluído") && (
+{pedido.status === "Cancelado" && (
   <p>
     Cancelado em: {pedido.datacancelamento}
+  </p>
+)}
+{pedido.status === "Concluído" && pedido.dataconcluido && (
+  <p>
+    Concluído em: {formatarDataCompleta(pedido.dataconcluido)}
   </p>
 )}
 
@@ -4611,18 +4617,33 @@ onClick={async () => {
 onClick={async () => {
 
 
+const dataConcluido = new Date().toLocaleDateString("sv-SE");
+
 const { error } = await supabase
 .from("agendamentos")
 .update({
   status: "Concluído",
-  horario_liberado: true
+  horario_liberado: true,
+  dataconcluido: dataConcluido
 })
 .eq("id", pedido.id);
 
 
 if(error){
-  console.error(error);
-  return;
+  // Se a coluna dataconcluido ainda não existe na base, finaliza sem ela
+  // para o botão não quebrar até a migração ser feita.
+  const { error: erroFallback } = await supabase
+    .from("agendamentos")
+    .update({
+      status: "Concluído",
+      horario_liberado: true
+    })
+    .eq("id", pedido.id);
+
+  if (erroFallback) {
+    console.error(erroFallback);
+    return;
+  }
 }
 
 
