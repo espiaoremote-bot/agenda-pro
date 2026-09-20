@@ -667,6 +667,7 @@ setHorariosTrabalho([
 ]);
 
 }
+}
 
 // Copia os horários marcados no dia atual para TODOS os dias da semana,
 // substituindo os horários dos outros dias (as folgas continuam intactas).
@@ -738,7 +739,6 @@ setCopiarHorariosMensagemTipo("sucesso");
 
 }
 
-}
 useEffect(() => {
   async function carregarHorariosCliente() {
     if (!profissionalCliente) {
