@@ -1409,8 +1409,9 @@ const diasAgendados = [...new Set(
     .map((pedido) => pedido.data)
 )].sort();
 
-// Saldo de trabalhos concluídos (semanal / quinzenal / mensal).
+// Saldo de trabalhos concluídos (diário / semanal / quinzenal / mensal).
 const diasPeriodoSaldo = {
+  diario: 0,
   semanal: 7,
   quinzenal: 15,
   mensal: 30,
@@ -1418,17 +1419,33 @@ const diasPeriodoSaldo = {
 const hojeSaldo = new Date();
 const hojeSaldoString = hojeSaldo.toLocaleDateString("sv-SE");
 const limiteSaldoDate = new Date();
-limiteSaldoDate.setDate(
-  limiteSaldoDate.getDate() - (diasPeriodoSaldo[periodoSaldo] || 30)
-);
+const diasSaldo = diasPeriodoSaldo[periodoSaldo] ?? 30;
+limiteSaldoDate.setDate(limiteSaldoDate.getDate() - diasSaldo);
 const limiteSaldoString = limiteSaldoDate.toLocaleDateString("sv-SE");
+
+// Datas de conclusão guardadas localmente neste navegador.
+// São usadas enquanto a coluna `dataconcluido` ainda não existe no banco,
+// para o saldo contar um trabalho marcado como concluído sempre no dia em
+// que ele foi FINALIZADO (e não no dia em que foi agendado).
+function pegarDatasConclusaoLocais() {
+  try {
+    const bruto = JSON.parse(
+      localStorage.getItem("datas_conclusao_agendamentos") || "{}"
+    );
+    return typeof bruto === "object" && bruto !== null ? bruto : {};
+  } catch {
+    return {};
+  }
+}
+const datasConclusaoLocais = pegarDatasConclusaoLocais();
 
 const trabalhosConcluidos = pedidos
   .filter((pedido) => {
     if (pedido.status !== "Concluído") return false;
     // Conta pelo dia EM QUE O TRABALHO FOI FINALIZADO (dataconcluido).
-    // Para trabalhos antigos que não têm essa data, usa o dia agendado (pedido.data).
-    const dataConcluido = pedido.dataconcluido || pedido.data;
+    // Preferência: coluna no banco → data local deste navegador → dia agendado.
+    const dataConcluido =
+      pedido.dataconcluido || datasConclusaoLocais[pedido.id] || pedido.data;
     return dataConcluido >= limiteSaldoString && dataConcluido <= hojeSaldoString;
   })
   .reduce((soma, pedido) => soma + (Number(pedido.valor_servico) || 0), 0);
@@ -3287,7 +3304,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       )}
     </div>
     <small className="dica-dias-agendados">
-      Mostra quantos trabalhos foram concluídos por período (semanal, quinzenal, mensal).
+      Mostra quantos trabalhos foram concluídos por período (diário, semanal, quinzenal, mensal).
     </small>
   </div>
 
@@ -4279,6 +4296,12 @@ horariosTrabalho.filter(
 
     <div className="saldo-periodos">
       <button
+        className={periodoSaldo === "diario" ? "saldo-periodo-ativo" : ""}
+        onClick={() => setPeriodoSaldo("diario")}
+      >
+        Diário
+      </button>
+      <button
         className={periodoSaldo === "semanal" ? "saldo-periodo-ativo" : ""}
         onClick={() => setPeriodoSaldo("semanal")}
       >
@@ -4300,7 +4323,9 @@ horariosTrabalho.filter(
 
     <p className="saldo-numero">R$ {trabalhosConcluidos.toFixed(2).replace(".", ",")}</p>
     <p className="saldo-legenda">
-      {periodoSaldo === "semanal"
+      {periodoSaldo === "diario"
+        ? "valor dos trabalhos concluídos hoje"
+        : periodoSaldo === "semanal"
         ? "valor dos trabalhos concluídos nos últimos 7 dias"
         : periodoSaldo === "quinzenal"
         ? "valor dos trabalhos concluídos nos últimos 15 dias"
@@ -4619,6 +4644,21 @@ onClick={async () => {
 
 const dataConcluido = new Date().toLocaleDateString("sv-SE");
 
+// Guarda a data de conclusão também localmente, para o saldo funcionar
+// mesmo enquanto a coluna `dataconcluido` ainda não existir no banco.
+try {
+  const mapaLocal = JSON.parse(
+    localStorage.getItem("datas_conclusao_agendamentos") || "{}"
+  );
+  mapaLocal[String(pedido.id)] = dataConcluido;
+  localStorage.setItem(
+    "datas_conclusao_agendamentos",
+    JSON.stringify(mapaLocal)
+  );
+} catch (e) {
+  console.warn("Não consegui guardar a data de conclusão local:", e);
+}
+
 const { error } = await supabase
 .from("agendamentos")
 .update({
@@ -4632,6 +4672,13 @@ const { error } = await supabase
 if(error){
   // Se a coluna dataconcluido ainda não existe na base, finaliza sem ela
   // para o botão não quebrar até a migração ser feita.
+  // O saldo já tem a data guardada localmente acima, então continua correto.
+  console.warn(
+    "Não consegui salvar `dataconcluido` no banco. " +
+    "A coluna ainda não existe? Rode no SQL do Supabase: " +
+    "ALTER TABLE agendamentos ADD COLUMN dataconcluido date;",
+    error
+  );
   const { error: erroFallback } = await supabase
     .from("agendamentos")
     .update({
