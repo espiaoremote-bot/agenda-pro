@@ -1764,3 +1764,70 @@ button.btn.cadastrar {
 .pedido-salvo-linha {
   margin-bottom: 10px;
 }
+/* ================================
+   APROVAÇÃO DE DEZEMBRO (PEDIDOS PENDENTES)
+=============================== */
+.aprovacoes-area {
+  background: #fff8e6;
+  border: 2px solid #eab308;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 16px 0;
+}
+
+.aprovacoes-area h3 {
+  margin: 0 0 10px;
+  color: #92400e;
+}
+
+.aprovacao-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: white;
+  border: 1px solid #eab308;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.aprovacao-info {
+  min-width: 200px;
+}
+
+.aprovacao-info small {
+  color: #666;
+}
+
+.aprovacao-botoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aprovacao-botoes button {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+}
+
+.aprovacao-botoes .btn-aprovar {
+  background: #16a34a;
+}
+
+.aprovacao-botoes .btn-aprovar:hover {
+  background: #15803d;
+}
+
+.aprovacao-botoes .btn-recusar {
+  background: #dc2626;
+}
+
+.aprovacao-botoes .btn-recusar:hover {
+  background: #b91c1c;
+}

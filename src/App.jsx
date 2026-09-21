@@ -121,15 +121,66 @@ function datasParaMeses(dataInicial, quantidadeMeses) {
   return datas;
 }
 
+// Cria uma lista de datas semanais a partir da data inicial, repetindo o mesmo
+// dia da semana e horário a cada 7 dias. Ex.: dataInicial + 3 semanas => +7, +14, +21.
+function datasParaSemanas(dataInicial, quantidadeSemanas) {
+  const quantidadeValida =
+    Number.isFinite(Number(quantidadeSemanas)) && Number(quantidadeSemanas) >= 1
+      ? Number(quantidadeSemanas)
+      : 1;
+
+  const partes = dataInicial.split("-").map(Number);
+  const anoInicial = partes[0];
+  const mesInicial = partes[1] - 1; // 0 a 11 (mês do JavaScript)
+  const diaInicial = partes[2];
+
+  const datas = [];
+
+  for (let i = 0; i < quantidadeValida; i++) {
+    const dataAlvo = new Date(anoInicial, mesInicial, diaInicial + i * 7);
+    const dataFormatada =
+      dataAlvo.getFullYear() +
+      "-" +
+      String(dataAlvo.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(dataAlvo.getDate()).padStart(2, "0");
+
+    datas.push(dataFormatada);
+  }
+
+  return datas;
+}
+
+// Meses em que o agendamento feito pelo CLIENTE precisa da aprovação do
+// profissional antes de virar um agendamento confirmado. Ex.: dezembro (12).
+const MESES_QUE_EXIGEM_APROVACAO = [12];
+
+// True quando uma data cai em um mês que exige aprovação do profissional.
+// `exigirAprovacao` vem do perfil do profissional (coluna
+// `exigir_aprovacao_dezembro`). Se não vier (coluna antiga no banco),
+// o padrão é exigir a aprovação.
+function precisaAprovacaoProfissional(dataISO, exigirAprovacao) {
+  if (exigirAprovacao === false) return false;
+  const partes = String(dataISO || "").split("-").map(Number);
+  return MESES_QUE_EXIGEM_APROVACAO.includes(partes[1]);
+}
+
 // Cria uma linha vazia de serviço + dia + horário (tela do CLIENTE).
 function novoItemCliente() {
   return { servico: "", data: "", horario: "", valor: 0 };
 }
 
 // Linha vazia usada no formulário do PROFISSIONAL ("Agendar por um cliente"),
-// que também pode repetir por vários meses.
+// que também pode repetir por vários meses ou semanas (frequência mensal ou semanal).
 function novoItemAgendarCliente() {
-  return { servico: "", data: "", horario: "", valor: 0, meses: 1 };
+  return {
+    servico: "",
+    data: "",
+    horario: "",
+    valor: 0,
+    meses: 1,
+    frequencia: "mensal",
+  };
 }
 
 // Nomes dos dias da semana na ordem do Date.getDay() (0 = domingo, 1 = segunda...).
@@ -358,6 +409,11 @@ const [desbloqueadoAdmin, setDesbloqueadoAdmin] = useState(false);
 const [senhaOpcoesAdmin, setSenhaOpcoesAdmin] = useState("");
 
 const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
+
+// O profissional pode ativar ou desativar (no perfil dele) a exigência de
+// aprovação para agendamentos de dezembro. Padrão: ativado.
+const exigirAprovacaoDezembro =
+  profissionalLogado?.exigir_aprovacao_dezembro !== false;
 const temaConfig = getThemeConfig(temaAtivo);
 const appStyles = {
   "--cor-primaria": temaConfig.primary,
@@ -1271,7 +1327,7 @@ useEffect(() => {
       } else {
         const novos = resultado.filter(
           (p) =>
-            p.status === "Agendado" &&
+            (p.status === "Agendado" || p.status === "Pendente") &&
             !pedidosVistosRef.current.has(p.id)
         );
 
@@ -1783,7 +1839,12 @@ async function enviarPedidoCliente() {
           valor_servico: item.valor,
           data: item.data,
           horario: item.horario,
-          status: "Agendado",
+          status: precisaAprovacaoProfissional(
+            item.data,
+            dadosProfissionalCliente?.exigir_aprovacao_dezembro
+          )
+            ? "Pendente"
+            : "Agendado",
           horario_liberado: false,
           profissional_id: profissionalCliente,
         },
@@ -1810,13 +1871,19 @@ async function enviarPedidoCliente() {
 
   setPedidos((prev) => [...prev, ...pedidosSalvos]);
 
+  const algumPendente = pedidosSalvos.some(
+    (p) => p.status === "Pendente"
+  );
+
   setMensagem(
-    ["cinza", "preto", "verde", "masculino"].includes(temaAtivo)
+    algumPendente
+      ? "📅 Dezembro: pedido enviado! Ele será confirmado após a aprovação do profissional."
+      : ["cinza", "preto", "verde", "masculino"].includes(temaAtivo)
       ? "Agendamento realizado com sucesso! ✔️"
       : "Agendamento realizado com sucesso! ❤️"
   );
   setTipoMensagem("sucesso");
-  setMensagemProfissional("Novo pedido recebido!");
+  setMensagemProfissional(algumPendente ? "Novo pedido de dezembro aguardando aprovação!" : "Novo pedido recebido!");
   setMensagemErroProfissional("");
 
   setNome("");
@@ -1930,7 +1997,10 @@ async function enviarPedidoAgendarCliente() {
   let totalCriados = 0;
 
   for (const item of itensAgendarCliente) {
-    const datasDaRecorrencia = datasParaMeses(item.data, item.meses);
+    const datasDaRecorrencia =
+      item.frequencia === "semanal"
+        ? datasParaSemanas(item.data, item.meses)
+        : datasParaMeses(item.data, item.meses);
 
     // Se alguma data da recorrência cai em folga (semana ou data específica),
     // bloqueia para não criar agendamento em dia de folga.
@@ -1941,7 +2011,7 @@ async function enviarPedidoAgendarCliente() {
     );
     if (datasRecorrenciaComFolga.length > 0) {
       setMensagemAgendarCliente(
-        `Uma das datas cai em dia de folga (${formatarDataCompleta(datasRecorrenciaComFolga[0])}). Ajuste a data ou os meses.`
+        `Uma das datas da recorrência cai em dia de folga (${formatarDataCompleta(datasRecorrenciaComFolga[0])}). Ajuste a data ou a quantidade.`
       );
       setTipoMensagemAgendarCliente("erro");
       return;
@@ -2298,6 +2368,25 @@ onChange={(e) => {
         </option>
       ))}
     </select>
+
+    {precisaAprovacaoProfissional(
+      item.data,
+      dadosProfissionalCliente?.exigir_aprovacao_dezembro
+    ) &&
+      (horariosPorLinhaCliente[indice] || []).length > 0 && (
+        <small
+          style={{
+            color: "#b45309",
+            display: "block",
+            marginTop: "6px",
+            fontWeight: "bold",
+            fontSize: "13px",
+          }}
+        >
+          📅 Dezembro: este pedido será enviado para a aprovação do
+          profissional antes de ser confirmado.
+        </small>
+      )}
 
     {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
       <small>
@@ -3148,7 +3237,22 @@ statusAtendimento === "Disponível"
             </small>
           )}
 
-        <label>Repetir por quantos meses?</label>
+        <label>Frequência</label>
+        <select
+          value={item.frequencia || "mensal"}
+          onChange={(e) =>
+            atualizarLinhaAgendarCliente(indice, "frequencia", e.target.value)
+          }
+        >
+          <option value="mensal">Mensal (todo mês)</option>
+          <option value="semanal">Semanal (toda semana)</option>
+        </select>
+
+        <label>
+          {item.frequencia === "semanal"
+            ? "Repetir por quantas semanas?"
+            : "Repetir por quantos meses?"}
+        </label>
         <select
           value={item.meses}
           onChange={(e) => {
@@ -3160,19 +3264,33 @@ statusAtendimento === "Disponível"
             );
           }}
         >
-          {Array.from({ length: 12 }, (_, i) => i + 1).map((qtd) => (
+          {Array.from(
+            { length: item.frequencia === "semanal" ? 52 : 12 },
+            (_, i) => i + 1
+          ).map((qtd) => (
             <option key={qtd} value={qtd}>
               {qtd === 1
-                ? "Somente este mês"
-                : `Repetir por ${qtd} ${qtd === 1 ? "mês" : "meses"}`}
+                ? item.frequencia === "semanal"
+                  ? "Somente esta semana"
+                  : "Somente este mês"
+                : item.frequencia === "semanal"
+                ? `Repetir por ${qtd} semanas`
+                : `Repetir por ${qtd} meses`}
             </option>
           ))}
         </select>
 
         {item.data && item.meses > 1 && (
           <small>
-            Vai bloquear o mesmo dia e horário em:{" "}
-            {datasParaMeses(item.data, item.meses)
+            Vai bloquear o mesmo{" "}
+            {item.frequencia === "semanal"
+              ? "dia da semana e horário"
+              : "dia e horário"}{" "}
+            em:{" "}
+            {(item.frequencia === "semanal"
+              ? datasParaSemanas(item.data, item.meses)
+              : datasParaMeses(item.data, item.meses)
+            )
               .map((dia) => formatarDataCompleta(dia))
               .join(", ")}
           </small>
@@ -3305,6 +3423,55 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
     </div>
     <small className="dica-dias-agendados">
       Mostra quantos trabalhos foram concluídos por período (diário, semanal, quinzenal, mensal).
+    </small>
+  </div>
+
+<div className="saldo-config" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+      <button
+        style={{
+          padding: "12px",
+          background: exigirAprovacaoDezembro ? "#d32f2f" : temaConfig.primary,
+          color: "white",
+          border: "none",
+          borderRadius: "12px",
+          cursor: "pointer",
+          width: "100%"
+        }}
+        onClick={async () => {
+          const novo = !exigirAprovacaoDezembro;
+          const { error } = await supabase
+            .from("profissionais")
+            .update({ exigir_aprovacao_dezembro: novo })
+            .eq("id", profissionalLogado.id);
+
+          if (error) {
+            console.error(error);
+            alert(
+              "Não consegui salvar. Rode no SQL do Supabase: " +
+              "ALTER TABLE profissionais ADD COLUMN exigir_aprovacao_dezembro boolean NOT NULL DEFAULT true;"
+            );
+            return;
+          }
+
+          setProfissionalLogado((prev) => ({
+            ...prev,
+            exigir_aprovacao_dezembro: novo,
+          }));
+          setMensagemProfissional(
+            novo
+              ? "⏳ Dezembro: clientes precisarão da sua aprovação para agendar."
+              : "✅ Dezembro: clientes agendam direto, sem precisar de aprovação."
+          );
+        }}
+      >
+        {exigirAprovacaoDezembro
+          ? "🚫 Desativar exigência de aprovação em dezembro"
+          : "⏳ Exigir aprovação para agendamentos de dezembro"}
+      </button>
+    </div>
+    <small className="dica-dias-agendados">
+      Com a exigência ativa, pedidos de dezembro ficam como "Pendente (aguardando aprovação)" até você aprovar ou recusar na agenda.
     </small>
   </div>
 
@@ -4482,6 +4649,122 @@ horariosTrabalho.filter(
 
             <h2>📅 Agenda de horários</h2>
 
+{pedidos.some((p) => p.status === "Pendente") && (
+  <div className="aprovacoes-area">
+    <h3>⏳ Pedidos aguardando sua aprovação (dezembro)</h3>
+    {pedidos
+      .filter((p) => p.status === "Pendente")
+      .slice()
+      .sort((a, b) => (a.data < b.data ? -1 : 1))
+      .map((pedido) => (
+        <div key={pedido.id} className="aprovacao-card">
+          <div className="aprovacao-info">
+            <strong>👤 {pedido.nome}</strong> — {pedido.servico}
+            <br />
+            <small>
+              📅 {pedido.data} às {pedido.horario} · 💰{" "}
+              {Number(pedido.valor_servico || 0).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </small>
+          </div>
+          <div className="aprovacao-botoes">
+            <button
+              className="btn-aprovar"
+              onClick={async () => {
+                const { data: conflito, error: erroConflito } = await supabase
+                  .from("agendamentos")
+                  .select("*")
+                  .eq("profissional_id", profissionalLogado.id)
+                  .eq("data", pedido.data)
+                  .eq("horario", pedido.horario)
+                  .eq("status", "Agendado")
+                  .maybeSingle();
+
+                if (erroConflito) {
+                  console.error(erroConflito);
+                  return;
+                }
+
+                if (conflito && conflito.id !== pedido.id) {
+                  setMensagemErroProfissional(
+                    "Esse horário já está confirmado para outro cliente. Recuse este pedido."
+                  );
+                  return;
+                }
+
+                const { error } = await supabase
+                  .from("agendamentos")
+                  .update({ status: "Agendado", horario_liberado: false })
+                  .eq("id", pedido.id);
+
+                if (error) {
+                  console.error(error);
+                  return;
+                }
+
+                setPedidos((prev) =>
+                  prev.map((item) =>
+                    item.id === pedido.id
+                      ? { ...item, status: "Agendado", horario_liberado: false }
+                      : item
+                  )
+                );
+                setMensagemProfissional(
+                  `✅ Agendamento de ${pedido.nome} aprovado!`
+                );
+                setMensagemErroProfissional("");
+              }}
+            >
+              ✅ Aprovar
+            </button>
+            <button
+              className="btn-recusar"
+              onClick={async () => {
+                const confirmar = window.confirm(
+                  `Recusar o pedido de ${pedido.nome} (${pedido.data} às ${pedido.horario})?`
+                );
+                if (!confirmar) return;
+
+                const { error } = await supabase
+                  .from("agendamentos")
+                  .update({
+                    status: "Cancelado",
+                    datacancelamento: new Date().toLocaleString(),
+                  })
+                  .eq("id", pedido.id);
+
+                if (error) {
+                  console.error(error);
+                  return;
+                }
+
+                setPedidos((prev) =>
+                  prev.map((item) =>
+                    item.id === pedido.id
+                      ? {
+                          ...item,
+                          status: "Cancelado",
+                          datacancelamento: new Date().toLocaleString(),
+                        }
+                      : item
+                  )
+                );
+                setMensagemErroProfissional(
+                  `❌ Pedido de ${pedido.nome} recusado.`
+                );
+                setMensagemProfissional("");
+              }}
+            >
+              ❌ Recusar
+            </button>
+          </div>
+        </div>
+      ))}
+  </div>
+)}
+
 <Calendar
   onChange={setDataSelecionada}
   value={dataSelecionada}
@@ -4584,6 +4867,8 @@ Status:
 {
 pedido.status === "Agendado"
 ? "🟢 Agendado"
+: pedido.status === "Pendente"
+? "⏳ Pendente (aguardando aprovação)"
 : pedido.status === "Cancelado"
 ? "🔴 Cancelado"
 : "✅ Concluído"
