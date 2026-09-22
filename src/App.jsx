@@ -378,6 +378,7 @@ const [mostrarSaldo, setMostrarSaldo] = useState(true);
 const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
+const [mostrarAprovacoes, setMostrarAprovacoes] = useState(false);
 const [selecionarParaExcluir, setSelecionarParaExcluir] = useState(false);
 const [diasSelecionadosExclusao, setDiasSelecionadosExclusao] = useState([]);
 const [saldoHabilitado, setSaldoHabilitado] = useState(false);
@@ -1517,6 +1518,15 @@ function formatarDataCompleta(dia) {
   return `${formatarDiaAgendado(dia)}/${d.getFullYear()}`;
 }
 
+// Exibe uma data no formato brasileiro: DD/MM/AAAA (ex.: 11/12/2026).
+// Não altera o valor original (o banco guarda AAAA-MM-DD).
+function formatarDataBR(dia) {
+  if (!dia) return "";
+  const [ano, mes, diaNum] = String(dia).split("-");
+  if (!ano || !mes || !diaNum) return String(dia);
+  return `${diaNum}/${mes}/${ano}`;
+}
+
 if (carregandoPerfil) {
   return (
     <div
@@ -2489,7 +2499,7 @@ Enviar pedido
         <p>Nome: {p.nome}</p>
         <p>WhatsApp: {p.whatsapp}</p>
         <p>Serviço: {iconeAtivo} {p.servico}</p>
-        <p>Data: {p.data}</p>
+        <p>Data: {formatarDataBR(p.data)}</p>
         <p>Horário: {p.horario}</p>
         {indice < pedido.length - 1 && <hr />}
       </div>
@@ -4651,7 +4661,18 @@ horariosTrabalho.filter(
 
 {pedidos.some((p) => p.status === "Pendente") && (
   <div className="aprovacoes-area">
-    <h3>⏳ Pedidos aguardando sua aprovação (dezembro)</h3>
+    <button
+      className="btn-config-principal"
+      onClick={() => setMostrarAprovacoes(!mostrarAprovacoes)}
+    >
+      {mostrarAprovacoes
+        ? "🙈 Esconder pedidos pendentes (dezembro)"
+        : `⏳ ${pedidos.filter((p) => p.status === "Pendente").length} pedidos aguardando aprovação (dezembro)`}
+    </button>
+
+    {mostrarAprovacoes && (
+      <>
+        <h3>⏳ Pedidos aguardando sua aprovação (dezembro)</h3>
     {pedidos
       .filter((p) => p.status === "Pendente")
       .slice()
@@ -4662,7 +4683,7 @@ horariosTrabalho.filter(
             <strong>👤 {pedido.nome}</strong> — {pedido.servico}
             <br />
             <small>
-              📅 {pedido.data} às {pedido.horario} · 💰{" "}
+              📅 {formatarDataBR(pedido.data)} às {pedido.horario} · 💰{" "}
               {Number(pedido.valor_servico || 0).toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
@@ -4723,7 +4744,7 @@ horariosTrabalho.filter(
               className="btn-recusar"
               onClick={async () => {
                 const confirmar = window.confirm(
-                  `Recusar o pedido de ${pedido.nome} (${pedido.data} às ${pedido.horario})?`
+                  `Recusar o pedido de ${pedido.nome} (${formatarDataBR(pedido.data)} às ${pedido.horario})?`
                 );
                 if (!confirmar) return;
 
@@ -4762,6 +4783,8 @@ horariosTrabalho.filter(
           </div>
         </div>
       ))}
+      </>
+    )}
   </div>
 )}
 
@@ -4859,7 +4882,7 @@ if (
   💰 {Number(pedido.valor_servico || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
 </p>
 
-<p>📅 {pedido.data}</p>
+<p>📅 {formatarDataBR(pedido.data)}</p>
 
 <p>
 Status:
