@@ -916,6 +916,10 @@ body,
   color: var(--texto);
 }
 
+.plano-botoes .btn-remover-dias {
+  background: linear-gradient(135deg, #d97706, #d32f2f);
+}
+
 .plano-dias-pequeno {
   margin-left: 6px;
   opacity: 0.85;

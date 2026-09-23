@@ -1723,6 +1723,47 @@ async function adicionarDiasPlano(profissional, dias) {
   await carregarProfissionaisAdmin();
 }
 
+// Remove dias de uso do plano. Se o prazo zerar, a conta é desativada na hora.
+async function removerDiasPlano(profissional, dias) {
+  if (profissional.tipo === "super_admin") return;
+
+  const quantidade = Math.floor(Number(dias));
+  if (!Number.isFinite(quantidade) || quantidade < 1) {
+    alert("Digite uma quantidade de dias válida (número inteiro maior que 0).");
+    return;
+  }
+
+  // Parte do prazo atual; se não houver validade, conta a partir de hoje.
+  let base = validadePlanoMs(profissional);
+  if (base == null) base = Date.now();
+  const novaValidade = base - quantidade * MS_DIA;
+
+  const { error } = await supabase
+    .from("profissionais")
+    .update({
+      validade_plano: new Date(novaValidade).toISOString(),
+      plano_ilimitado: false,
+      // Se o prazo zerou (ou passou), desativa automaticamente.
+      ativo: novaValidade > Date.now(),
+    })
+    .eq("id", profissional.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao remover dias do plano: " + error.message);
+    return;
+  }
+
+  if (novaValidade > Date.now()) {
+    alert(`✅ ${quantidade} dia(s) removido(s) do plano.`);
+  } else {
+    alert(
+      `⚠️ ${quantidade} dia(s) removido(s). O prazo zerou e a conta foi desativada automaticamente. Adicione dias para reativar.`
+    );
+  }
+  await carregarProfissionaisAdmin();
+}
+
 // Torna o plano permanente (nunca expira) e reativa a conta.
 async function ativarPlanoIlimitado(profissional) {
   if (profissional.tipo === "super_admin") return;
@@ -3100,6 +3141,12 @@ setTotalAgendamentos(count);
           <button onClick={() => adicionarDiasPlano(profissional, DIAS_PADRAO_PLANO)}>
             ➕ Renovar +{DIAS_PADRAO_PLANO} dias
           </button>
+          <button
+            className="btn-remover-dias"
+            onClick={() => removerDiasPlano(profissional, DIAS_PADRAO_PLANO)}
+          >
+            ➖ Remover {DIAS_PADRAO_PLANO} dias
+          </button>
 
           <input
             type="number"
@@ -3122,6 +3169,17 @@ setTotalAgendamentos(count);
             }
           >
             ➕ Adicionar dias
+          </button>
+          <button
+            className="btn-remover-dias"
+            onClick={() =>
+              removerDiasPlano(
+                profissional,
+                Number(diasParaAdicionarPorProfissional[profissional.id])
+              )
+            }
+          >
+            ➖ Remover dias
           </button>
 
           {profissional.plano_ilimitado ? (
@@ -3790,6 +3848,40 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       Com a exigência ativa, pedidos de dezembro ficam como "Pendente (aguardando aprovação)" até você aprovar ou recusar na agenda.
     </small>
   </div>
+
+<div className="saldo-config" style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid var(--cor-borda)", borderRadius: "16px", padding: "12px", background: "var(--fundo)" }}>
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+    {profissionalLogado?.plano_ilimitado ? (
+      <p className="plano-status plano-status-permanente" style={{ margin: 0 }}>
+        ♾️ Seu plano é permanente
+      </p>
+    ) : validadePlanoMs(profissionalLogado) == null ? (
+      <p className="plano-status plano-status-sem-plano" style={{ margin: 0 }}>
+        ❌ Seu perfil ainda não tem plano de uso. Fale com o administrador.
+      </p>
+    ) : (
+      <p
+        className={`plano-status ${
+          diasRestantesPlano(profissionalLogado) > 0
+            ? "plano-status-valido"
+            : "plano-status-expirado"
+        }`}
+        style={{ margin: 0 }}
+      >
+        {diasRestantesPlano(profissionalLogado) > 0
+          ? `📅 Seu plano tem ${diasRestantesPlano(profissionalLogado)} dia${
+              diasRestantesPlano(profissionalLogado) === 1 ? "" : "s"
+            } restante${diasRestantesPlano(profissionalLogado) === 1 ? "" : "s"}`
+          : "⚠️ Seu plano expirou — fale com o administrador"}
+      </p>
+    )}
+  </div>
+  {!profissionalLogado?.plano_ilimitado && validadePlanoMs(profissionalLogado) != null && (
+    <small className="dica-dias-agendados">
+      📅 Vence em: {formatarDataPlano(profissionalLogado)} — quando o prazo chegar a zero, a conta é desativada automaticamente.
+    </small>
+  )}
+</div>
 
 <div className="tema-configuracao">
   <label>Cor do perfil</label>
