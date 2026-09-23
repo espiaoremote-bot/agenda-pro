@@ -870,6 +870,57 @@ body,
   flex-wrap:wrap;
 }
 
+/* =====================================
+   PACOTE MENSAL — dias de uso do profissional
+===================================== */
+.plano-status {
+  margin-top: 4px;
+}
+
+.plano-status-valido,
+.plano-status-permanente {
+  color: var(--cor-primaria);
+  font-weight: bold;
+}
+
+.plano-status-sem-plano {
+  color: #b45309;
+  font-weight: bold;
+}
+
+.plano-status-expirado {
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+.plano-vencimento {
+  color: var(--texto-secundario);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.plano-botoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.plano-botoes input {
+  width: 80px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  color: var(--texto);
+}
+
+.plano-dias-pequeno {
+  margin-left: 6px;
+  opacity: 0.85;
+}
+
 
 .profissional-botoes button,
 .admin-botoes button {

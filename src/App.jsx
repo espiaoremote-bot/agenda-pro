@@ -299,6 +299,75 @@ console.log("ESTOU NO APP JSX CERTO");
 // as opções de gerenciamento: editar, desativar, excluir e ver senha.
 const SENHA_ADMIN_OPCOES = "9622";
 
+// ==========================================
+// PACOTE MENSAL — dias de uso do profissional
+// Cada profissional novo começa com 30 dias. O admin pode adicionar dias,
+// tornar o plano permanente (ilimitado) ou a conta desativa sozinha quando
+// o prazo chega a zero.
+// ==========================================
+const DIAS_PADRAO_PLANO = 30; // pacote mensal padrão
+const MS_DIA = 24 * 60 * 60 * 1000; // 1 dia em milissegundos
+
+// True quando o plano é permanente (nunca expira).
+function ehPlanoIlimitado(profissional) {
+  return Boolean(profissional?.plano_ilimitado);
+}
+
+// Data de validade do plano em ms, ou null quando não há validade cadastrada.
+function validadePlanoMs(profissional) {
+  if (!profissional?.validade_plano) return null;
+  const ms = new Date(profissional.validade_plano).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+// Dias inteiros que ainda faltam para vencer (arredondado para cima).
+// Retorna null quando é permanente ou ainda não há plano cadastrado.
+function diasRestantesPlano(profissional) {
+  if (ehPlanoIlimitado(profissional)) return null;
+  const validade = validadePlanoMs(profissional);
+  if (validade == null) return null;
+  return Math.max(0, Math.ceil((validade - Date.now()) / MS_DIA));
+}
+
+// True quando o plano já venceu (a conta deve ser desativada automaticamente).
+function planoExpirado(profissional) {
+  // O administrador nunca expira e nunca é afetado pela desativação automática.
+  if (profissional?.tipo === "super_admin") return false;
+  if (ehPlanoIlimitado(profissional)) return false;
+  const validade = validadePlanoMs(profissional);
+  if (validade == null) return false; // sem plano cadastrado => não expira sozinho
+  return validade <= Date.now();
+}
+
+// Texto e estilo do plano para exibir no perfil do admin.
+function informacaoPlano(profissional) {
+  if (ehPlanoIlimitado(profissional)) {
+    return { texto: "Plano: ♾️ Permanente", tipo: "permanente" };
+  }
+  const validade = validadePlanoMs(profissional);
+  if (validade == null) {
+    return { texto: "Plano: ❌ Sem plano cadastrado", tipo: "sem-plano" };
+  }
+  const restantes = diasRestantesPlano(profissional);
+  if (restantes <= 0) {
+    return { texto: "Plano: ⚠️ Expirado — adicione dias para reativar", tipo: "expirado" };
+  }
+  return {
+    texto: `Plano: 📅 ${restantes} dia${restantes === 1 ? "" : "s"} restante${restantes === 1 ? "" : "s"}`,
+    tipo: "valido",
+  };
+}
+
+// Formata a data da validade no padrão brasileiro (dd/mm/aaaa).
+function formatarDataPlano(profissional) {
+  const validade = validadePlanoMs(profissional);
+  if (validade == null) return "";
+  const data = new Date(validade);
+  const dia = String(data.getDate()).padStart(2, "0");
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  return `${dia}/${mes}/${data.getFullYear()}`;
+}
+
 
 
 function App() {
@@ -408,6 +477,8 @@ const primeiraCargaRef = useRef(true);
 const [mostrarListaAdmin, setMostrarListaAdmin] = useState(null);
 const [desbloqueadoAdmin, setDesbloqueadoAdmin] = useState(false);
 const [senhaOpcoesAdmin, setSenhaOpcoesAdmin] = useState("");
+// Dias digitados pelo admin para adicionar ao plano (um valor por profissional).
+const [diasParaAdicionarPorProfissional, setDiasParaAdicionarPorProfissional] = useState({});
 
 const temaAtivo = profissionalLogado?.tema || dadosProfissionalCliente?.tema || temaNovo || "feminino";
 
@@ -1200,6 +1271,15 @@ useEffect(() => {
         return;
       }
 
+      if (planoExpirado(atual)) {
+        // Plano venceu => desativa a conta e exige renovação pelo admin.
+        supabase.from("profissionais").update({ ativo: false }).eq("id", atual.id).then(() => {});
+        localStorage.removeItem("profissionalLogado");
+        setTela("login");
+        setMensagemLogin("Seu plano expirou. Fale com o administrador para renovar.");
+        return;
+      }
+
       localStorage.setItem("profissionalLogado", JSON.stringify(atual));
       setProfissionalLogado(atual);
       setTemaSelecionado(atual.tema || "feminino");
@@ -1212,6 +1292,36 @@ useEffect(() => {
 
   restaurarSessao();
 }, []);
+
+// Ao entrar no painel do admin, carrega a lista de profissionais e já desativa
+// automaticamente quem estiver com o plano vencido.
+useEffect(() => {
+  if (tela === "admin") {
+    carregarProfissionaisAdmin();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [tela]);
+
+// Vigia o plano enquanto o profissional está logado: se o prazo zerar com o
+// app aberto, desativa a conta e volta para o login automaticamente.
+useEffect(() => {
+  if (!profissionalLogado || profissionalLogado.tipo === "super_admin") return;
+
+  const verificarPlano = async () => {
+    if (!planoExpirado(profissionalLogado)) return;
+
+    await supabase.from("profissionais").update({ ativo: false }).eq("id", profissionalLogado.id).then(() => {});
+    localStorage.removeItem("profissionalLogado");
+    setProfissionalLogado(null);
+    setTela("login");
+    setMensagemLogin("Seu plano expirou. Fale com o administrador para renovar.");
+  };
+
+  verificarPlano();
+  const intervalo = setInterval(verificarPlano, 60 * 1000);
+  return () => clearInterval(intervalo);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [profissionalLogado, tela]);
 
 useEffect(() => {
 
@@ -1235,6 +1345,14 @@ return;
 if (!data.ativo) {
   setCarregandoPerfil(false);
   alert("Este profissional está indisponível.");
+  setTela("inicio");
+  return;
+}
+if (planoExpirado(data)) {
+  // Plano venceu => desativa a conta e tira o profissional do ar para clientes.
+  supabase.from("profissionais").update({ ativo: false }).eq("id", data.id).then(() => {});
+  setCarregandoPerfil(false);
+  alert("Este profissional está com o plano expirado e não está aceitando agendamentos no momento.");
   setTela("inicio");
   return;
 }
@@ -1544,10 +1662,119 @@ if (carregandoPerfil) {
   );
 }
 
+// Busca os profissionais no banco, desativa automaticamente quem tiver o
+// plano expirado e atualiza a listagem usada no painel do admin.
+async function carregarProfissionaisAdmin() {
+  const { data } = await supabase.from("profissionais").select("*");
+  if (!data) return;
+
+  const expirados = data.filter(
+    (p) =>
+      p.tipo !== "super_admin" && // o administrador nunca é desativado por plano
+      p.ativo &&
+      !ehPlanoIlimitado(p) &&
+      validadePlanoMs(p) != null &&
+      validadePlanoMs(p) <= Date.now()
+  );
+
+  if (expirados.length > 0) {
+    const { error } = await supabase
+      .from("profissionais")
+      .update({ ativo: false })
+      .in("id", expirados.map((p) => p.id));
+
+    if (error) console.error("Erro ao desativar planos expirados:", error);
+
+    const { data: atualizado } = await supabase.from("profissionais").select("*");
+    setProfissionais(atualizado || data);
+    return;
+  }
+
+  setProfissionais(data);
+}
+
+// Adiciona dias de uso ao plano (renova a partir de hoje se já expirou) e
+// reativa a conta automaticamente.
+async function adicionarDiasPlano(profissional, dias) {
+  if (profissional.tipo === "super_admin") return;
+
+  const quantidade = Math.floor(Number(dias));
+  if (!Number.isFinite(quantidade) || quantidade < 1) {
+    alert("Digite uma quantidade de dias válida (número inteiro maior que 0).");
+    return;
+  }
+
+  let base = validadePlanoMs(profissional);
+  if (base == null || base < Date.now()) base = Date.now();
+  const novaValidade = new Date(base + quantidade * MS_DIA).toISOString();
+
+  const { error } = await supabase
+    .from("profissionais")
+    .update({ validade_plano: novaValidade, plano_ilimitado: false, ativo: true })
+    .eq("id", profissional.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao adicionar dias ao plano: " + error.message);
+    return;
+  }
+
+  alert(`✅ ${quantidade} dia(s) de uso adicionado(s)! O profissional foi reativado.`);
+  await carregarProfissionaisAdmin();
+}
+
+// Torna o plano permanente (nunca expira) e reativa a conta.
+async function ativarPlanoIlimitado(profissional) {
+  if (profissional.tipo === "super_admin") return;
+
+  const { error } = await supabase
+    .from("profissionais")
+    .update({ plano_ilimitado: true, ativo: true })
+    .eq("id", profissional.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao ativar o plano permanente: " + error.message);
+    return;
+  }
+
+  alert("✅ Plano permanente ativado! O profissional nunca mais será desativado por validade.");
+  await carregarProfissionaisAdmin();
+}
+
+// Remove o plano permanente. Como o profissional volta a ter prazo, define
+// uma nova validade de 30 dias a partir de hoje.
+async function removerPlanoIlimitado(profissional) {
+  if (profissional.tipo === "super_admin") return;
+
+  const novaValidade = new Date(Date.now() + DIAS_PADRAO_PLANO * MS_DIA).toISOString();
+
+  const { error } = await supabase
+    .from("profissionais")
+    .update({ plano_ilimitado: false, validade_plano: novaValidade, ativo: true })
+    .eq("id", profissional.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao remover o plano permanente: " + error.message);
+    return;
+  }
+
+  alert(`✅ Plano permanente removido. O plano agora vence em ${DIAS_PADRAO_PLANO} dias.`);
+  await carregarProfissionaisAdmin();
+}
+
 async function alternarAtivoProfissional(profissional) {
 
   if (profissional.tipo === "super_admin") {
     alert("O administrador não pode ser desativado.");
+    return;
+  }
+
+  // Ao tentar ativar manualmente um profissional com plano expirado, pede
+  // para renovar o plano em vez de deixar a conta sem cobertura.
+  if (!profissional.ativo && planoExpirado(profissional)) {
+    alert("O plano deste profissional está expirado. Adicione dias ou torne o plano permanente para ativá-lo.");
     return;
   }
 
@@ -2195,6 +2422,13 @@ if (resultado.length > 1) {
 
 const resultadoLogado = resultado[0];
 
+if (planoExpirado(resultadoLogado)) {
+  // Plano venceu => desativa a conta e impede o login.
+  supabase.from("profissionais").update({ ativo: false }).eq("id", resultadoLogado.id).then(() => {});
+  setMensagemLogin("Seu plano expirou. Fale com o administrador para renovar.");
+  return;
+}
+
 if (!resultadoLogado.ativo) {
   setMensagemLogin("Este perfil está desativado.");
   return;
@@ -2685,7 +2919,19 @@ Enviar pedido
     )}
     {profissionais.filter((p) => p.ativo).map((profissional) => (
       <div key={profissional.id} className="admin-sublista-item">
-        <span>👤 {profissional.nome}{profissional.tipo === "super_admin" && " 👑"}</span>
+        <span>
+          👤 {profissional.nome}{profissional.tipo === "super_admin" && " 👑"}
+          {profissional.tipo !== "super_admin" && (
+            <small className="plano-dias-pequeno">
+              {" "}
+              {profissional.plano_ilimitado
+                ? "♾️ permanente"
+                : diasRestantesPlano(profissional) != null
+                ? `📅 ${diasRestantesPlano(profissional)} dia${diasRestantesPlano(profissional) === 1 ? "" : "s"}`
+                : "❌ sem plano"}
+            </small>
+          )}
+        </span>
         {desbloqueadoAdmin ? (
           profissional.tipo === "super_admin" ? (
             <small>👑</small>
@@ -2710,7 +2956,15 @@ Enviar pedido
     )}
     {profissionais.filter((p) => !p.ativo).map((profissional) => (
       <div key={profissional.id} className="admin-sublista-item">
-        <span>👤 {profissional.nome}{profissional.tipo === "super_admin" && " 👑"}</span>
+        <span>
+          👤 {profissional.nome}{profissional.tipo === "super_admin" && " 👑"}
+          {profissional.tipo !== "super_admin" && (
+            <small className="plano-dias-pequeno">
+              {" "}
+              {planoExpirado(profissional) ? "⏰ plano expirado" : "🚫 desativado manualmente"}
+            </small>
+          )}
+        </span>
         {desbloqueadoAdmin ? (
           profissional.tipo === "super_admin" ? (
             <small>👑</small>
@@ -2732,16 +2986,9 @@ Enviar pedido
 <button
   onClick={async () => {
 
-    const { data: resultado, error } = await supabase
-      .from("profissionais")
-      .select("*");
+    // Carrega a lista e já desativa automaticamente quem tiver o plano vencido.
+    await carregarProfissionaisAdmin();
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-   setProfissionais(resultado);
     const { count } = await supabase
   .from("agendamentos")
   .select("*", { count: "exact", head: true });
@@ -2773,6 +3020,19 @@ setTotalAgendamentos(count);
 <p>
   Status: {profissional.ativo ? "🟢 Ativo" : "🔴 Inativo"}
 </p>
+
+{profissional.tipo !== "super_admin" && (
+  <>
+    <p className={`plano-status plano-status-${informacaoPlano(profissional).tipo}`}>
+      {informacaoPlano(profissional).texto}
+    </p>
+    {!profissional.plano_ilimitado && validadePlanoMs(profissional) != null && (
+      <p className="plano-vencimento">
+        📅 Vence em: {formatarDataPlano(profissional)}
+      </p>
+    )}
+  </>
+)}
 
 {
   profissionais.filter(
@@ -2831,9 +3091,50 @@ setTotalAgendamentos(count);
         👑 Administrador
       </button>
     ) : (
-      <button onClick={() => alternarAtivoProfissional(profissional)}>
-        {profissional.ativo ? "Desativar" : "Ativar"}
-      </button>
+      <>
+        <button onClick={() => alternarAtivoProfissional(profissional)}>
+          {profissional.ativo ? "Desativar" : "Ativar"}
+        </button>
+
+        <div className="plano-botoes">
+          <button onClick={() => adicionarDiasPlano(profissional, DIAS_PADRAO_PLANO)}>
+            ➕ Renovar +{DIAS_PADRAO_PLANO} dias
+          </button>
+
+          <input
+            type="number"
+            min="1"
+            placeholder="Dias"
+            value={diasParaAdicionarPorProfissional[profissional.id] ?? ""}
+            onChange={(e) =>
+              setDiasParaAdicionarPorProfissional((prev) => ({
+                ...prev,
+                [profissional.id]: e.target.value,
+              }))
+            }
+          />
+          <button
+            onClick={() =>
+              adicionarDiasPlano(
+                profissional,
+                Number(diasParaAdicionarPorProfissional[profissional.id])
+              )
+            }
+          >
+            ➕ Adicionar dias
+          </button>
+
+          {profissional.plano_ilimitado ? (
+            <button onClick={() => removerPlanoIlimitado(profissional)}>
+              🚫 Remover permanente
+            </button>
+          ) : (
+            <button onClick={() => ativarPlanoIlimitado(profissional)}>
+              ♾️ Tornar permanente
+            </button>
+          )}
+        </div>
+      </>
     )}
     {profissional.tipo !== "super_admin" && (
       <button
@@ -2999,6 +3300,9 @@ setEditarSenha("");
         }
 
 
+        // Profissional novo já começa com o pacote mensal (30 dias de uso).
+        const novaValidadePlano = new Date(Date.now() + DIAS_PADRAO_PLANO * MS_DIA).toISOString();
+
         const { error } = await supabase
           .from("profissionais")
           .insert([
@@ -3008,7 +3312,9 @@ setEditarSenha("");
           tipo: "profissional",
           ativo: true,
           status_atendimento: "Disponível",
-          tema: temaNovo
+          tema: temaNovo,
+          validade_plano: novaValidadePlano,
+          plano_ilimitado: false
         }
         ]);
 
