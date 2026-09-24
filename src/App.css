@@ -1287,6 +1287,49 @@ body,
     box-sizing:border-box;
   }
 
+  /* Botões do admin alinhados no celular:
+     - ações principais (Desativar/Excluir/Editar) em botões cheios (largura total)
+     - bloco de dias em grade 2x2 bonitinha */
+  .profissional-botoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profissional-botoes > button {
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+  }
+
+  .plano-botoes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .plano-botoes button {
+    width: 100%;
+    margin: 0;
+    padding: 10px 8px;
+    font-size: 13px;
+    box-sizing: border-box;
+    white-space: normal;
+  }
+
+  .plano-botoes input {
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  /* Botão permanente/remover permanente ocupa a linha inteira */
+  .plano-botoes button:last-child {
+    grid-column: 1 / -1;
+  }
+
 }
 input:focus,
 select:focus {
