@@ -183,6 +183,91 @@ function novoItemAgendarCliente() {
   };
 }
 
+// ---------- Regra de DURAÇÃO dos serviços ----------
+// Converte o texto de duração de um serviço ("2 horas", "1h30", "90 min",
+// "1 hora e 30 min"...) em horas (número decimal). Devolve 0 quando não reconhece.
+function parsearDuracaoHoras(textoDuracao) {
+  if (!textoDuracao) return 0;
+  const texto = String(textoDuracao).toLowerCase().trim().replace(",", ".");
+  let horas = 0;
+
+  // Forma compacta: "2h30", "1h30m", "2 h 30 min"
+  const compacto = texto.match(
+    /(\d+(?:\.\d+)?)\s*h(?:ours?)?\s*(?:y\s*)?(\d+(?:\.\d+)?)\s*(?:m(?:in(?:utos?)?)?)?/
+  );
+  if (compacto) {
+    horas = Number(compacto[1]) + Number(compacto[2]) / 60;
+    return Math.round(horas * 100) / 100;
+  }
+
+  // "2 horas", "1h", "1 hora", "1.5h"
+  const parteHoras = texto.match(/(\d+(?:\.\d+)?)\s*h(?:ours?|oras?)?/);
+  if (parteHoras) {
+    horas += Number(parteHoras[1]);
+  }
+
+  // "30 min", "45 minutos", "90min"
+  const parteMinutos = texto.match(/(\d+(?:\.\d+)?)\s*m(?:in(?:utos?)?)?/);
+  if (parteMinutos) {
+    horas += Number(parteMinutos[1]) / 60;
+  }
+
+  return Math.round(horas * 100) / 100;
+}
+
+// "13:00" -> minutos desde meia-noite (780). Devolve -1 se inválido.
+function horarioAMinutos(horario) {
+  if (!horario) return -1;
+  const partes = String(horario).split(":").map(Number);
+  if (Number.isNaN(partes[0])) return -1;
+  return partes[0] * 60 + (Number.isNaN(partes[1]) ? 0 : partes[1]);
+}
+
+// Suma horas a um horário "13:00" e devolve "HH:MM" (ex.: 13:00 + 2 -> 15:00).
+function sumarHoras(horario, horas) {
+  if (!horario) return "";
+  const inicio = horarioAMinutos(horario);
+  if (inicio < 0) return horario;
+  const total = inicio + Math.max(0, Math.round((Number(horas) || 0) * 60));
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// Procura a duração (em horas) de um serviço no catálogo. `profissionalId`
+// é opcional e evita confundir serviços que tenham o mesmo nome.
+function duracaoHorasDeServicio(nomeServico, catalogoServicos, profissionalId) {
+  if (!nomeServico) return 0;
+  const catalogo = Array.isArray(catalogoServicos) ? catalogoServicos : [];
+  const encontrado = catalogo.find(
+    (s) =>
+      s.nome === nomeServico &&
+      (!profissionalId ||
+        !s.profissional_id ||
+        s.profissional_id === profissionalId)
+  );
+  return parsearDuracaoHoras(encontrado ? encontrado.duracao : "");
+}
+
+// Dado um início e uma duração (em horas), devolve os horários (slots) que o
+// agendamento ocupa: todos entre [início, início + duração). Sem duração: só o slot.
+function slotsQueOcupa(horarioInicio, horas, slotsDelDia) {
+  const inicio = horarioAMinutos(horarioInicio);
+  if (inicio < 0) return [];
+  const duracionMin = Math.round((Number(horas) || 0) * 60);
+  if (duracionMin <= 0) return [horarioInicio];
+  const fin = inicio + duracionMin;
+  return slotsDelDia.filter((slot) => {
+    const min = horarioAMinutos(slot);
+    return min >= inicio && min < fin;
+  });
+}
+
+// Duas franjas [inicio, fin) se cruzan quando uma entra no intervalo da outra.
+function franjasSolapan(inicioA, finA, inicioB, finB) {
+  return inicioA < finB && inicioB < finA;
+}
+
 // Nomes dos dias da semana na ordem do Date.getDay() (0 = domingo, 1 = segunda...).
 const diasSemanaPorIndice = [
   "domingo",
@@ -934,24 +1019,52 @@ useEffect(() => {
 
       const agora = new Date();
 
-      // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas.
-      const ocupadosBanco = pedidos
+      const slotsDelDia = horarios.map((linha) => linha.horario);
+
+      // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas,
+      // respetando a DURAÇÃO de cada serviço (ex.: 13:00 com 2h ocupa 13:00 e 14:00).
+      const ocupados = new Set();
+
+      const marcarOcupados = (horarioOcupado, nomeServicio) => {
+        if (!horarioOcupado) return;
+        const horas = duracaoHorasDeServicio(
+          nomeServicio,
+          servicos,
+          profissionalCliente
+        );
+        slotsQueOcupa(horarioOcupado, horas, slotsDelDia).forEach((slot) =>
+          ocupados.add(slot)
+        );
+      };
+
+      pedidos
         .filter((ped) => ped.data === item.data)
         .filter(
           (ped) => ped.status === "Agendado" && ped.horario_liberado !== true
         )
-        .map((ped) => ped.horario);
+        .forEach((ped) => marcarOcupados(ped.horario, ped.servico));
 
-      const ocupadosOutrasLinhas = itensCliente
-        .map((outro, outroIndice) =>
-          outroIndice !== i && outro.data === item.data ? outro.horario : null
-        )
-        .filter(Boolean);
+      itensCliente.forEach((outro, outroIndice) => {
+        if (outroIndice !== i && outro.data === item.data && outro.horario) {
+          marcarOcupados(outro.horario, outro.servico);
+        }
+      });
+
+      // A linha atual também tem que "caber" com a própria duração:
+      // um serviço de 2h às 13:00 só fica livre se 13:00 E 14:00 estiverem livres.
+      const horasServicioLinha = duracaoHorasDeServicio(
+        item.servico,
+        servicos,
+        profissionalCliente
+      );
 
       const horariosDisponiveisFiltrados = horarios
         .map((linha) => linha.horario)
-        .filter((hora) => !ocupadosBanco.includes(hora))
-        .filter((hora) => !ocupadosOutrasLinhas.includes(hora))
+        .filter((hora) =>
+          slotsQueOcupa(hora, horasServicioLinha, slotsDelDia).every(
+            (slot) => !ocupados.has(slot)
+          )
+        )
         .filter((hora) => {
           // Se não for hoje, mantém todos
           if (item.data !== hoje) {
@@ -981,7 +1094,7 @@ useEffect(() => {
   }
 
   carregarHorariosCliente();
-}, [profissionalCliente, itensCliente, pedidos]);
+}, [profissionalCliente, itensCliente, pedidos, servicos]);
 
 // Horários livres para AGENDAR POR um cliente (formulário dentro da área profissional).
 useEffect(() => {
@@ -1041,24 +1154,51 @@ useEffect(() => {
         "-" +
         String(agora.getDate()).padStart(2, "0");
 
-      // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas.
-      const ocupadosBanco = pedidos
+      const slotsDelDia = horarios.map((linha) => linha.horario);
+
+      // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas,
+      // respetando a DURAÇÃO de cada serviço (ex.: 13:00 com 2h ocupa 13:00 e 14:00).
+      const ocupados = new Set();
+
+      const marcarOcupados = (horarioOcupado, nomeServicio) => {
+        if (!horarioOcupado) return;
+        const horas = duracaoHorasDeServicio(
+          nomeServicio,
+          meusServicos,
+          profissionalLogado.id
+        );
+        slotsQueOcupa(horarioOcupado, horas, slotsDelDia).forEach((slot) =>
+          ocupados.add(slot)
+        );
+      };
+
+      pedidos
         .filter((ped) => ped.data === item.data)
         .filter(
           (ped) => ped.status === "Agendado" && ped.horario_liberado !== true
         )
-        .map((ped) => ped.horario);
+        .forEach((ped) => marcarOcupados(ped.horario, ped.servico));
 
-      const ocupadosOutrasLinhas = itensAgendarCliente
-        .map((outro, outroIndice) =>
-          outroIndice !== i && outro.data === item.data ? outro.horario : null
-        )
-        .filter(Boolean);
+      itensAgendarCliente.forEach((outro, outroIndice) => {
+        if (outroIndice !== i && outro.data === item.data && outro.horario) {
+          marcarOcupados(outro.horario, outro.servico);
+        }
+      });
+
+      // A linha atual também tem que "caber" com a própria duração.
+      const horasServicioLinha = duracaoHorasDeServicio(
+        item.servico,
+        meusServicos,
+        profissionalLogado.id
+      );
 
       const horariosLivres = horarios
         .map((linha) => linha.horario)
-        .filter((hora) => !ocupadosBanco.includes(hora))
-        .filter((hora) => !ocupadosOutrasLinhas.includes(hora))
+        .filter((hora) =>
+          slotsQueOcupa(hora, horasServicioLinha, slotsDelDia).every(
+            (slot) => !ocupados.has(slot)
+          )
+        )
         .filter((hora) => {
           // Se não for hoje, mantém todos os horários
           if (item.data !== hoje) return true;
@@ -1085,7 +1225,7 @@ useEffect(() => {
   }
 
   carregarHorariosAgendarCliente();
-}, [profissionalLogado, mostrarAgendarCliente, itensAgendarCliente, pedidos]);
+}, [profissionalLogado, mostrarAgendarCliente, itensAgendarCliente, pedidos, meusServicos]);
 
 // Horários livres para REAGENDAR um agendamento (formulário dentro da agenda).
 // Usa a mesma regra de ocupação da agenda: bloqueia apenas agendamentos ativos,
@@ -1140,7 +1280,25 @@ useEffect(() => {
       "-" +
       String(agora.getDate()).padStart(2, "0");
 
-    const horariosOcupados = pedidos
+    const slotsDelDia = horarios.map((linha) => linha.horario);
+
+    // Regra de duración: um agendamento ocupa [inicio, inicio + duração).
+    // Aquí também se respeita a duração do serviço que está sendo reagendado.
+    const ocupados = new Set();
+
+    const marcarOcupados = (horarioOcupado, nomeServicio) => {
+      if (!horarioOcupado) return;
+      const horas = duracaoHorasDeServicio(
+        nomeServicio,
+        meusServicos,
+        profissionalLogado.id
+      );
+      slotsQueOcupa(horarioOcupado, horas, slotsDelDia).forEach((slot) =>
+        ocupados.add(slot)
+      );
+    };
+
+    pedidos
       .filter((item) => item.data === novaDataReagendamento)
       .filter(
         (item) =>
@@ -1148,11 +1306,22 @@ useEffect(() => {
           item.horario_liberado !== true &&
           item.id !== reagendandoPedido.id
       )
-      .map((item) => item.horario);
+      .forEach((item) => marcarOcupados(item.horario, item.servico));
+
+    // O serviço reagendado também ocupa toda a sua duración na nova data.
+    const horasServicioReagendado = duracaoHorasDeServicio(
+      reagendandoPedido.servico,
+      meusServicos,
+      profissionalLogado.id
+    );
 
     const horariosLivres = horarios
       .map((item) => item.horario)
-      .filter((hora) => !horariosOcupados.includes(hora))
+      .filter((hora) =>
+        slotsQueOcupa(hora, horasServicioReagendado, slotsDelDia).every(
+          (slot) => !ocupados.has(slot)
+        )
+      )
       .filter((hora) => {
         // Se não for hoje, mantém todos os horários
         if (novaDataReagendamento !== hoje) return true;
@@ -1176,7 +1345,7 @@ useEffect(() => {
   }
 
   carregarHorariosReagendamento();
-}, [profissionalLogado, reagendandoPedido, novaDataReagendamento, pedidos]);
+}, [profissionalLogado, reagendandoPedido, novaDataReagendamento, pedidos, meusServicos]);
 
 const params = new URLSearchParams(window.location.search);
 
@@ -1912,13 +2081,24 @@ async function salvarReagendamento() {
     return;
   }
 
+  // Regra de duración: o novo horário ocupa [inicio, inicio + duração) do serviço.
+  const inicioReagendado = horarioAMinutos(novoHorarioReagendamento);
+  const duracionReagendada =
+    Math.round(
+      duracaoHorasDeServicio(
+        reagendandoPedido.servico,
+        meusServicos,
+        profissionalLogado.id
+      ) * 60
+    ) || 60;
+  const finReagendado = inicioReagendado + duracionReagendada;
+
   // Confere se o novo dia/horário já está ocupado por outro agendamento ativo.
-  const { data: conflitos, error: erroBusca } = await supabase
+  const { data: agendamentosDia, error: erroBusca } = await supabase
     .from("agendamentos")
     .select("*")
     .eq("profissional_id", profissionalLogado.id)
     .eq("data", novaDataReagendamento)
-    .eq("horario", novoHorarioReagendamento)
     .eq("status", "Agendado")
     .neq("id", reagendandoPedido.id);
 
@@ -1931,7 +2111,27 @@ async function salvarReagendamento() {
     return;
   }
 
-  if (conflitos && conflitos.length > 0) {
+  const ocupadoReagendamento = (agendamentosDia || []).some((existente) => {
+    if (existente.horario_liberado === true) return false;
+    const inicioExistente = horarioAMinutos(existente.horario);
+    if (inicioExistente < 0) return false;
+    const duracionExistente =
+      Math.round(
+        duracaoHorasDeServicio(
+          existente.servico,
+          meusServicos,
+          profissionalLogado.id
+        ) * 60
+      ) || 60;
+    return franjasSolapan(
+      inicioReagendado,
+      finReagendado,
+      inicioExistente,
+      inicioExistente + duracionExistente
+    );
+  });
+
+  if (ocupadoReagendamento) {
     setMensagemReagendamento(
       "Esse dia e horário já estão ocupados por outro agendamento. Escolha outro."
     );
@@ -2074,34 +2274,82 @@ async function enviarPedidoCliente() {
     }
   }
 
-  // Dois serviços não podem ficar no mesmo dia e horário.
-  const pares = itensCliente.map((item) => `${item.data}|${item.horario}`);
-  if (new Set(pares).size !== pares.length) {
-    setMensagem(
-      "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
-    );
-    setTipoMensagem("erro");
-    return;
+  // Regra de duración: cada linha ocupa de [horario, horario + duração do serviço).
+  // Ex.: serviço de 2h às 13:00 ocupa 13:00 e 14:00 (até 15:00).
+  const spanDeLinhaCliente = (item) => {
+    const inicio = horarioAMinutos(item.horario);
+    const duracion =
+      Math.round(
+        duracaoHorasDeServicio(item.servico, servicos, profissionalCliente) * 60
+      ) || 60; // sem duração => ocupa pelo menos sua franja de 1h
+    return { inicio, fin: inicio + duracion };
+  };
+
+  // Dois serviços não podem ocupar franjas que se cruzan no mesmo dia.
+  for (let a = 0; a < itensCliente.length; a++) {
+    for (let b = a + 1; b < itensCliente.length; b++) {
+      const itemA = itensCliente[a];
+      const itemB = itensCliente[b];
+      if (itemA.data !== itemB.data) continue;
+      const spanA = spanDeLinhaCliente(itemA);
+      const spanB = spanDeLinhaCliente(itemB);
+      if (franjasSolapan(spanA.inicio, spanA.fin, spanB.inicio, spanB.fin)) {
+        setMensagem(
+          "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
+        );
+        setTipoMensagem("erro");
+        return;
+      }
+    }
   }
 
   const pedidosSalvos = [];
+  const cacheAgendamentosDia = {};
 
   for (const item of itensCliente) {
-    const { data: horarioExistente, error: erroBusca } = await supabase
-      .from("agendamentos")
-      .select("*")
-      .eq("profissional_id", profissionalCliente)
-      .eq("data", item.data)
-      .eq("horario", item.horario)
-      .eq("status", "Agendado")
-      .maybeSingle();
+    const spanNuevo = spanDeLinhaCliente(item);
 
-    if (erroBusca) {
-      console.error(erroBusca);
-      return;
+    // Busca uma única vez todos os agendamentos ativos do mesmo dia e depois
+    // compara usando a REGRA DE DURACIÓN (cruza o intervalo ocupado pelo outro).
+    if (!cacheAgendamentosDia[item.data]) {
+      const { data: agendamentosDia, error: erroBusca } = await supabase
+        .from("agendamentos")
+        .select("*")
+        .eq("profissional_id", profissionalCliente)
+        .eq("data", item.data)
+        .eq("status", "Agendado");
+
+      if (erroBusca) {
+        console.error(erroBusca);
+        return;
+      }
+
+      cacheAgendamentosDia[item.data] = agendamentosDia || [];
     }
 
-    if (horarioExistente) {
+    const ocupaExistente = (cacheAgendamentosDia[item.data] || []).some(
+      (existente) => {
+        if (existente.horario_liberado === true) return false;
+        const inicioExistente = horarioAMinutos(existente.horario);
+        if (inicioExistente < 0) return false;
+        const duracionExistente =
+          Math.round(
+            duracaoHorasDeServicio(
+              existente.servico,
+              servicos,
+              profissionalCliente
+            ) * 60
+          ) || 60;
+        return franjasSolapan(
+          spanNuevo.inicio,
+          spanNuevo.fin,
+          inicioExistente,
+          inicioExistente + duracionExistente
+        );
+      }
+    );
+
+    if (ocupaExistente) {
       setMensagem("Esse horário já foi reservado. Escolha outro.");
       setTipoMensagem("erro");
       return;
@@ -2260,16 +2508,37 @@ async function enviarPedidoAgendarCliente() {
     }
   }
 
-  // Dois serviços não podem ficar no mesmo dia e horário.
-  const pares = itensAgendarCliente.map(
-    (item) => `${item.data}|${item.horario}`
-  );
-  if (new Set(pares).size !== pares.length) {
-    setMensagemAgendarCliente(
-      "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
-    );
-    setTipoMensagemAgendarCliente("erro");
-    return;
+  // Regra de duración: cada linha ocupa de [horario, horario + duração do serviço).
+  // Ex.: serviço de 2h às 13:00 ocupa 13:00 e 14:00 (até 15:00).
+  const spanDeLinhaAgendar = (item) => {
+    const inicio = horarioAMinutos(item.horario);
+    const duracion =
+      Math.round(
+        duracaoHorasDeServicio(
+          item.servico,
+          meusServicos,
+          profissionalLogado.id
+        ) * 60
+      ) || 60; // sem duração => ocupa pelo menos sua franja de 1h
+    return { inicio, fin: inicio + duracion };
+  };
+
+  // Dois serviços não podem ocupar franjas que se cruzan no mesmo dia.
+  for (let a = 0; a < itensAgendarCliente.length; a++) {
+    for (let b = a + 1; b < itensAgendarCliente.length; b++) {
+      const itemA = itensAgendarCliente[a];
+      const itemB = itensAgendarCliente[b];
+      if (itemA.data !== itemB.data) continue;
+      const spanA = spanDeLinhaAgendar(itemA);
+      const spanB = spanDeLinhaAgendar(itemB);
+      if (franjasSolapan(spanA.inicio, spanA.fin, spanB.inicio, spanB.fin)) {
+        setMensagemAgendarCliente(
+          "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
+        );
+        setTipoMensagemAgendarCliente("erro");
+        return;
+      }
+    }
   }
 
   let totalCriados = 0;
@@ -2295,12 +2564,15 @@ async function enviarPedidoAgendarCliente() {
       return;
     }
 
-    const { data: conflitos, error: erroBusca } = await supabase
+    const spanNuevo = spanDeLinhaAgendar(item);
+
+    // Busca todos os agendamentos ativos da recorrência e compara usando a
+    // REGRA DE DURACIÓN (cruza o intervalo ocupado pelo outro).
+    const { data: agendamentos, error: erroBusca } = await supabase
       .from("agendamentos")
       .select("*")
       .eq("profissional_id", profissionalLogado.id)
       .in("data", datasDaRecorrencia)
-      .eq("horario", item.horario)
       .eq("status", "Agendado");
 
     if (erroBusca) {
@@ -2308,9 +2580,30 @@ async function enviarPedidoAgendarCliente() {
       return;
     }
 
-    if (conflitos && conflitos.length > 0) {
+    const conflito = (agendamentos || []).find((existente) => {
+      if (!datasDaRecorrencia.includes(existente.data)) return false;
+      if (existente.horario_liberado === true) return false;
+      const inicioExistente = horarioAMinutos(existente.horario);
+      if (inicioExistente < 0) return false;
+      const duracionExistente =
+        Math.round(
+          duracaoHorasDeServicio(
+            existente.servico,
+            meusServicos,
+            profissionalLogado.id
+          ) * 60
+        ) || 60;
+      return franjasSolapan(
+        spanNuevo.inicio,
+        spanNuevo.fin,
+        inicioExistente,
+        inicioExistente + duracionExistente
+      );
+    });
+
+    if (conflito) {
       setMensagemAgendarCliente(
-        `Esse horário já está reservado em ${formatarDataCompleta(conflitos[0].data)}. Escolha outro.`
+        `Esse horário já está reservado em ${formatarDataCompleta(conflito.data)}. Escolha outro.`
       );
       setTipoMensagemAgendarCliente("erro");
       return;
@@ -2654,6 +2947,28 @@ onChange={(e) => {
       ))}
     </select>
 
+    {(() => {
+      const horasServicio = duracaoHorasDeServicio(
+        item.servico,
+        servicos,
+        profissionalCliente
+      );
+      const servicoDuracaoText = item.servico
+        ? servicos.find(
+            (s) =>
+              s.profissional_id === profissionalCliente &&
+              s.nome === item.servico &&
+              s.ativo
+          )?.duracao
+        : "";
+      return item.servico && item.horario && horasServicio > 0 ? (
+        <small className="duracao-info">
+          ⏰ {servicoDuracaoText} — {item.horario} até{" "}
+          {sumarHoras(item.horario, horasServicio)}
+        </small>
+      ) : null;
+    })()}
+
     {precisaAprovacaoProfissional(
       item.data,
       dadosProfissionalCliente?.exigir_aprovacao_dezembro
@@ -2775,7 +3090,19 @@ Enviar pedido
         <p>WhatsApp: {p.whatsapp}</p>
         <p>Serviço: {iconeAtivo} {p.servico}</p>
         <p>Data: {formatarDataBR(p.data)}</p>
-        <p>Horário: {p.horario}</p>
+        <p>
+          Horário: {p.horario}
+          {(() => {
+            const horasServicio = duracaoHorasDeServicio(
+              p.servico,
+              servicos,
+              profissionalCliente
+            );
+            return horasServicio > 0
+              ? ` até ${sumarHoras(p.horario, horasServicio)}`
+              : "";
+          })()}
+        </p>
         {indice < pedido.length - 1 && <hr />}
       </div>
     ))}
@@ -3600,6 +3927,25 @@ statusAtendimento === "Disponível"
             </option>
           ))}
         </select>
+
+        {(() => {
+          const horasServicio = duracaoHorasDeServicio(
+            item.servico,
+            meusServicos,
+            profissionalLogado.id
+          );
+          const servicoDuracaoText = item.servico
+            ? meusServicos.find(
+                (s) => s.nome === item.servico && s.ativo
+              )?.duracao
+            : "";
+          return item.servico && item.horario && horasServicio > 0 ? (
+            <small className="duracao-info">
+              ⏰ {servicoDuracaoText} — {item.horario} até{" "}
+              {sumarHoras(item.horario, horasServicio)}
+            </small>
+          ) : null;
+        })()}
 
         {item.data &&
           (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
@@ -5262,6 +5608,16 @@ if (
 
 <h3 className="horario-card">
   ⏰ {pedido.horario}
+  {(() => {
+    const horasServicio = duracaoHorasDeServicio(
+      pedido.servico,
+      servicos,
+      profissionalLogado?.id
+    );
+    return horasServicio > 0
+      ? ` até ${sumarHoras(pedido.horario, horasServicio)}`
+      : "";
+  })()}
 </h3>
 
 
