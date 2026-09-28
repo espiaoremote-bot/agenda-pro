@@ -1,0 +1,8 @@
+{
+  "appId": "com.agendapro.app",
+  "appName": "Agenda Pro",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

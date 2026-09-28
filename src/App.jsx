@@ -1,7 +1,7 @@
 import Calendar from "react-calendar";
 import { FaWhatsapp } from "react-icons/fa";
 import "react-calendar/dist/Calendar.css";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Component } from "react";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
@@ -454,6 +454,68 @@ function formatarDataPlano(profissional) {
 }
 
 
+
+// ============================================================
+// PROTECTOR CONTRA "PANTALLA BLANCA"
+// Se um erro acontece durante o render (por exemplo em algum
+// navegador de celular, com dados com formatos raros), em lugar
+// de deixar a página totalmente branca, mostra uma tarjeta com
+// o erro e um botón de recargar. Também guarda o erro em
+// localStorage ("ultimo_errro_app") para poder diagnosticar.
+// ============================================================
+class ProtectorDeErrores extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { erro: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    const texto = String(
+      (error && error.message) || error || "Erro desconhecido"
+    );
+    try {
+      localStorage.setItem("ultimo_errro_app", texto);
+    } catch {
+      // localStorage pode não estar disponível; ignoramos
+    }
+    return { erro: texto };
+  }
+
+  render() {
+    if (this.state.erro) {
+      return (
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#ffffff",
+            padding: "28px",
+            fontFamily: "Arial, Helvetica, sans-serif",
+          }}
+        >
+          <h2>😵 Oops — ocorreu um erro inesperado</h2>
+          <p style={{ color: "#c0392b" }}>{this.state.erro}</p>
+          <div style={{ marginTop: "16px" }}>
+            <button
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                borderRadius: "10px",
+                cursor: "pointer",
+                background: "#2563eb",
+                color: "#fff",
+                fontSize: "14px",
+              }}
+              onClick={() => window.location.reload()}
+            >
+              🔄 Recargar página
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   const [tela, setTela] = useState("inicio");
@@ -2662,6 +2724,7 @@ async function enviarPedidoAgendarCliente() {
 }
 
 return (
+  <ProtectorDeErrores>
   <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
     <div className="app-content">
 
@@ -3118,6 +3181,31 @@ Enviar pedido
 >
   Voltar
 </button>
+<div className="baixar-app-cliente">
+  <h3>📲 Faça download do app</h3>
+  <p>
+    Tenha a Agenda no seu celular e agende com mais
+    facilidade nas próximas vezes.
+  </p>
+  <a
+    className="btn-baixar-app"
+    href={(() => {
+      // Dentro do app instalado (Android), o endereço local é "localhost",
+      // então usamos o endereço real do site. No navegador, usamos o
+      // endereço do próprio site (funciona em qualquer domínio).
+      return window.Capacitor
+        ? "https://agenda-pro-gilt.vercel.app/agenda-pro.apk"
+        : "/agenda-pro.apk";
+    })()}
+    download="Agenda-Pro.apk"
+  >
+    ⬇️ Download do app
+  </a>
+  <small className="baixar-app-aviso">
+    É grátis e rápido! Após baixar, toque no arquivo para
+    instalar (o Android pede permissão — é só permitir).
+  </small>
+</div>
 
 </div>
 )}
@@ -4645,9 +4733,13 @@ Adicionar serviço
     <button
       onClick={() => {
         setServicoEditandoId(item.id);
-        setEditaNome(item.nome);
-        setEditaValor(item.valor || "");
-        setEditaDuracao(item.duracao || "");
+        setEditaNome(String(item.nome || ""));
+        setEditaValor(
+          item.valor === null || item.valor === undefined
+            ? ""
+            : String(item.valor)
+        );
+        setEditaDuracao(String(item.duracao || ""));
       }}
     >
       ✏️ Editar
@@ -6028,6 +6120,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
     </footer>
 
   </div>
+  </ProtectorDeErrores>
 );
 }
 
