@@ -22,6 +22,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link: ao tocar no link de agendamento de um profissional
+                 (https://agenda-pro-gilt.vercel.app/?profissional=ID), o app
+                 abre direto a agenda daquele profissional. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="agenda-pro-gilt.vercel.app" />
+            </intent-filter>
+
         </activity>
 
         <provider

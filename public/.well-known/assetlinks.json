@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.agendapro.app",
+      "sha256_cert_fingerprints": [
+        "CA:18:6C:8D:4F:9C:97:58:B8:9D:21:53:A1:50:57:7C:EE:F8:8B:C3:ED:52:21:5D:32:82:1E:79:F9:9E:85:F5"
+      ]
+    }
+  }
+]

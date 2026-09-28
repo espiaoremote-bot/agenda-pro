@@ -3,6 +3,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import "react-calendar/dist/Calendar.css";
 import { useState, useEffect, useRef, Component } from "react";
 import { supabase } from "./supabaseClient";
+import { App as CapacitorApp } from "@capacitor/app";
 import "./App.css";
 
 // Temas disponíveis para profissionais e para os clientes verem no agendamento.
@@ -528,10 +529,6 @@ console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 const [profissionalLogado, setProfissionalLogado] = useState(null);
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
-// Profissionais disponíveis para o cliente escolher quando abre o app sem um
-// link com ?profissional=ID (ex.: dentro do app Android).
-const [profissionaisParaCliente, setProfissionaisParaCliente] = useState([]);
-const [carregandoProfissionaisCliente, setCarregandoProfissionaisCliente] = useState(false);
 const [carregandoPerfil, setCarregandoPerfil] = useState(() => {
   const parametros = new URLSearchParams(window.location.search);
   return Boolean(Number(parametros.get("profissional"))) && parametros.get("login") !== "1";
@@ -1464,6 +1461,63 @@ useEffect(() => {
 
 }, []);
 
+// Deep link no app Android: quando o cliente toca no link de agendamento de um
+// profissional (ex.: enviado por WhatsApp), o app abre direto a agenda daquele
+// profissional, sem precisar escolher quem é na tela.
+useEffect(() => {
+  let listener = null;
+
+  // Mesmo comportamento do link normal (?profissional=ID) aberto no navegador.
+  function abrirAgendaDoProfissional(url) {
+    try {
+      const dadosUrl = new URL(url);
+      const idLink = Number(dadosUrl.searchParams.get("profissional"));
+
+      // Só trata o link de agendamento do cliente (ignora login e outros links).
+      if (!idLink || dadosUrl.searchParams.get("login") === "1") return;
+
+      setCarregandoPerfil(true);
+      setProfissionalCliente(idLink);
+      setTela("cliente");
+    } catch (e) {
+      console.error("Erro ao abrir link do profissional:", e);
+    }
+  }
+
+  // App aberto pelo link (o app estava fechado).
+  let lancamento = null;
+  try {
+    lancamento = CapacitorApp.getLaunchUrl();
+  } catch (e) {
+    console.error("Falha ao ler o link de abertura do app:", e);
+  }
+
+  if (lancamento && typeof lancamento.then === "function") {
+    lancamento
+      .then((resultado) => {
+        if (resultado?.url) abrirAgendaDoProfissional(resultado.url);
+      })
+      .catch(() => {});
+  } else if (lancamento?.url) {
+    abrirAgendaDoProfissional(lancamento.url);
+  }
+
+  // App já estava aberto e o link foi tocado.
+  CapacitorApp.addListener("appUrlOpen", (evento) => {
+    if (evento?.url) abrirAgendaDoProfissional(evento.url);
+  })
+    .then((handle) => {
+      listener = handle;
+    })
+    .catch(() => {});
+
+  return () => {
+    if (listener && typeof listener.remove === "function") {
+      listener.remove();
+    }
+  };
+}, []);
+
 // Restaura a sessão do profissional ao atualizar a página (F5),
 // sem precisar logar novamente. Valida no banco se ainda está ativo.
 useEffect(() => {
@@ -1742,44 +1796,6 @@ useEffect(() => {
 
   carregarServicos();
 }, []);
-
-// Lista os profissionais ativos (com plano válido) para o cliente escolher
-// quando entra na tela de agendamento sem um link de profissional específico.
-useEffect(() => {
-  if (tela !== "cliente" || profissionalCliente) return;
-
-  let cancelado = false;
-
-  async function carregarProfissionaisParaCliente() {
-    const { data, error } = await supabase
-      .from("profissionais")
-      .select(
-        "id, nome, icone, tema, ativo, tipo, validade_plano, plano_ilimitado"
-      );
-
-    if (error) {
-      console.error(error);
-      setCarregandoProfissionaisCliente(false);
-      return;
-    }
-
-    if (cancelado) return;
-
-    const disponiveis = (data || []).filter(
-      (p) => p.ativo && p.tipo !== "super_admin" && !planoExpirado(p)
-    );
-
-    setProfissionaisParaCliente(disponiveis);
-    setCarregandoProfissionaisCliente(false);
-  }
-
-  setCarregandoProfissionaisCliente(true);
-  carregarProfissionaisParaCliente();
-
-  return () => {
-    cancelado = true;
-  };
-}, [tela, profissionalCliente]);
 
 useEffect(() => {
 
@@ -2918,73 +2934,6 @@ Entrar
 {tela === "cliente" && (
 <div className="cliente-card">
 
-{!profissionalCliente ? (
-  <div className="cliente-escolher-profissional">
-    <div className="cliente-topo">
-      <div className="cliente-icone">
-        👥
-      </div>
-      <h1>
-        Escolha o profissional
-      </h1>
-      <p>
-        Selecione o profissional para ver os serviços e agendar
-      </p>
-    </div>
-
-    {carregandoProfissionaisCliente && (
-      <p className="status-text">
-        Carregando profissionais…
-      </p>
-    )}
-
-    {!carregandoProfissionaisCliente &&
-      profissionaisParaCliente.length === 0 && (
-        <p className="status-text">
-          Nenhum profissional disponível no momento.
-        </p>
-      )}
-
-    <div className="lista-profissionais-cliente">
-      {profissionaisParaCliente.map((profissional) => (
-        <button
-          key={profissional.id}
-          type="button"
-          className="btn-profissional-cliente"
-          onClick={() => {
-            setMensagem("");
-            setTipoMensagem("");
-            setProfissionalCliente(profissional.id);
-          }}
-        >
-          <span className="profissional-cliente-icone">
-            {profissional.icone ||
-              (profissional.tema === "masculino" ? "💈" : "💅")}
-          </span>
-          <span className="profissional-cliente-nome">
-            {profissional.nome}
-          </span>
-          <span className="profissional-cliente-setinha">
-            ›
-          </span>
-        </button>
-      ))}
-    </div>
-
-    <button
-      type="button"
-      className="btn-voltar"
-      onClick={() => {
-        setProfissionaisParaCliente([]);
-        setTela("inicio");
-      }}
-    >
-      Voltar
-    </button>
-  </div>
-) : (
-  <>
-
 
 
 <div className="cliente-topo">
@@ -3315,9 +3264,6 @@ Enviar pedido
     instalar (o Android pede permissão — é só permitir).
   </small>
 </div>
-
-  </>
-)}
 
 </div>
 )}
