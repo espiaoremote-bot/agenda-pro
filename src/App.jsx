@@ -1461,21 +1461,64 @@ useEffect(() => {
 
 }, []);
 
-// Deep link no app Android: quando o cliente toca no link de agendamento de um
-// profissional (ex.: enviado por WhatsApp), o app abre direto a agenda daquele
-// profissional, sem precisar escolher quem é na tela.
+// Deep link no app Android: quando o link de um profissional é tocado, o app
+// abre direto na tela certa — agenda do cliente (?profissional=ID) ou área
+// profissional com o nome preenchido (?profissional=ID&login=1).
 useEffect(() => {
   let listener = null;
 
-  // Mesmo comportamento do link normal (?profissional=ID) aberto no navegador.
+  // Mesmo comportamento do link normal aberto no navegador.
   function abrirAgendaDoProfissional(url) {
     try {
       const dadosUrl = new URL(url);
       const idLink = Number(dadosUrl.searchParams.get("profissional"));
+      if (!idLink) return;
 
-      // Só trata o link de agendamento do cliente (ignora login e outros links).
-      if (!idLink || dadosUrl.searchParams.get("login") === "1") return;
+      // Link do profissional (?profissional=ID&login=1): abre a área
+      // profissional com o nome já preenchido, faltando só a senha.
+      if (dadosUrl.searchParams.get("login") === "1") {
+        setCarregandoPerfil(false);
 
+        // Se já existe uma sessão salva deste mesmo profissional, entra direto.
+        let sessao = null;
+        try {
+          const salvo = JSON.parse(
+            localStorage.getItem("profissionalLogado") || ""
+          );
+          if (salvo?.id === idLink) sessao = salvo;
+        } catch (e) {
+          console.error("Falha ao ler a sessão salva:", e);
+        }
+
+        if (sessao) {
+          setProfissionalLogado(sessao);
+          setTemaSelecionado(sessao.tema || "feminino");
+          setIconeSelecionado(
+            sessao.icone || (sessao.tema === "masculino" ? "💈" : "💅")
+          );
+          setTela(sessao.tipo === "super_admin" ? "admin" : "profissional");
+          return;
+        }
+
+        setTela("login");
+
+        // Já preenche o nome do profissional do link para facilitar o login.
+        supabase
+          .from("profissionais")
+          .select("nome")
+          .eq("id", idLink)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.nome) {
+              setLoginNome(data.nome);
+            }
+          })
+          .catch(() => {});
+
+        return;
+      }
+
+      // Link de agendamento do cliente: abre direto a agenda do profissional.
       setCarregandoPerfil(true);
       setProfissionalCliente(idLink);
       setTela("cliente");
@@ -3239,6 +3282,9 @@ Enviar pedido
 >
   Voltar
 </button>
+{/* Download do app só aparece no navegador. Dentro do app Android a pessoa
+    já tem o app instalado — não faz sentido oferecer o download de novo. */}
+{!window.Capacitor && (
 <div className="baixar-app-cliente">
   <h3>📲 Faça download do app</h3>
   <p>
@@ -3247,14 +3293,7 @@ Enviar pedido
   </p>
   <a
     className="btn-baixar-app"
-    href={(() => {
-      // Dentro do app instalado (Android), o endereço local é "localhost",
-      // então usamos o endereço real do site. No navegador, usamos o
-      // endereço do próprio site (funciona em qualquer domínio).
-      return window.Capacitor
-        ? "https://agenda-pro-gilt.vercel.app/agenda-pro.apk"
-        : "/agenda-pro.apk";
-    })()}
+    href="/agenda-pro.apk"
     download="Agenda-Pro.apk"
   >
     ⬇️ Download do app
@@ -3264,6 +3303,7 @@ Enviar pedido
     instalar (o Android pede permissão — é só permitir).
   </small>
 </div>
+)}
 
 </div>
 )}
