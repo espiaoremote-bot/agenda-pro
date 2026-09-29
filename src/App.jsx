@@ -1519,6 +1519,14 @@ useEffect(() => {
       }
 
       // Link de agendamento do cliente: abre direto a agenda do profissional.
+      // Lembra o profissional neste aparelho para que, a partir da segunda
+      // vez, abrir o app já caia direto na agenda dele (sem tocar no link).
+      try {
+        localStorage.setItem("profissionalClienteUltimo", String(idLink));
+      } catch (e) {
+        console.error("Falha ao salvar o profissional neste aparelho:", e);
+      }
+
       setCarregandoPerfil(true);
       setProfissionalCliente(idLink);
       setTela("cliente");
@@ -1559,6 +1567,42 @@ useEffect(() => {
       listener.remove();
     }
   };
+}, []);
+
+// Depois que o cliente toca no link do profissional uma vez, o app lembra
+// quem é. Assim, a partir da segunda vez ele abre o app direto e já cai na
+// agenda do profissional, sem precisar tocar no link de novo.
+useEffect(() => {
+  // Se veio com link na URL, quem cuida é o fluxo normal do link.
+  const idLink = Number(
+    new URLSearchParams(window.location.search).get("profissional")
+  );
+  if (idLink) return;
+
+  async function restaurarProfissionalCliente() {
+    // Se o aparelho tem um profissional logado, não atrapalha a área dele.
+    let sessaoProfissional = null;
+    try {
+      sessaoProfissional = JSON.parse(
+        localStorage.getItem("profissionalLogado") || ""
+      );
+    } catch (e) {
+      console.error("Falha ao ler a sessão do profissional:", e);
+    }
+
+    if (sessaoProfissional?.id) return;
+
+    const profissionalSalvo = Number(
+      localStorage.getItem("profissionalClienteUltimo")
+    );
+    if (profissionalSalvo) {
+      setCarregandoPerfil(true);
+      setProfissionalCliente(profissionalSalvo);
+      setTela("cliente");
+    }
+  }
+
+  restaurarProfissionalCliente();
 }, []);
 
 // Restaura a sessão do profissional ao atualizar a página (F5),
