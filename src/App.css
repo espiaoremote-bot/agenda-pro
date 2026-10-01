@@ -365,12 +365,6 @@ body,
   box-sizing: border-box;
 }
 
-.baixar-app-botones {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .baixar-app-cliente .baixar-app-aviso {
   display: block;
   color: #777;
