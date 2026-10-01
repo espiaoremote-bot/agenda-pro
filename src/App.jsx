@@ -3390,16 +3390,29 @@ Enviar pedido
     Tenha a Agenda no seu celular e agende com mais
     facilidade nas próximas vezes.
   </p>
-  <a
-    className="btn-baixar-app"
-    href="/agenda-pro.apk"
-    download="Agenda-Pro.apk"
-  >
-    ⬇️ Download do app
-  </a>
+  <div className="baixar-app-botones">
+    <a
+      className="btn-baixar-app"
+      href="/agenda-pro.apk"
+      download="Agenda-Pro.apk"
+      title="Baixar a versão para Android"
+    >
+      📱 Baixar para Android
+    </a>
+    <a
+      className="btn-baixar-app"
+      href="/agenda-pro.ipa"
+      download="Agenda-Pro.ipa"
+      title="Baixar a versão para iOS"
+    >
+      📱 Baixar para iOS
+    </a>
+  </div>
   <small className="baixar-app-aviso">
-    É grátis e rápido! Após baixar, toque no arquivo para
-    instalar (o Android pede permissão — é só permitir).
+    Android: toque no arquivo baixado para instalar (o Android pede
+    permissão, é só permitir).
+    iOS: a instalação é igual que no Android, toque no arquivo .ipa
+    baixado. Se o celular bloqueja, abra antes a versão web no navegador.
   </small>
 </div>
 )}
