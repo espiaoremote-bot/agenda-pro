@@ -582,6 +582,15 @@ const [pixCopiada, setPixCopiada] = useState(false);
 // Mensagem de feedback do salvamento do Pix (aparece ao lado do botão).
 const [pixMensagem, setPixMensagem] = useState("");
 const [pixMensagemTipo, setPixMensagemTipo] = useState("");
+// Endereço do local cadastrado pelo profissional (rua + número + CEP).
+const [enderecoRua, setEnderecoRua] = useState("");
+const [enderecoNumero, setEnderecoNumero] = useState("");
+const [enderecoCep, setEnderecoCep] = useState("");
+// O profissional decide se o endereço aparece (ou não) na página do cliente.
+const [mostrarEndereco, setMostrarEndereco] = useState(false);
+// Mensagem de feedback do salvamento do endereço.
+const [enderecoMensagem, setEnderecoMensagem] = useState("");
+const [enderecoMensagemTipo, setEnderecoMensagemTipo] = useState("");
 // Mensagens inline dos botões "Salvar cor" e "Salvar ícone".
 const [corMensagem, setCorMensagem] = useState("");
 const [corMensagemTipo, setCorMensagemTipo] = useState("");
@@ -741,6 +750,24 @@ useEffect(() => {
       setPixChave(data?.chave_pix || "");
       setPixBanco(data?.banco_pix || "");
       setPixNome(data?.nome_pix || "");
+    });
+
+  // Endereço: carregado por separado para que, se as colunas ainda não
+  // existem na base (migração pendente), o PIX continua funcionando normal.
+  supabase
+    .from("profissionais")
+    .select("endereco_rua, endereco_numero, endereco_cep, mostrar_endereco")
+    .eq("id", profissionalLogado.id)
+    .single()
+    .then(({ data, error }) => {
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setEnderecoRua(data?.endereco_rua || "");
+      setEnderecoNumero(data?.endereco_numero || "");
+      setEnderecoCep(data?.endereco_cep || "");
+      setMostrarEndereco(data?.mostrar_endereco === true);
     });
 }, [mostrarConfiguracoes, profissionalLogado?.id]);
 
@@ -3287,6 +3314,34 @@ Enviar pedido
   </button>
 </div>
 )}
+  {dadosProfissionalCliente?.mostrar_endereco && (
+    dadosProfissionalCliente?.endereco_rua ||
+    dadosProfissionalCliente?.endereco_numero ||
+    dadosProfissionalCliente?.endereco_cep
+  ) && (
+<div className="endereco-cliente">
+  <h3>📍 Endereço</h3>
+
+  {dadosProfissionalCliente.endereco_rua && (
+    <p>
+      <strong>Rua:</strong> {dadosProfissionalCliente.endereco_rua}
+      {dadosProfissionalCliente.endereco_numero ? ` Nº ${dadosProfissionalCliente.endereco_numero}` : ""}
+    </p>
+  )}
+
+  {!dadosProfissionalCliente.endereco_rua && dadosProfissionalCliente.endereco_numero && (
+    <p>
+      <strong>Nº:</strong> {dadosProfissionalCliente.endereco_numero}
+    </p>
+  )}
+
+  {dadosProfissionalCliente.endereco_cep && (
+    <p>
+      <strong>CEP:</strong> {dadosProfissionalCliente.endereco_cep}
+    </p>
+  )}
+</div>
+)}
   {pedido && (
 <div>
     <h3>
@@ -4674,6 +4729,106 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
         }}
       >
         {pixMensagem}
+      </p>
+    )}
+  </div>
+</div>
+
+<div className="tema-configuracao endereco-configuracao">
+  <label>📍 Endereço do local</label>
+  <div className="pix-campos">
+    <input
+      type="text"
+      placeholder="Nome da rua"
+      value={enderecoRua}
+      maxLength="60"
+      onChange={(e) => {
+        setEnderecoRua(e.target.value);
+        setEnderecoMensagem("");
+      }}
+    />
+    <input
+      type="text"
+      placeholder="Número"
+      value={enderecoNumero}
+      maxLength="10"
+      onChange={(e) => {
+        setEnderecoNumero(e.target.value);
+        setEnderecoMensagem("");
+      }}
+    />
+    <input
+      type="text"
+      placeholder="CEP"
+      value={enderecoCep}
+      maxLength="10"
+      onChange={(e) => {
+        setEnderecoCep(e.target.value);
+        setEnderecoMensagem("");
+      }}
+    />
+  </div>
+  <label className="endereco-mostrar-label">
+    <input
+      type="checkbox"
+      checked={mostrarEndereco}
+      onChange={(e) => {
+        setMostrarEndereco(e.target.checked);
+        setEnderecoMensagem("");
+      }}
+    />
+    Mostrar endereço na página de agendamento do cliente
+  </label>
+  <div>
+    <button
+      onClick={async () => {
+        if (!profissionalLogado?.id) return;
+
+        const ruaLimpa = enderecoRua.trim();
+        const numeroLimpo = enderecoNumero.trim();
+        const cepLimpo = enderecoCep.trim();
+
+        const { error } = await supabase
+          .from("profissionais")
+          .update({
+            endereco_rua: ruaLimpa,
+            endereco_numero: numeroLimpo,
+            endereco_cep: cepLimpo,
+            mostrar_endereco: mostrarEndereco,
+          })
+          .eq("id", profissionalLogado.id);
+
+        if (error) {
+          console.error(error);
+          setEnderecoMensagem("❌ Erro ao salvar o endereço: " + error.message);
+          setEnderecoMensagemTipo("erro");
+          return;
+        }
+
+        setProfissionalLogado({
+          ...profissionalLogado,
+          endereco_rua: ruaLimpa,
+          endereco_numero: numeroLimpo,
+          endereco_cep: cepLimpo,
+          mostrar_endereco: mostrarEndereco,
+        });
+
+        setEnderecoMensagem("✅ Endereço salvo com sucesso!");
+        setEnderecoMensagemTipo("sucesso");
+      }}
+    >
+      Salvar endereço
+    </button>
+
+    {enderecoMensagem && (
+      <p
+        style={{
+          color: enderecoMensagemTipo === "erro" ? "red" : "green",
+          margin: "10px 0 0",
+          fontWeight: "bold",
+        }}
+      >
+        {enderecoMensagem}
       </p>
     )}
   </div>
