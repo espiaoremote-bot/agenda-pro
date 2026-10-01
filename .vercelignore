@@ -1,0 +1,9 @@
+# Não sube a Vercel o que não se usa no site
+node_modules
+ios
+android
+.git
+.vercel
+dist
+dist-ssr
+*.log
