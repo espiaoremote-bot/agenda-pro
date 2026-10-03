@@ -2895,6 +2895,32 @@ async function enviarPedidoAgendarCliente() {
   setItensAgendarCliente([novoItemAgendarCliente()]);
 }
 
+// O download do app agora aparece SEMPRE (no navegador e dentro do app no celular).
+// Usamos a URL absoluta do APK publicado no Vercel para o link
+// funcionar também quando o site roda dentro do app (Capacitor).
+const urlDownloadApk =
+  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk";
+
+const blocoDownloadApp = (
+  <div className="baixar-app-cliente">
+    <h3>📲 Faça download do app</h3>
+    <p>
+      Tenha a Agenda no seu celular e agende com mais
+      facilidade nas próximas vezes.
+    </p>
+    <a
+      className="btn-baixar-app"
+      href={urlDownloadApk}
+      download="Agenda-Pro.apk"
+    >
+      📱 Baixar para Android
+    </a>
+    <small className="baixar-app-aviso">
+      É grátis e rápido! Após baixar, toque no arquivo para
+      instalar (o Android pede permissão — é só permitir).
+    </small>
+  </div>
+);
 return (
   <ProtectorDeErrores>
   <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
@@ -2930,6 +2956,8 @@ return (
         </button>
 
       </div>
+
+      {blocoDownloadApp}
     </div>
   </div>
 )}
@@ -3381,28 +3409,7 @@ Enviar pedido
 >
   Voltar
 </button>
-{/* Download do app só aparece no navegador. Dentro do app Android a pessoa
-    já tem o app instalado — não faz sentido oferecer o download de novo. */}
-{!window.Capacitor && (
-<div className="baixar-app-cliente">
-  <h3>📲 Faça download do app</h3>
-  <p>
-    Tenha a Agenda no seu celular e agende com mais
-    facilidade nas próximas vezes.
-  </p>
-  <a
-    className="btn-baixar-app"
-    href="/agenda-pro.apk"
-    download="Agenda-Pro.apk"
-  >
-    📱 Baixar para Android
-  </a>
-  <small className="baixar-app-aviso">
-    É grátis e rápido! Após baixar, toque no arquivo para
-    instalar (o Android pede permissão — é só permitir).
-  </small>
-</div>
-)}
+{blocoDownloadApp}
 
 </div>
 )}
