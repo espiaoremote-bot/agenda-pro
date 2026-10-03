@@ -3407,7 +3407,9 @@ Enviar pedido
 >
   Voltar
 </button>
-{blocoDownloadApp}
+{/* O link de download só aparece fora do app (navegador). Dentro do app instalado
+    não faz sentido oferecer o download dele mesmo. */}
+{!window.Capacitor && blocoDownloadApp}
 
 </div>
 )}
