@@ -4,6 +4,7 @@ import "react-calendar/dist/Calendar.css";
 import { useState, useEffect, useRef, Component } from "react";
 import { supabase } from "./supabaseClient";
 import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import "./App.css";
 
 // Temas disponíveis para profissionais e para os clientes verem no agendamento.
@@ -3408,8 +3409,10 @@ Enviar pedido
   Voltar
 </button>
 {/* O link de download só aparece fora do app (navegador). Dentro do app instalado
-    não faz sentido oferecer o download dele mesmo. */}
-{!window.Capacitor && blocoDownloadApp}
+    não faz sentido oferecer o download dele mesmo. Usamos isNativePlatform()
+    porque window.Capacitor existe também no navegador (o core do Capacitor
+    define essa variável global), o que faria o link sumir de todo lugar. */}
+{!Capacitor.isNativePlatform() && blocoDownloadApp}
 
 </div>
 )}
