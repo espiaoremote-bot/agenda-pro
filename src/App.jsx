@@ -2956,8 +2956,6 @@ return (
         </button>
 
       </div>
-
-      {blocoDownloadApp}
     </div>
   </div>
 )}
