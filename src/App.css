@@ -1721,6 +1721,16 @@ button.btn.cadastrar {
   cursor: pointer;
 }
 
+.promo-criar-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  font-weight: bold;
+  color: var(--texto);
+  cursor: pointer;
+}
+
 .promo-meses-titulo {
   margin: 10px 0 6px;
   font-weight: bold;

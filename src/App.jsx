@@ -691,6 +691,8 @@ const [horariosPorLinhaAgendarCliente, setHorariosPorLinhaAgendarCliente] =
 const [promocoes, setPromocoes] = useState([]);
 const [mensagemPromo, setMensagemPromo] = useState("");
 const [mensagemPromoTipo, setMensagemPromoTipo] = useState("");
+// Checkbox "Sim/Não" na barrinha de criar serviço: JÁ coloca em promoção.
+const [promoAoCriarServico, setPromoAoCriarServico] = useState(false);
 // Edição de uma promoção (campos do formulário).
 const [promoEditandoId, setPromoEditandoId] = useState(null);
 const [promoEditValor, setPromoEditValor] = useState("");
@@ -5418,6 +5420,15 @@ setNovaDuracao(e.target.value)
 }
 />
 
+<label className="promo-criar-check">
+  <input
+    type="checkbox"
+    checked={promoAoCriarServico}
+    onChange={(e) => setPromoAoCriarServico(e.target.checked)}
+  />
+  💲 Já colocar este serviço em promoção? <strong>(Sim/Não)</strong>
+</label>
+
 <button
 onClick={async () => {
 if (!novoServico.trim()) {
@@ -5425,6 +5436,7 @@ if (!novoServico.trim()) {
   return;
 }
 
+const criarPromo = promoAoCriarServico;
 
 const { error } = await supabase
 .from("servicos")
@@ -5462,8 +5474,42 @@ setMeusServicos(
 setNovoServico("");
 setNovoValor("");
 setNovaDuracao("");
+setPromoAoCriarServico(false);
 
-alert("Serviço criado!");
+if (criarPromo) {
+  // Já cria a promoção do mesmo serviço (fica no seletor de promoções).
+  const { data: novaPromo, error: erroPromo } = await supabase
+    .from("promocoes")
+    .insert([
+      {
+        profissional_id: profissionalLogado.id,
+        servico: novoServico,
+        valor: novoValor || 0,
+        duracao: novaDuracao || "",
+        meses: [],
+        semanas: {},
+        ativo: true,
+      },
+    ])
+    .select()
+    .single();
+
+  if (erroPromo) {
+    console.error(erroPromo);
+    alert(
+      "Serviço criado, mas não consegui colocar na promoção: " +
+        erroPromo.message
+    );
+    return;
+  }
+
+  setPromocoes((prev) => [novaPromo, ...prev]);
+  alert(
+    "Serviço criado e JÁ está no seletor de promoções! 🎉 Configure os meses na seção Promoções abaixo."
+  );
+} else {
+  alert("Serviço criado!");
+}
 
 }}
 >
