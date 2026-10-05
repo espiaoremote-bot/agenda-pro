@@ -168,8 +168,72 @@ function precisaAprovacaoProfissional(dataISO, exigirAprovacao) {
 }
 
 // Cria uma linha vazia de serviço + dia + horário (tela do CLIENTE).
+// `em_promocao` marca as linhas escolhidas dentro do seletor de promoções.
 function novoItemCliente() {
-  return { servico: "", data: "", horario: "", valor: 0 };
+  return {
+    servico: "",
+    data: "",
+    horario: "",
+    valor: 0,
+    em_promocao: false,
+    promo_id: null,
+  };
+}
+
+// ---------- Regra de PROMOÇÕES ----------
+// Nomes dos meses (índice 0 = janeiro), usados no painel do profissional.
+const NOMES_MESES = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+// Diz se uma promoção está ativa para a data (mês + semana). Sem data, usa hoje.
+function promocaoAtivaEm(promo, dataReferencia) {
+  if (!promo || promo.ativo === false) return false;
+  const data = dataReferencia ? new Date(dataReferencia) : new Date();
+  const mes = data.getMonth() + 1;
+  if (!Array.isArray(promo.meses) || !promo.meses.map(Number).includes(mes)) {
+    return false;
+  }
+  const finalSemana = promo.semanas || {};
+  const confSemanas = finalSemana[String(mes)];
+  if (Array.isArray(confSemanas)) {
+    const indiceSemana = Math.floor((data.getDate() - 1) / 7); // 0..4 (1ª..5ª semana)
+    if (confSemanas[indiceSemana] === false) return false;
+  }
+  return true;
+}
+
+// Nomes dos meses de uma promoção (para exibir no card da promoção).
+function mesesDaPromocao(promo) {
+  return (promo?.meses || [])
+    .map(Number)
+    .map((m) => NOMES_MESES[m - 1])
+    .filter(Boolean);
+}
+
+// Duração de uma linha de agendamento — respeita a duração da PROMOÇÃO
+// quando a linha é um serviço em promoção (senão usa a duração do serviço).
+function duracaoHorasDeItem(item, catalogoServicos, profissionalId, promosAtivas) {
+  if (!item) return 0;
+  if (item.em_promocao && item.promo_id && Array.isArray(promosAtivas)) {
+    const promo = promosAtivas.find((p) => Number(p.id) === Number(item.promo_id));
+    if (promo && promo.duracao) {
+      const horasPromo = parsearDuracaoHoras(promo.duracao);
+      if (horasPromo > 0) return horasPromo;
+    }
+  }
+  return duracaoHorasDeServicio(item.servico, catalogoServicos, profissionalId);
 }
 
 // Linha vazia usada no formulário do PROFISSIONAL ("Agendar por um cliente"),
@@ -622,6 +686,18 @@ const [itensAgendarCliente, setItensAgendarCliente] = useState(() => [
 ]);
 const [horariosPorLinhaAgendarCliente, setHorariosPorLinhaAgendarCliente] =
   useState({});
+
+// Promoções do mês (serviços marcados com 💲 pelo profissional).
+const [promocoes, setPromocoes] = useState([]);
+const [mensagemPromo, setMensagemPromo] = useState("");
+const [mensagemPromoTipo, setMensagemPromoTipo] = useState("");
+// Edição de uma promoção (campos do formulário).
+const [promoEditandoId, setPromoEditandoId] = useState(null);
+const [promoEditValor, setPromoEditValor] = useState("");
+const [promoEditDuracao, setPromoEditDuracao] = useState("");
+const [promoEditMeses, setPromoEditMeses] = useState({});
+const [promoEditSemanas, setPromoEditSemanas] = useState({});
+const [promoEditAtivo, setPromoEditAtivo] = useState(true);
 
 // Reagendamento (remarcar dia/horário) dentro da agenda do profissional.
 const [reagendandoPedido, setReagendandoPedido] = useState(null);
@@ -1143,10 +1219,11 @@ useEffect(() => {
 
       // A linha atual também tem que "caber" com a própria duração:
       // um serviço de 2h às 13:00 só fica livre se 13:00 E 14:00 estiverem livres.
-      const horasServicioLinha = duracaoHorasDeServicio(
-        item.servico,
+      const horasServicioLinha = duracaoHorasDeItem(
+        item,
         servicos,
-        profissionalCliente
+        profissionalCliente,
+        promocoes
       );
 
       const horariosDisponiveisFiltrados = horarios
@@ -1185,7 +1262,7 @@ useEffect(() => {
   }
 
   carregarHorariosCliente();
-}, [profissionalCliente, itensCliente, pedidos, servicos]);
+}, [profissionalCliente, itensCliente, pedidos, servicos, promocoes]);
 
 // Horários livres para AGENDAR POR um cliente (formulário dentro da área profissional).
 useEffect(() => {
@@ -1941,6 +2018,46 @@ useEffect(() => {
 
 }, [profissionalLogado]);
 
+// Carrega todas as promoções do banco (usadas pelo profissional e pelo cliente).
+useEffect(() => {
+  async function carregarPromocoes() {
+    const { data, error } = await supabase
+      .from("promocoes")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setPromocoes(data || []);
+  }
+
+  carregarPromocoes();
+}, []);
+
+// Promoções do profissional logado (calculadas direto no render, sem estado).
+const minhasPromocoes = profissionalLogado?.id
+  ? promocoes.filter(
+      (p) => Number(p.profissional_id) === Number(profissionalLogado.id)
+    )
+  : [];
+
+// Promoções que o CLIENTE vê neste momento (seletor ativo pelo profissional
+// + promoção ativa no mês/semana atuais).
+const promocoesParaCliente = promocoes.filter(
+  (p) =>
+    Number(p.profissional_id) === Number(profissionalCliente) &&
+    dadosProfissionalCliente?.seletor_promocoes_habilitado !== false &&
+    promocaoAtivaEm(p)
+);
+
+// Linhas do cliente que são serviços em promoção (para renderizar no bloco).
+// Quando não existe nenhuma, o "seletor abaixo do seletor normal" é mostrado
+// como um `<select>` placeholder (a primeira escolha já adiciona a linha).
+const linhasPromoCliente = itensCliente.filter((item) => item.em_promocao);
+
 console.log("PEDIDOS DETALHADOS:", pedidos);
 async function carregarHorariosTrabalho(){
 
@@ -2435,6 +2552,17 @@ function atualizarLinhaCliente(indice, campo, valor) {
             s.ativo
         );
         atualizado.valor = servicoEncontrado?.valor || 0;
+        atualizado.promo_id = null;
+        if (item.em_promocao) {
+          // Linha do seletor de promoções: usa o valor (e a duração) da promoção.
+          const promo = promocoesParaCliente.find((p) => p.servico === valor);
+          if (promo) {
+            atualizado.valor = promo.valor || 0;
+            atualizado.promo_id = promo.id;
+          } else {
+            atualizado.promo_id = null;
+          }
+        }
       }
       return atualizado;
     })
@@ -2451,6 +2579,235 @@ function removerLinhaCliente(indice) {
   );
 }
 
+// Linhas do seletor de SERVIÇOS EM PROMOÇÃO (a linha inicial de promoção
+// só aparece quando o profissional tem promoções ativas).
+function adicionarLinhaPromoCliente() {
+  setItensCliente((prev) => [
+    ...prev,
+    { ...novoItemCliente(), em_promocao: true },
+  ]);
+}
+
+// Usada pelo seletor placeholder: escolheu o serviço? Já cria a linha
+// completa da promoção (com valor e promo_id corretos).
+function adicionarLinhaPromoClienteComServico(valor) {
+  setItensCliente((prev) => {
+    const promo = promocoesParaCliente.find((p) => p.servico === valor);
+    return [
+      ...prev,
+      {
+        ...novoItemCliente(),
+        em_promocao: true,
+        servico: valor,
+        valor: promo?.valor || 0,
+        promo_id: promo?.id || null,
+      },
+    ];
+  });
+}
+
+function removerLinhaPromoCliente(indice) {
+  setItensCliente((prev) => prev.filter((_, i) => i !== indice));
+}
+
+// ---------------- Promoções (painel do PROFISSIONAL) ----------------
+// Ativa/desativa o seletor de promoções inteiro (some da tela do cliente).
+async function alternarSeletorPromocoes() {
+  if (!profissionalLogado?.id) return;
+  const atual = profissionalLogado.seletor_promocoes_habilitado !== false;
+  const novo = !atual;
+
+  const { error } = await supabase
+    .from("profissionais")
+    .update({ seletor_promocoes_habilitado: novo })
+    .eq("id", profissionalLogado.id);
+
+  if (error) {
+    console.error(error);
+    alert(
+      "Não consegui salvar. Rode no SQL do Supabase: " +
+        "ALTER TABLE profissionais ADD COLUMN seletor_promocoes_habilitado boolean NOT NULL DEFAULT true;"
+    );
+    return;
+  }
+
+  setProfissionalLogado((prev) => ({
+    ...prev,
+    seletor_promocoes_habilitado: novo,
+  }));
+  setMensagemPromo(
+    novo
+      ? "🎉 Seletor de promoções ATIVADO — os clientes verão o seletor de serviços em promoção."
+      : "🚫 Seletor de promoções DESATIVADO — os clientes não verão as promoções."
+  );
+  setMensagemPromoTipo("sucesso");
+}
+
+// Botão 💲 no card do serviço: coloca/remove o serviço no seletor de promoções.
+async function alternarPromocaoDoServico(servico) {
+  if (!profissionalLogado) return;
+  const existente = minhasPromocoes.find((p) => p.servico === servico.nome);
+
+  if (existente) {
+    if (!window.confirm(`Remover "${servico.nome}" das promoções?`)) return;
+    const { error } = await supabase
+      .from("promocoes")
+      .delete()
+      .eq("id", existente.id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao remover: " + error.message);
+      return;
+    }
+
+    setPromocoes((prev) => prev.filter((p) => Number(p.id) !== Number(existente.id)));
+    setMensagemPromo(`"${servico.nome}" saiu das promoções.`);
+    setMensagemPromoTipo("sucesso");
+    return;
+  }
+
+  const { data: criada, error } = await supabase
+    .from("promocoes")
+    .insert([
+      {
+        profissional_id: profissionalLogado.id,
+        servico: servico.nome,
+        valor: servico.valor || 0,
+        duracao: servico.duracao || "",
+        meses: [],
+        semanas: {},
+        ativo: true,
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao adicionar: " + error.message);
+    return;
+  }
+
+  setPromocoes((prev) => [criada, ...prev]);
+  setMensagemPromo(
+    `💲 "${servico.nome}" entrou no seletor de promoções. Configure os meses, valor e duração abaixo.`
+  );
+  setMensagemPromoTipo("sucesso");
+}
+
+function iniciarEdicaoPromocao(promo) {
+  setPromoEditandoId(promo.id);
+  setPromoEditValor(
+    promo.valor === null || promo.valor === undefined
+      ? ""
+      : String(promo.valor)
+  );
+  setPromoEditDuracao(String(promo.duracao || ""));
+  const mesesObj = {};
+  (promo.meses || []).forEach((m) => (mesesObj[Number(m)] = true));
+  setPromoEditMeses(mesesObj);
+  setPromoEditSemanas({ ...(promo.semanas || {}) });
+  setPromoEditAtivo(promo.ativo !== false);
+  setMensagemPromo("");
+}
+
+function cancelarEdicaoPromocao() {
+  setPromoEditandoId(null);
+  setMensagemPromo("");
+}
+
+function alternarMesPromo(mes) {
+  const marcado = !promoEditMeses[mes];
+  setPromoEditMeses((prev) => ({ ...prev, [mes]: marcado }));
+  if (!marcado) {
+    setPromoEditSemanas((prev) => {
+      const novo = { ...prev };
+      delete novo[String(mes)];
+      return novo;
+    });
+  }
+}
+
+function alternarSemanaPromo(mes, semana) {
+  setPromoEditSemanas((prev) => {
+    const atual = Array.isArray(prev[String(mes)])
+      ? prev[String(mes)]
+      : [true, true, true, true, true];
+    const novo = [...atual];
+    novo[semana - 1] = !(novo[semana - 1] !== false);
+    return { ...prev, [String(mes)]: novo };
+  });
+}
+
+async function salvarPromocao() {
+  if (!profissionalLogado || promoEditandoId == null) return;
+  const promo = minhasPromocoes.find(
+    (p) => Number(p.id) === Number(promoEditandoId)
+  );
+  if (!promo) return;
+
+  const meses = Object.keys(promoEditMeses)
+    .filter((m) => promoEditMeses[m])
+    .map(Number);
+  const semanas = {};
+  Object.keys(promoEditSemanas).forEach((mes) => {
+    if (promoEditMeses[Number(mes)]) semanas[mes] = promoEditSemanas[mes];
+  });
+
+  const { error } = await supabase
+    .from("promocoes")
+    .update({
+      valor: promoEditValor || 0,
+      duracao: promoEditDuracao,
+      meses,
+      semanas,
+      ativo: promoEditAtivo,
+    })
+    .eq("id", promo.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao salvar: " + error.message);
+    return;
+  }
+
+  setPromocoes((prev) =>
+    prev.map((p) =>
+      Number(p.id) === Number(promo.id)
+        ? {
+            ...p,
+            valor: promoEditValor || 0,
+            duracao: promoEditDuracao,
+            meses,
+            semanas,
+            ativo: promoEditAtivo,
+          }
+        : p
+    )
+  );
+  setPromoEditandoId(null);
+  setMensagemPromo("💾 Promoção salva!");
+  setMensagemPromoTipo("sucesso");
+}
+
+async function excluirPromocao(promo) {
+  if (!window.confirm(`Excluir a promoção de "${promo.servico}"?`)) return;
+  const { error } = await supabase.from("promocoes").delete().eq("id", promo.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+
+  setPromocoes((prev) =>
+    prev.filter((p) => Number(p.id) !== Number(promo.id))
+  );
+  setMensagemPromo(`Promoção de "${promo.servico}" excluída.`);
+  setMensagemPromoTipo("sucesso");
+}
+
 // ---------------- Enviar pedido (tela do CLIENTE) ----------------
 async function enviarPedidoCliente() {
   setMensagem("");
@@ -2462,10 +2819,28 @@ async function enviarPedidoCliente() {
     return;
   }
 
+  // Linhas normais: todas precisam estar preenchidas (como antes).
+  const linhasNormaisCliente = itensCliente.filter((item) => !item.em_promocao);
+  // Linhas de promoção vazias são ignoradas. As que tiverem serviço escolhido
+  // precisam também de data e horário.
+  const linhasPromoPreenchidas = itensCliente.filter(
+    (item) => item.em_promocao && item.servico
+  );
+
   if (
-    itensCliente.some((item) => !item.servico || !item.data || !item.horario)
+    linhasNormaisCliente.some(
+      (item) => !item.servico || !item.data || !item.horario
+    )
   ) {
     setMensagem("Preencha todos os campos de cada serviço.");
+    setTipoMensagem("erro");
+    return;
+  }
+
+  if (
+    linhasPromoPreenchidas.some((item) => !item.data || !item.horario)
+  ) {
+    setMensagem("Preencha a data e o horário de cada serviço em promoção.");
     setTipoMensagem("erro");
     return;
   }
@@ -2489,6 +2864,9 @@ async function enviarPedidoCliente() {
   const folgasDatasDoProfissional = await buscarFolgasDatas(profissionalCliente);
 
   for (const item of itensCliente) {
+    // Linhas de promoção vazias são ignoradas nas validações de data.
+    if (!item.servico) continue;
+
     if (item.data < hoje) {
       setMensagem("Não é possível agendar uma data que já passou.");
       setTipoMensagem("erro");
@@ -2511,11 +2889,14 @@ async function enviarPedidoCliente() {
 
   // Regra de duración: cada linha ocupa de [horario, horario + duração do serviço).
   // Ex.: serviço de 2h às 13:00 ocupa 13:00 e 14:00 (até 15:00).
+  // Promoções usam a DURAÇÃO da promoção, quando informada.
   const spanDeLinhaCliente = (item) => {
+    if (!item.servico || !item.horario) return { inicio: -1, fin: -1 };
     const inicio = horarioAMinutos(item.horario);
+    if (inicio < 0) return { inicio: -1, fin: -1 };
     const duracion =
       Math.round(
-        duracaoHorasDeServicio(item.servico, servicos, profissionalCliente) * 60
+        duracaoHorasDeItem(item, servicos, profissionalCliente, promocoes) * 60
       ) || 60; // sem duração => ocupa pelo menos sua franja de 1h
     return { inicio, fin: inicio + duracion };
   };
@@ -2527,7 +2908,9 @@ async function enviarPedidoCliente() {
       const itemB = itensCliente[b];
       if (itemA.data !== itemB.data) continue;
       const spanA = spanDeLinhaCliente(itemA);
+      if (spanA.inicio < 0) continue;
       const spanB = spanDeLinhaCliente(itemB);
+      if (spanB.inicio < 0) continue;
       if (franjasSolapan(spanA.inicio, spanA.fin, spanB.inicio, spanB.fin)) {
         setMensagem(
           "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
@@ -2542,6 +2925,9 @@ async function enviarPedidoCliente() {
   const cacheAgendamentosDia = {};
 
   for (const item of itensCliente) {
+    // Linhas de promoção vazias (sem serviço escolhido) são ignoradas.
+    if (!item.servico || !item.horario) continue;
+
     const spanNuevo = spanDeLinhaCliente(item);
 
     // Busca uma única vez todos os agendamentos ativos do mesmo dia e depois
@@ -3150,7 +3536,8 @@ onChange={(e) => {
   }
 }}
 />
-{itensCliente.map((item, indice) => (
+{itensCliente.map((item, indice) =>
+  !item.em_promocao ? (
   <div key={indice} className="linha-servico">
     <label>
       Serviço {indice + 1}
@@ -3269,7 +3656,8 @@ onChange={(e) => {
       </button>
     )}
   </div>
-))}
+  ) : null
+)}
 
 <button
   type="button"
@@ -3278,6 +3666,147 @@ onChange={(e) => {
 >
   ➕ Adicionar outro serviço
 </button>
+
+{/* Seletor de SERVIÇOS EM PROMOÇÃO — aparece abaixo do seletor normal.
+    Só mostra promoções ativas no mês/semana atuais e quando o profissional
+    deixou o seletor de promoções ATIVADO. */}
+{promocoesParaCliente.length > 0 && (
+  <div className="promo-cliente">
+    <h3>🎉 Serviços em promoção</h3>
+    <p className="promo-cliente-dica">
+      Escolha um serviço com preço de promoção (vale para este mês).
+    </p>
+
+    {linhasPromoCliente.length === 0 ? (
+      <select
+        className="promo-placeholder-select"
+        value=""
+        onChange={(e) => {
+          if (e.target.value) {
+            adicionarLinhaPromoClienteComServico(e.target.value);
+          }
+        }}
+      >
+        <option value="">
+          Escolha o serviço em promoção
+        </option>
+
+        {promocoesParaCliente.map((promo) => (
+          <option
+            key={promo.id}
+            value={promo.servico}
+          >
+            {promo.servico}{promo.duracao ? ` - ⏰ ${promo.duracao}` : ""}{Number(promo.valor) > 0 ? ` - 💰 R$ ${promo.valor}` : ""}
+          </option>
+        ))}
+      </select>
+    ) : (
+    itensCliente.map((item, indice) =>
+      item.em_promocao ? (
+        <div key={indice} className="linha-servico promo-linha">
+          <label>Serviço em promoção</label>
+
+          <select
+            value={item.servico}
+            onChange={(e) => {
+              atualizarLinhaCliente(indice, "servico", e.target.value);
+            }}
+          >
+            <option value="">
+              Escolha o serviço em promoção
+            </option>
+
+            {promocoesParaCliente.map((promo) => (
+              <option
+                key={promo.id}
+                value={promo.servico}
+              >
+                {promo.servico}{promo.duracao ? ` - ⏰ ${promo.duracao}` : ""}{Number(promo.valor) > 0 ? ` - 💰 R$ ${promo.valor}` : ""}
+              </option>
+            ))}
+          </select>
+
+          <label>Data</label>
+
+          <input
+            type="date"
+            value={item.data}
+            min={new Date().toLocaleDateString("sv-SE")}
+            onChange={(e) => atualizarLinhaCliente(indice, "data", e.target.value)}
+          />
+
+          <label>Horário</label>
+          <select
+            value={item.horario}
+            onChange={(e) => atualizarLinhaCliente(indice, "horario", e.target.value)}
+          >
+            <option value="">
+              Escolha o horário
+            </option>
+
+            {(horariosPorLinhaCliente[indice] || []).map((hora) => (
+              <option
+                key={hora}
+                value={hora}
+              >
+                {hora}
+              </option>
+            ))}
+          </select>
+
+          {(() => {
+            const promoInfo = item.promo_id
+              ? promocoes.find((p) => Number(p.id) === Number(item.promo_id))
+              : null;
+            const horasServicio = promoInfo?.duracao
+              ? parsearDuracaoHoras(promoInfo.duracao)
+              : duracaoHorasDeServicio(
+                  item.servico,
+                  servicos,
+                  profissionalCliente
+                );
+            return item.servico && item.horario && horasServicio > 0 ? (
+              <small className="duracao-info">
+                ⏰ {promoInfo?.duracao || ""} — {item.horario} até{" "}
+                {sumarHoras(item.horario, horasServicio)}
+              </small>
+            ) : null;
+          })()}
+
+          {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
+            <small>
+              {diasFolgaCliente.includes(diaSemanaDaData(item.data)) ||
+              folgasDatasCliente.includes(item.data)
+                ? "🚫 Este dia é folga do profissional. Escolha outra data."
+                : "Nenhum horário livre para este dia. Escolha outra data."}
+            </small>
+          )}
+
+          {linhasPromoCliente.length > 1 && (
+            <button
+              type="button"
+              className="linha-remover"
+              onClick={() => removerLinhaPromoCliente(indice)}
+            >
+              ✖ Remover esta promoção
+            </button>
+          )}
+        </div>
+      ) : null
+    )
+    )}
+
+    {linhasPromoCliente.length > 0 && (
+      <button
+        type="button"
+        className="linha-adicionar"
+        onClick={adicionarLinhaPromoCliente}
+      >
+        ➕ Adicionar outro serviço em promoção
+      </button>
+    )}
+  </div>
+)}
 
 <button
 style={{
@@ -5038,6 +5567,20 @@ Adicionar serviço
 </p>
 
     <button
+      onClick={() => alternarPromocaoDoServico(item)}
+      style={{
+        marginTop: "8px",
+        background: minhasPromocoes.some((p) => p.servico === item.nome)
+          ? "#d97706"
+          : "linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria))",
+      }}
+    >
+      {minhasPromocoes.some((p) => p.servico === item.nome)
+        ? "💲 Está em promoção (clique p/ remover)"
+        : "💲 Colocar em promoção"}
+    </button>
+
+    <button
       onClick={() => {
         setServicoEditandoId(item.id);
         setEditaNome(String(item.nome || ""));
@@ -5143,7 +5686,180 @@ Adicionar serviço
   )}
 
 </div>
-))}
+  ))}
+  <div className="config-promocoes">
+    <h3>🎉 Promoções do mês</h3>
+    <p className="dica-dias-agendados">
+      Clique no <strong>💲</strong> de um serviço para ele entrar no seletor
+      de promoções do cliente. Depois escolha os meses, o valor e a duração.
+      Você pode ativar/desativar cada promoção por mês ou por semana.
+    </p>
+
+    <button
+      onClick={alternarSeletorPromocoes}
+      style={{
+        padding: "12px",
+        background:
+          profissionalLogado?.seletor_promocoes_habilitado === false
+            ? "#16a34a"
+            : "#d32f2f",
+        color: "white",
+        border: "none",
+        borderRadius: "12px",
+        cursor: "pointer",
+        width: "100%",
+      }}
+    >
+      {profissionalLogado?.seletor_promocoes_habilitado === false
+        ? "🎉 Ativar seletor de promoções"
+        : "🚫 Desativar seletor de promoções"}
+    </button>
+    <small className="dica-dias-agendados">
+      Com o seletor ativo, o cliente vê a opção "Serviços em promoção" embaixo
+      dos serviços normais.
+    </small>
+
+    {mensagemPromo && (
+      <p
+        style={{
+          marginTop: "10px",
+          color: mensagemPromoTipo === "erro" ? "red" : "green",
+          fontWeight: "bold",
+        }}
+      >
+        {mensagemPromo}
+      </p>
+    )}
+
+    <h4>💲 Serviços em promoção</h4>
+
+    {minhasPromocoes.length === 0 && (
+      <p className="dica-dias-agendados">
+        Nenhum serviço em promoção ainda. Clique no 💲 dentro do card de um
+        serviço lá em cima.
+      </p>
+    )}
+
+    {minhasPromocoes.map((promo) => (
+      <div
+        key={promo.id}
+        className="servico-card promo-card"
+        style={{ opacity: promo.ativo ? 1 : 0.6 }}
+      >
+        {promoEditandoId === promo.id ? (
+          <div className="promo-editar">
+            <p>
+              <strong>✏️ Editando promoção: {promo.servico}</strong>
+            </p>
+
+            <input
+              placeholder="Valor da promoção"
+              type="number"
+              value={promoEditValor}
+              onChange={(e) => setPromoEditValor(e.target.value)}
+            />
+            <input
+              placeholder="Duração (ex: 1 hora)"
+              value={promoEditDuracao}
+              onChange={(e) => setPromoEditDuracao(e.target.value)}
+            />
+
+            <label className="promo-ativo-label">
+              <input
+                type="checkbox"
+                checked={promoEditAtivo}
+                onChange={(e) => setPromoEditAtivo(e.target.checked)}
+              />
+              Promoção ativa
+            </label>
+
+            <p className="promo-meses-titulo">
+              📅 Vale em quais meses? (dentro de cada mês, escolha as semanas)
+            </p>
+            <div className="promo-meses-grade">
+              {NOMES_MESES.map((nome, i) => {
+                const mes = i + 1;
+                const marcado = Boolean(promoEditMeses[mes]);
+                return (
+                  <div
+                    key={mes}
+                    className={`promo-mes${marcado ? " ativo" : ""}`}
+                  >
+                    <label className="promo-mes-label">
+                      <input
+                        type="checkbox"
+                        checked={marcado}
+                        onChange={() => alternarMesPromo(mes)}
+                      />
+                      {nome}
+                    </label>
+                    {marcado && (
+                      <div className="promo-semanas">
+                        {[1, 2, 3, 4, 5].map((semana) => {
+                          const lista = Array.isArray(
+                            promoEditSemanas[String(mes)]
+                          )
+                            ? promoEditSemanas[String(mes)]
+                            : [true, true, true, true, true];
+                          return (
+                            <label key={semana} className="promo-semana">
+                              <input
+                                type="checkbox"
+                                checked={lista[semana - 1] !== false}
+                                onChange={() => alternarSemanaPromo(mes, semana)}
+                              />
+                              {semana}ª
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button onClick={salvarPromocao}>💾 Salvar promoção</button>
+            <button
+              style={{ marginLeft: "8px", background: "#6b7280" }}
+              onClick={cancelarEdicaoPromocao}
+            >
+              ❌ Cancelar
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p>
+              {promo.ativo ? "🟢 Ativa" : "⚪ Desativada"} — {promo.servico}
+            </p>
+            <p>💰 R$ {promo.valor ?? 0}</p>
+            <p>⏰ {promo.duracao || "—"}</p>
+            <p>
+              📅{" "}
+              {mesesDaPromocao(promo).length > 0
+                ? mesesDaPromocao(promo).join(", ")
+                : "Nenhum mês selecionado"}
+            </p>
+            <p>
+              🗓️{" "}
+              {promocaoAtivaEm(promo)
+                ? "Ativa para o mês/semana atual"
+                : "Fora do período atual"}
+            </p>
+            <button onClick={() => iniciarEdicaoPromocao(promo)}>
+              ✏️ Editar
+            </button>
+            <button
+              style={{ marginLeft: "8px", background: "#d32f2f" }}
+              onClick={() => excluirPromocao(promo)}
+            >
+              🗑️ Excluir
+            </button>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
 
 </div>
 

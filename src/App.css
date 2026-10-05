@@ -1678,6 +1678,147 @@ button.btn.cadastrar {
   display: block;
 }
 
+/* ===== Promoções do mês (painel do profissional + cliente) ===== */
+.config-promocoes {
+  border: 2px dashed var(--cor-primaria);
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 18px;
+  background: #fffcf5;
+}
+
+.config-promocoes h3 {
+  margin: 0 0 6px;
+}
+
+.config-promocoes h4 {
+  margin: 14px 0 8px;
+}
+
+.promo-card {
+  border-color: var(--cor-primaria);
+  background: #fffaf0;
+}
+
+.promo-editar input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  background: #fafafa;
+  margin-bottom: 8px;
+  color: var(--texto);
+}
+
+.promo-ativo-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-weight: bold;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.promo-meses-titulo {
+  margin: 10px 0 6px;
+  font-weight: bold;
+  color: var(--texto);
+}
+
+.promo-meses-grade {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.promo-mes {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 8px;
+  background: #fafafa;
+}
+
+.promo-mes.ativo {
+  border-color: var(--cor-primaria);
+  background: #fff4e0;
+}
+
+.promo-mes-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.promo-semanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-top: 6px;
+}
+
+.promo-semana {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+/* Seletor de promoções na tela do CLIENTE */
+.promo-cliente {
+  margin-top: 16px;
+  padding: 14px;
+  border: 2px dashed var(--cor-primaria);
+  border-radius: 14px;
+  background: #fffaf2;
+}
+
+.promo-cliente h3 {
+  margin: 0 0 4px;
+}
+
+.promo-cliente .promo-placeholder-select,
+.promo-cliente select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  border: 1px solid var(--cor-primaria);
+  border-radius: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.promo-cliente-dica {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #777;
+}
+
+.promo-linha {
+  border-color: var(--cor-primaria);
+  background: #fffaf2;
+}
+
+.promo-linha .linha-remover {
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px;
+  border: none;
+  border-radius: 10px;
+  background: #d32f2f;
+  color: white;
+  cursor: pointer;
+}
 /* Dia de folga no calendário da agenda do profissional */
 .react-calendar__tile.dia-folga {
   background: #fee2e2;
