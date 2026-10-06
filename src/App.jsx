@@ -197,7 +197,8 @@ const NOMES_MESES = [
   "Dezembro",
 ];
 
-// Diz se uma promoção está ativa para a data (mês + semana). Sem data, usa hoje.
+// Diz se uma promoção está ativa para a data (mês + semana + dias da semana).
+// Sem data, usa hoje. `dias_semana` vazio/ausente = vale todos os dias.
 function promocaoAtivaEm(promo, dataReferencia) {
   if (!promo || promo.ativo === false) return false;
   const data = dataReferencia ? new Date(dataReferencia) : new Date();
@@ -211,6 +212,10 @@ function promocaoAtivaEm(promo, dataReferencia) {
     const indiceSemana = Math.floor((data.getDate() - 1) / 7); // 0..4 (1ª..5ª semana)
     if (confSemanas[indiceSemana] === false) return false;
   }
+  // Dia da semana permitido? (dias_semana vazio/ausente = todos os dias)
+  if (Array.isArray(promo.dias_semana) && promo.dias_semana.length > 0) {
+    if (!promo.dias_semana.map(Number).includes(data.getDay())) return false;
+  }
   return true;
 }
 
@@ -220,6 +225,20 @@ function mesesDaPromocao(promo) {
     .map(Number)
     .map((m) => NOMES_MESES[m - 1])
     .filter(Boolean);
+}
+
+// Nomes dos dias da semana escolhidos numa promoção (para exibir no card).
+// Vazio = todos os dias.
+function diasDaPromocao(promo) {
+  const dias = Array.isArray(promo?.dias_semana)
+    ? promo.dias_semana.map(Number)
+    : [];
+  if (dias.length === 0) return [];
+  return [...new Set(dias)]
+    .sort((a, b) => a - b)
+    .map((d) => diasSemanaPorIndice[d])
+    .filter(Boolean)
+    .map((nome) => nome.charAt(0).toUpperCase() + nome.slice(1));
 }
 
 // Duração de uma linha de agendamento — respeita a duração da PROMOÇÃO
@@ -704,6 +723,8 @@ const [promoEditValor, setPromoEditValor] = useState("");
 const [promoEditDuracao, setPromoEditDuracao] = useState("");
 const [promoEditMeses, setPromoEditMeses] = useState({});
 const [promoEditSemanas, setPromoEditSemanas] = useState({});
+// Dias da semana permitidos (0 = domingo ... 6 = sábado; vazio = todos).
+const [promoEditDias, setPromoEditDias] = useState({});
 const [promoEditAtivo, setPromoEditAtivo] = useState(true);
 
 // Reagendamento (remarcar dia/horário) dentro da agenda do profissional.
@@ -2732,6 +2753,15 @@ function iniciarEdicaoPromocao(promo) {
   (promo.meses || []).forEach((m) => (mesesObj[Number(m)] = true));
   setPromoEditMeses(mesesObj);
   setPromoEditSemanas({ ...(promo.semanas || {}) });
+  // Dias da semana: sem valor salvo = todos marcados (vale todos os dias).
+  const diasObj = {};
+  const diasSalvos = Array.isArray(promo.dias_semana)
+    ? promo.dias_semana.map(Number)
+    : [];
+  (diasSalvos.length > 0 ? diasSalvos : [0, 1, 2, 3, 4, 5, 6]).forEach(
+    (d) => (diasObj[Number(d)] = true)
+  );
+  setPromoEditDias(diasObj);
   setPromoEditAtivo(promo.ativo !== false);
   setMensagemPromo("");
 }
@@ -2764,6 +2794,10 @@ function alternarSemanaPromo(mes, semana) {
   });
 }
 
+function alternarDiaPromo(dia) {
+  setPromoEditDias((prev) => ({ ...prev, [dia]: !prev[dia] }));
+}
+
 async function salvarPromocao() {
   if (!profissionalLogado || promoEditandoId == null) return;
   const promo = minhasPromocoes.find(
@@ -2779,35 +2813,50 @@ async function salvarPromocao() {
     if (promoEditMeses[Number(mes)]) semanas[mes] = promoEditSemanas[mes];
   });
 
+  // Dias da semana permitidos. Ninguém marcado ou todos marcados = [] = todos.
+  const diasMarcados = Object.keys(promoEditDias)
+    .filter((d) => promoEditDias[d])
+    .map(Number);
+  const diasSemana = diasMarcados.length >= 7 ? [] : diasMarcados;
+
+  const dadosPromo = {
+    valor: promoEditValor || 0,
+    duracao: promoEditDuracao,
+    meses,
+    semanas,
+    ativo: promoEditAtivo,
+  };
+
+  // Tenta salvar TUDO (incluindo dias_semana). Se a coluna ainda não existe
+  // na base, salva o resto e avisa pra rodar a migração no Supabase.
   const { error } = await supabase
     .from("promocoes")
-    .update({
-      valor: promoEditValor || 0,
-      duracao: promoEditDuracao,
-      meses,
-      semanas,
-      ativo: promoEditAtivo,
-    })
+    .update({ ...dadosPromo, dias_semana: diasSemana })
     .eq("id", promo.id);
 
   if (error) {
-    console.error(error);
-    alert("Erro ao salvar: " + error.message);
-    return;
+    const { error: erroSemDias } = await supabase
+      .from("promocoes")
+      .update(dadosPromo)
+      .eq("id", promo.id);
+
+    if (erroSemDias) {
+      console.error(error, erroSemDias);
+      alert("Erro ao salvar: " + error.message);
+      return;
+    }
+
+    alert(
+      "Promoção salva! ⚠️ Para usar os DIAS DA SEMANA, rode no SQL do Supabase:\n" +
+        "ALTER TABLE public.promocoes ADD COLUMN IF NOT EXISTS dias_semana integer[] NOT NULL DEFAULT '{}';"
+    );
+  } else {
+    dadosPromo.dias_semana = diasSemana;
   }
 
   setPromocoes((prev) =>
     prev.map((p) =>
-      Number(p.id) === Number(promo.id)
-        ? {
-            ...p,
-            valor: promoEditValor || 0,
-            duracao: promoEditDuracao,
-            meses,
-            semanas,
-            ativo: promoEditAtivo,
-          }
-        : p
+      Number(p.id) === Number(promo.id) ? { ...p, ...dadosPromo } : p
     )
   );
   setPromoEditandoId(null);
@@ -2876,6 +2925,23 @@ async function enviarPedidoCliente() {
     setMensagem("Preencha a data e o horário de cada serviço em promoção.");
     setTipoMensagem("erro");
     return;
+  }
+
+  // A data escolhida de uma promoção precisa cair num dia da semana permitido.
+  for (const item of linhasClienteConServicio) {
+    if (!item.em_promocao || !item.promo_id) continue;
+    const promo = promocoes.find(
+      (p) => Number(p.id) === Number(item.promo_id)
+    );
+    if (promo && !promocaoAtivaEm(promo, item.data)) {
+      setMensagem(
+        `📅 Esta promoção só vale em: ${diasDaPromocao(promo).join(
+          ", "
+        )}. Escolha uma data permitida.`
+      );
+      setTipoMensagem("erro");
+      return;
+    }
   }
 
   const numeroLimpo = whatsapp.replace(/\D/g, "");
@@ -3186,6 +3252,23 @@ async function enviarPedidoAgendarCliente() {
     );
     setTipoMensagemAgendarCliente("erro");
     return;
+  }
+
+  // A data escolhida de uma promoção precisa cair num dia da semana permitido.
+  for (const item of linhasAgendarConServicio) {
+    if (!item.em_promocao || !item.promo_id) continue;
+    const promo = promocoes.find(
+      (p) => Number(p.id) === Number(item.promo_id)
+    );
+    if (promo && !promocaoAtivaEm(promo, item.data)) {
+      setMensagemAgendarCliente(
+        `📅 Esta promoção só vale em: ${diasDaPromocao(promo).join(
+          ", "
+        )}. Escolha uma data permitida.`
+      );
+      setTipoMensagemAgendarCliente("erro");
+      return;
+    }
   }
 
   const numeroLimpo = whatsapp.replace(/\D/g, "");
@@ -3880,6 +3963,31 @@ onChange={(e) => {
                 {sumarHoras(item.horario, horasServicio)}
               </small>
             ) : null;
+          })()}
+
+          {(() => {
+            if (item.data && item.promo_id) {
+              const promoInfo = promocoes.find(
+                (p) => Number(p.id) === Number(item.promo_id)
+              );
+              if (promoInfo && !promocaoAtivaEm(promoInfo, item.data)) {
+                return (
+                  <small
+                    style={{
+                      display: "block",
+                      color: "#b45309",
+                      fontWeight: "bold",
+                      marginTop: "6px",
+                    }}
+                  >
+                    🚫 Esta promoção só vale em:{" "}
+                    {diasDaPromocao(promoInfo).join(", ")}. Escolha uma data
+                    permitida.
+                  </small>
+                );
+              }
+            }
+            return null;
           })()}
 
           {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
@@ -5089,6 +5197,31 @@ itensAgendarCliente.map((item, indice) =>
                   ) : null;
                 })()}
 
+                {(() => {
+                  if (item.data && item.promo_id) {
+                    const promoInfo = promocoes.find(
+                      (p) => Number(p.id) === Number(item.promo_id)
+                    );
+                    if (promoInfo && !promocaoAtivaEm(promoInfo, item.data)) {
+                      return (
+                        <small
+                          style={{
+                            display: "block",
+                            color: "#b45309",
+                            fontWeight: "bold",
+                            marginTop: "6px",
+                          }}
+                        >
+                          🚫 Esta promoção só vale em:{" "}
+                          {diasDaPromocao(promoInfo).join(", ")}. Escolha uma
+                          data permitida.
+                        </small>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
+
                 {item.data &&
                   (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
                     <small>
@@ -6204,6 +6337,28 @@ Adicionar serviço
               })}
             </div>
 
+            <p className="promo-meses-titulo">
+              📅 Em quais dias da semana vale? (nada marcado = todos os dias)
+            </p>
+            <div className="promo-dias-grade">
+              {diasSemanaPorIndice.map((nome, i) => {
+                const marcado = Boolean(promoEditDias[i]);
+                return (
+                  <label
+                    key={i}
+                    className={`promo-dia${marcado ? " ativo" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      onChange={() => alternarDiaPromo(i)}
+                    />
+                    {nome.charAt(0).toUpperCase() + nome.slice(1)}
+                  </label>
+                );
+              })}
+            </div>
+
             <button onClick={salvarPromocao}>💾 Salvar promoção</button>
             <button
               style={{ marginLeft: "8px", background: "#6b7280" }}
@@ -6224,6 +6379,12 @@ Adicionar serviço
               {mesesDaPromocao(promo).length > 0
                 ? mesesDaPromocao(promo).join(", ")
                 : "Nenhum mês selecionado"}
+            </p>
+            <p>
+              📅 Dias:{" "}
+              {diasDaPromocao(promo).length > 0
+                ? diasDaPromocao(promo).join(", ")
+                : "Todos os dias"}
             </p>
             <p>
               🗓️{" "}

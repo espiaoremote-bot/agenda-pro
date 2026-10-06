@@ -25,6 +25,12 @@ CREATE TABLE IF NOT EXISTS public.promocoes (
 ALTER TABLE public.profissionais
   ADD COLUMN IF NOT EXISTS seletor_promocoes_habilitado boolean NOT NULL DEFAULT true;
 
+-- Dias da semana em que a promoção pode ser AGENDADA pelo cliente.
+-- dias_semana = {3,5} significa somente quarta e sexta.
+-- Vazio '{}' / nulo = todos os dias.
+ALTER TABLE public.promocoes
+  ADD COLUMN IF NOT EXISTS dias_semana integer[] NOT NULL DEFAULT '{}';
+
 -- O app acessa as tabelas direto pela chave pública (como as demais tabelas
 -- do projeto, ex.: servicos e agendamentos), então RLS fica desligado aqui.
 ALTER TABLE public.promocoes DISABLE ROW LEVEL SECURITY;

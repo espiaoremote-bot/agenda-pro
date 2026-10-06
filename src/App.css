@@ -1810,6 +1810,32 @@ button.btn.cadastrar {
   cursor: pointer;
 }
 
+.promo-dias-grade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.promo-dia {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--texto);
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.promo-dia.ativo {
+  border-color: var(--cor-primaria);
+  background: #fff4e0;
+}
+
 /* Seletor de promoções na tela do CLIENTE */
 .promo-cliente {
   margin-top: 16px;
