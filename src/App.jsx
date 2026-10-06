@@ -2821,17 +2821,23 @@ async function enviarPedidoCliente() {
     return;
   }
 
-  // Linhas normais: todas precisam estar preenchidas (como antes).
-  const linhasNormaisCliente = itensCliente.filter((item) => !item.em_promocao);
-  // Linhas de promoção vazias são ignoradas. As que tiverem serviço escolhido
-  // precisam também de data e horário.
-  const linhasPromoPreenchidas = itensCliente.filter(
-    (item) => item.em_promocao && item.servico
-  );
+  // Linhas vazias (sem serviço escolhido) são apenas placeholders do botão
+  // "➕ Adicionar outro serviço" e são IGNORADAS na validação. Assim o cliente
+  // consegue enviar o pedido usando SÓLO o seletor de "Serviços em promoção"
+  // mesmo quando a linha da aba de serviços normais ficou vazia — essa linha
+  // não precisa ser preenchida porque já está sendo usada a promoção.
+  const linhasClienteConServicio = itensCliente.filter((item) => item.servico);
 
+  if (linhasClienteConServicio.length === 0) {
+    setMensagem("Escolha pelo menos um serviço.");
+    setTipoMensagem("erro");
+    return;
+  }
+
+  // Linhas NORMALES já escolhidas precisam também de data e horário.
   if (
-    linhasNormaisCliente.some(
-      (item) => !item.servico || !item.data || !item.horario
+    linhasClienteConServicio.some(
+      (item) => !item.em_promocao && (!item.data || !item.horario)
     )
   ) {
     setMensagem("Preencha todos os campos de cada serviço.");
@@ -2839,8 +2845,11 @@ async function enviarPedidoCliente() {
     return;
   }
 
+  // Linhas de promoção escolhidas (com serviço) precisam de data e horário.
   if (
-    linhasPromoPreenchidas.some((item) => !item.data || !item.horario)
+    linhasClienteConServicio.some(
+      (item) => item.em_promocao && (!item.data || !item.horario)
+    )
   ) {
     setMensagem("Preencha a data e o horário de cada serviço em promoção.");
     setTipoMensagem("erro");
@@ -3078,10 +3087,20 @@ async function enviarPedidoAgendarCliente() {
     return;
   }
 
+  // Linhas vazias (sem serviço escolhido) são placeholders do botão
+  // "➕ Adicionar outro serviço" — são ignoradas na validação.
+  const linhasAgendarConServicio = itensAgendarCliente.filter(
+    (item) => item.servico
+  );
+
+  if (linhasAgendarConServicio.length === 0) {
+    setMensagemAgendarCliente("Escolha pelo menos um serviço.");
+    setTipoMensagemAgendarCliente("erro");
+    return;
+  }
+
   if (
-    itensAgendarCliente.some(
-      (item) => !item.servico || !item.data || !item.horario
-    )
+    linhasAgendarConServicio.some((item) => !item.data || !item.horario)
   ) {
     setMensagemAgendarCliente("Preencha todos os campos de cada serviço.");
     setTipoMensagemAgendarCliente("erro");
