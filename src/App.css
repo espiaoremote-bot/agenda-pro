@@ -826,6 +826,33 @@ body,
   opacity: 0.9;
 }
 
+/* ===== Abas de Serviços cadastrados (normais / em promoção) ===== */
+.abas-servicos {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 14px;
+  flex-wrap: wrap;
+}
+
+.aba-servico {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--cor-borda);
+  background: #ffffff;
+  color: var(--cor-primaria);
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+}
+
+.aba-servico.ativa {
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: white;
+  border-color: transparent;
+}
+
 .servico-editar input {
   width: 100%;
   padding: 10px 12px;

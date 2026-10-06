@@ -636,6 +636,9 @@ const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
 
+// Aba ativa da lista "Serviços cadastrados" ("normais" | "promocao").
+const [abaServicos, setAbaServicos] = useState("normais");
+
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
  
 const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
@@ -5823,7 +5826,37 @@ Adicionar serviço
 </button>
 <h3>📋 Serviços cadastrados</h3>
 
-{meusServicos.map((item) => (
+<div className="abas-servicos">
+  <button
+    type="button"
+    className={abaServicos === "normais" ? "aba-servico ativa" : "aba-servico"}
+    onClick={() => setAbaServicos("normais")}
+  >
+    🗂️ Serviços normais
+  </button>
+  <button
+    type="button"
+    className={abaServicos === "promocao" ? "aba-servico ativa" : "aba-servico"}
+    onClick={() => setAbaServicos("promocao")}
+  >
+    💲 Em promoção ({minhasPromocoes.length})
+  </button>
+</div>
+
+{abaServicos === "promocao" && minhasPromocoes.length === 0 && (
+  <p className="dica-dias-agendados">
+    Nenhum serviço em promoção ainda. Clique no 💲 dentro do card de um
+    serviço na aba "Serviços normais" para colocá-lo em promoção.
+  </p>
+)}
+
+{meusServicos
+  .filter((item) =>
+    abaServicos === "promocao"
+      ? minhasPromocoes.some((p) => p.servico === item.nome)
+      : !minhasPromocoes.some((p) => p.servico === item.nome)
+  )
+  .map((item) => (
   <div key={item.id} className="servico-card" style={{ opacity: item.ativo ? 1 : 0.5, background: item.ativo ? "#ffffff" : "#f5f5f5" }}>
 
   {servicoEditandoId === item.id ? (
