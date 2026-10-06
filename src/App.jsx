@@ -244,6 +244,8 @@ function novoItemAgendarCliente() {
     data: "",
     horario: "",
     valor: 0,
+    em_promocao: false,
+    promo_id: null,
     meses: 1,
     frequencia: "mensal",
   };
@@ -1356,10 +1358,11 @@ useEffect(() => {
       });
 
       // A linha atual também tem que "caber" com a própria duração.
-      const horasServicioLinha = duracaoHorasDeServicio(
-        item.servico,
+      const horasServicioLinha = duracaoHorasDeItem(
+        item,
         meusServicos,
-        profissionalLogado.id
+        profissionalLogado.id,
+        promocoes
       );
 
       const horariosLivres = horarios
@@ -1395,7 +1398,7 @@ useEffect(() => {
   }
 
   carregarHorariosAgendarCliente();
-}, [profissionalLogado, mostrarAgendarCliente, itensAgendarCliente, pedidos, meusServicos]);
+}, [profissionalLogado, mostrarAgendarCliente, itensAgendarCliente, pedidos, meusServicos, promocoes]);
 
 // Horários livres para REAGENDAR um agendamento (formulário dentro da agenda).
 // Usa a mesma regra de ocupação da agenda: bloqueia apenas agendamentos ativos,
@@ -2059,6 +2062,22 @@ const promocoesParaCliente = promocoes.filter(
 // Quando não existe nenhuma, o "seletor abaixo do seletor normal" é mostrado
 // como um `<select>` placeholder (a primeira escolha já adiciona a linha).
 const linhasPromoCliente = itensCliente.filter((item) => item.em_promocao);
+
+// Promoções que o PROFESSIONAL pode usar no formulário "Agendar por um cliente"
+// (mesmas regras do cliente: seletor habilitado + promoção ativa no mês/semana).
+const promocoesParaAgendarCliente = profissionalLogado?.id
+  ? promocoes.filter(
+      (p) =>
+        Number(p.profissional_id) === Number(profissionalLogado.id) &&
+        dadosProfissionalCliente?.seletor_promocoes_habilitado !== false &&
+        promocaoAtivaEm(p)
+    )
+  : [];
+
+// Linhas do formulário "Agendar por un cliente" que são serviços em promoção.
+const linhasPromoAgendarCliente = itensAgendarCliente.filter(
+  (item) => item.em_promocao
+);
 
 console.log("PEDIDOS DETALHADOS:", pedidos);
 async function carregarHorariosTrabalho(){
@@ -3060,6 +3079,19 @@ function atualizarLinhaAgendarCliente(indice, campo, valor) {
           (s) => s.nome === valor && s.ativo
         );
         atualizado.valor = servicoEncontrado?.valor || 0;
+        atualizado.promo_id = null;
+        if (item.em_promocao) {
+          // Linha do seletor de promoções: usa o valor (e a duração) da promoção.
+          const promo = promocoesParaAgendarCliente.find(
+            (p) => p.servico === valor
+          );
+          if (promo) {
+            atualizado.valor = promo.valor || 0;
+            atualizado.promo_id = promo.id;
+          } else {
+            atualizado.promo_id = null;
+          }
+        }
       }
       return atualizado;
     })
@@ -3074,6 +3106,36 @@ function removerLinhaAgendarCliente(indice) {
   setItensAgendarCliente((prev) =>
     prev.length > 1 ? prev.filter((_, i) => i !== indice) : prev
   );
+}
+
+// Linhas do seletor de SERVIÇOS EM PROMOÇÃO (formulário "Agendar por um cliente").
+function adicionarLinhaPromoAgendarCliente() {
+  setItensAgendarCliente((prev) => [
+    ...prev,
+    { ...novoItemAgendarCliente(), em_promocao: true },
+  ]);
+}
+
+// Usada pelo seletor placeholder: escolheu o serviço? Já cria a linha completa
+// da promoção (com valor e promo_id corretos).
+function adicionarLinhaPromoAgendarClienteComServico(valor) {
+  setItensAgendarCliente((prev) => {
+    const promo = promocoesParaAgendarCliente.find((p) => p.servico === valor);
+    return [
+      ...prev,
+      {
+        ...novoItemAgendarCliente(),
+        em_promocao: true,
+        servico: valor,
+        valor: promo?.valor || 0,
+        promo_id: promo?.id || null,
+      },
+    ];
+  });
+}
+
+function removerLinhaPromoAgendarCliente(indice) {
+  setItensAgendarCliente((prev) => prev.filter((_, i) => i !== indice));
 }
 
 // ---------------- Enviar pedido (formulário do PROFISSIONAL) ----------------
@@ -3099,10 +3161,26 @@ async function enviarPedidoAgendarCliente() {
     return;
   }
 
+  // Linhas NORMALES já escolhidas precisan também de data e horário.
   if (
-    linhasAgendarConServicio.some((item) => !item.data || !item.horario)
+    linhasAgendarConServicio.some(
+      (item) => !item.em_promocao && (!item.data || !item.horario)
+    )
   ) {
     setMensagemAgendarCliente("Preencha todos os campos de cada serviço.");
+    setTipoMensagemAgendarCliente("erro");
+    return;
+  }
+
+  // Linhas de promoção escolhidas (com serviço) precisan de data e horário.
+  if (
+    linhasAgendarConServicio.some(
+      (item) => item.em_promocao && (!item.data || !item.horario)
+    )
+  ) {
+    setMensagemAgendarCliente(
+      "Preencha a data e o horário de cada serviço em promoção."
+    );
     setTipoMensagemAgendarCliente("erro");
     return;
   }
@@ -3126,6 +3204,9 @@ async function enviarPedidoAgendarCliente() {
   const folgasDatasDoProfissional = await buscarFolgasDatas(profissionalLogado.id);
 
   for (const item of itensAgendarCliente) {
+    // Linhas vazias (sem serviço) são placeholders "➕" e se ignoran nas datas.
+    if (!item.servico) continue;
+
     if (item.data < hoje) {
       setMensagemAgendarCliente(
         "Não é possível agendar uma data que já passou."
@@ -3153,14 +3234,13 @@ async function enviarPedidoAgendarCliente() {
   // Regra de duración: cada linha ocupa de [horario, horario + duração do serviço).
   // Ex.: serviço de 2h às 13:00 ocupa 13:00 e 14:00 (até 15:00).
   const spanDeLinhaAgendar = (item) => {
+    if (!item.servico || !item.horario) return { inicio: -1, fin: -1 };
     const inicio = horarioAMinutos(item.horario);
+    if (inicio < 0) return { inicio: -1, fin: -1 };
     const duracion =
       Math.round(
-        duracaoHorasDeServicio(
-          item.servico,
-          meusServicos,
-          profissionalLogado.id
-        ) * 60
+        duracaoHorasDeItem(item, meusServicos, profissionalLogado.id, promocoes) *
+          60
       ) || 60; // sem duração => ocupa pelo menos sua franja de 1h
     return { inicio, fin: inicio + duracion };
   };
@@ -3172,7 +3252,9 @@ async function enviarPedidoAgendarCliente() {
       const itemB = itensAgendarCliente[b];
       if (itemA.data !== itemB.data) continue;
       const spanA = spanDeLinhaAgendar(itemA);
+      if (spanA.inicio < 0) continue;
       const spanB = spanDeLinhaAgendar(itemB);
+      if (spanB.inicio < 0) continue;
       if (franjasSolapan(spanA.inicio, spanA.fin, spanB.inicio, spanB.fin)) {
         setMensagemAgendarCliente(
           "Dois serviços não podem ficar no mesmo dia e horário. Escolha horários diferentes."
@@ -3186,6 +3268,9 @@ async function enviarPedidoAgendarCliente() {
   let totalCriados = 0;
 
   for (const item of itensAgendarCliente) {
+    // Linhas vazias (sem serviço/horário) são placeholders "➕" e se ignoran.
+    if (!item.servico || !item.horario) continue;
+
     const datasDaRecorrencia =
       item.frequencia === "semanal"
         ? datasParaSemanas(item.data, item.meses)
@@ -4727,7 +4812,8 @@ statusAtendimento === "Disponível"
       }}
     />
 
-    {itensAgendarCliente.map((item, indice) => (
+    {itensAgendarCliente.map((item, indice) =>
+      !item.em_promocao ? (
       <div key={indice} className="linha-servico">
         <label>Serviço {indice + 1}</label>
         <select
@@ -4871,7 +4957,8 @@ statusAtendimento === "Disponível"
           </button>
         )}
       </div>
-    ))}
+      ) : null
+    )}
 
     <button
       type="button"
@@ -4881,6 +4968,206 @@ statusAtendimento === "Disponível"
       ➕ Adicionar outro serviço
     </button>
 
+{/* Seletor de SERVIÇOS EM PROMOÇÃO — mesma coisa do cliente, mas dentro do
+        formulário "Agendar por um cliente". Só mostra promoções ativas. */}
+    {promocoesParaAgendarCliente.length > 0 && (
+      <div className="promo-cliente">
+        <h3>🎉 Serviços em promoção</h3>
+        <p className="promo-cliente-dica">
+          Escolha um serviço com preço de promoção (vale para este mês).
+        </p>
+
+        {linhasPromoAgendarCliente.length === 0 ? (
+          <select
+            className="promo-placeholder-select"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) {
+                adicionarLinhaPromoAgendarClienteComServico(e.target.value);
+              }
+            }}
+          >
+            <option value="">
+              Escolha o serviço em promoção
+            </option>
+
+            {promocoesParaAgendarCliente.map((promo) => (
+              <option
+                key={promo.id}
+                value={promo.servico}
+              >
+                {promo.servico}{promo.duracao ? ` - ⏰ ${promo.duracao}` : ""}{Number(promo.valor) > 0 ? ` - 💰 R$ ${promo.valor}` : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+itensAgendarCliente.map((item, indice) =>
+            item.em_promocao ? (
+              <div key={indice} className="linha-servico promo-linha">
+                <label>Serviço em promoção</label>
+
+                <select
+                  value={item.servico}
+                  onChange={(e) => {
+                    atualizarLinhaAgendarCliente(
+                      indice,
+                      "servico",
+                      e.target.value
+                    );
+                  }}
+                >
+                  <option value="">
+                    Escolha o serviço em promoção
+                  </option>
+
+                  {promocoesParaAgendarCliente.map((promo) => (
+                    <option
+                      key={promo.id}
+                      value={promo.servico}
+                    >
+                      {promo.servico}{promo.duracao ? ` - ⏰ ${promo.duracao}` : ""}{Number(promo.valor) > 0 ? ` - 💰 R$ ${promo.valor}` : ""}
+                    </option>
+                  ))}
+                </select>
+
+                <label>Data</label>
+
+                <input
+                  type="date"
+                  value={item.data}
+                  min={new Date().toLocaleDateString("sv-SE")}
+                  onChange={(e) =>
+                    atualizarLinhaAgendarCliente(indice, "data", e.target.value)
+                  }
+                />
+
+                <label>Horário</label>
+                <select
+                  value={item.horario}
+                  onChange={(e) =>
+                    atualizarLinhaAgendarCliente(
+                      indice,
+                      "horario",
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="">
+                    Escolha o horário
+                  </option>
+
+                  {(horariosPorLinhaAgendarCliente[indice] || []).map((hora) => (
+                    <option
+                      key={hora}
+                      value={hora}
+                    >
+                      {hora}
+                    </option>
+                  ))}
+                </select>
+{(() => {
+                  const promoInfo = item.promo_id
+                    ? promocoes.find(
+                        (p) => Number(p.id) === Number(item.promo_id)
+                      )
+                    : null;
+                  const horasServicio = promoInfo?.duracao
+                    ? parsearDuracaoHoras(promoInfo.duracao)
+                    : duracaoHorasDeServicio(
+                        item.servico,
+                        meusServicos,
+                        profissionalLogado.id
+                      );
+                  return item.servico && item.horario && horasServicio > 0 ? (
+                    <small className="duracao-info">
+                      ⏰ {promoInfo?.duracao || ""} — {item.horario} até{" "}
+                      {sumarHoras(item.horario, horasServicio)}
+                    </small>
+                  ) : null;
+                })()}
+
+                {item.data &&
+                  (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
+                    <small>
+                      {diasFolga.includes(diaSemanaDaData(item.data)) ||
+                      folgasDatas.includes(item.data)
+                        ? "🚫 Este dia é folga. Ninguém pode agendar nele."
+                        : "Nenhun horário livre para este dia. Escolha outra data."}
+                    </small>
+                  )}
+
+                <label>Frequência</label>
+                <select
+                  value={item.frequencia || "mensal"}
+                  onChange={(e) =>
+                    atualizarLinhaAgendarCliente(
+                      indice,
+                      "frequencia",
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="mensal">Mensal (todo mês)</option>
+                  <option value="semanal">Semanal (toda semana)</option>
+                </select>
+
+                <label>
+                  {item.frequencia === "semanal"
+                    ? "Repetir por quantas semanas?"
+                    : "Repetir por quantos meses?"}
+                </label>
+                <select
+                  value={item.meses}
+                  onChange={(e) => {
+                    const valor = Number(e.target.value);
+                    atualizarLinhaAgendarCliente(
+                      indice,
+                      "meses",
+                      Number.isNaN(valor) || valor < 1 ? 1 : valor
+                    );
+                  }}
+                >
+                  {Array.from(
+                    { length: item.frequencia === "semanal" ? 52 : 12 },
+                    (_, i) => i + 1
+                  ).map((qtd) => (
+                    <option key={qtd} value={qtd}>
+                      {qtd === 1
+                        ? item.frequencia === "semanal"
+                          ? "Somente esta semana"
+                          : "Somente este mês"
+                        : item.frequencia === "semanal"
+                        ? `Repetir por ${qtd} semanas`
+                        : `Repetir por ${qtd} meses`}
+                    </option>
+                  ))}
+                </select>
+
+                {linhasPromoAgendarCliente.length > 1 && (
+                  <button
+                    type="button"
+                    className="linha-remover"
+                    onClick={() => removerLinhaPromoAgendarCliente(indice)}
+                  >
+                    ✖ Remover esta promoção
+                  </button>
+                )}
+              </div>
+            ) : null
+          )
+        )}
+
+        {linhasPromoAgendarCliente.length > 0 && (
+          <button
+            type="button"
+            className="linha-adicionar"
+            onClick={adicionarLinhaPromoAgendarCliente}
+          >
+            ➕ Adicionar outro serviço em promoção
+          </button>
+        )}
+      </div>
+    )}
     <button
       onClick={enviarPedidoAgendarCliente}
     >
