@@ -1882,7 +1882,7 @@ console.log("TEMA DO PROFISSIONAL:", data.tema);
 carregarProfissionalCliente();
 
 
-}, [profissionalCliente]);
+}, [profissionalCliente, tela]);
 
 useEffect(() => {
 if (profissionalLogado?.tema) {
@@ -2064,7 +2064,7 @@ useEffect(() => {
   }
 
   carregarPromocoes();
-}, []);
+}, [tela]);
 
 // Promoções do profissional logado (calculadas direto no render, sem estado).
 const minhasPromocoes = profissionalLogado?.id
@@ -2074,12 +2074,18 @@ const minhasPromocoes = profissionalLogado?.id
   : [];
 
 // Promoções que o CLIENTE vê neste momento (seletor ativo pelo profissional
-// + promoção ativa no mês/semana atuais).
+// + promoção ativa no mês/semana atuais + o serviço da promoção está ATIVO).
 const promocoesParaCliente = promocoes.filter(
   (p) =>
     Number(p.profissional_id) === Number(profissionalCliente) &&
     dadosProfissionalCliente?.seletor_promocoes_habilitado !== false &&
-    promocaoAtivaEm(p)
+    promocaoAtivaEm(p) &&
+    servicos.some(
+      (s) =>
+        Number(s.profissional_id) === Number(profissionalCliente) &&
+        s.nome === p.servico &&
+        s.ativo
+    )
 );
 
 // Linhas do cliente que são serviços em promoção (para renderizar no bloco).
@@ -2088,13 +2094,15 @@ const promocoesParaCliente = promocoes.filter(
 const linhasPromoCliente = itensCliente.filter((item) => item.em_promocao);
 
 // Promoções que o PROFESSIONAL pode usar no formulário "Agendar por um cliente"
-// (mesmas regras do cliente: seletor habilitado + promoção ativa no mês/semana).
+// (mesmas regras do cliente: seletor habilitado + promoção ativa no mês/semana
+// + o serviço da promoção está ATIVO).
 const promocoesParaAgendarCliente = profissionalLogado?.id
   ? promocoes.filter(
       (p) =>
         Number(p.profissional_id) === Number(profissionalLogado.id) &&
         dadosProfissionalCliente?.seletor_promocoes_habilitado !== false &&
-        promocaoAtivaEm(p)
+        promocaoAtivaEm(p) &&
+        meusServicos.some((s) => s.nome === p.servico && s.ativo)
     )
   : [];
 
@@ -2878,6 +2886,34 @@ async function excluirPromocao(promo) {
     prev.filter((p) => Number(p.id) !== Number(promo.id))
   );
   setMensagemPromo(`Promoção de "${promo.servico}" excluída.`);
+  setMensagemPromoTipo("sucesso");
+}
+
+// Botão🚫 Desativar / ▶ Ativar direto no card da promoção. Salva na hora no
+// banco e o cliente deixa de ver (ou volta a ver) a promoção.
+async function alternarAtivoPromocao(promo) {
+  const novo = promo.ativo === false;
+  const { error } = await supabase
+    .from("promocoes")
+    .update({ ativo: novo })
+    .eq("id", promo.id);
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao alterar: " + error.message);
+    return;
+  }
+
+  setPromocoes((prev) =>
+    prev.map((p) =>
+      Number(p.id) === Number(promo.id) ? { ...p, ativo: novo } : p
+    )
+  );
+  setMensagemPromo(
+    novo
+      ? `💲 Promoção de "${promo.servico}" ATIVADA — o cliente volta a ver.`
+      : `🚫 Promoção de "${promo.servico}" DESATIVADA — o cliente não vê mais.`
+  );
   setMensagemPromoTipo("sucesso");
 }
 
@@ -6400,6 +6436,15 @@ Adicionar serviço
               onClick={() => excluirPromocao(promo)}
             >
               🗑️ Excluir
+            </button>
+            <button
+              style={{
+                marginLeft: "8px",
+                background: promo.ativo ? "#d32f2f" : "#16a34a",
+              }}
+              onClick={() => alternarAtivoPromocao(promo)}
+            >
+              {promo.ativo ? "🚫 Desativar" : "▶ Ativar"}
             </button>
           </div>
         )}
