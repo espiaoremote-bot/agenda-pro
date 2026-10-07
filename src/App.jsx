@@ -75,15 +75,23 @@ const iconOptions = [
   { value: "🎂", label: "Bolo" },
   { value: "🍰", label: "Bolo de fatia" },
   { value: "🧁", label: "Cupcake" },
-  { value: "💇", label: "Cabelo" },
+  { value: "💇🏻", label: "Cabelo" },
   { value: "💈", label: "Barbearia" },
-  { value: "💅", label: "Beleza" },
+  { value: "💅🏻", label: "Beleza" },
   { value: "🐶", label: "Pets" },
   { value: "💄", label: "Maquiagem" },
   { value: "🐾", label: "Pet" },
   { value: "🩺", label: "Saúde" },
   { value: "🖋️​", label: "Tatuagem" },
 ];
+
+// Converte os ícones antigos (sem tom de pele) para as novas versões, para
+// que perfis que já salvaram o ícone antes também passem a exibir o novo.
+function normalizarIcone(icone) {
+  if (icone === "💇") return "💇🏻";
+  if (icone === "💅") return "💅🏻";
+  return icone || "";
+}
  
 // Cria uma lista de datas mensais a partir da data inicial, repetindo o mesmo
 // dia e horário a cada mês. Ex.: dataInicial de janeiro com 3 meses => jan, fev, mar.
@@ -759,7 +767,10 @@ const appStyles = {
   minHeight: "100vh",
 };
 
-const iconeAtivo = profissionalLogado?.icone || dadosProfissionalCliente?.icone || (temaAtivo === "masculino" ? "💈" : "💅");
+const iconeAtivo =
+  normalizarIcone(profissionalLogado?.icone) ||
+  normalizarIcone(dadosProfissionalCliente?.icone) ||
+  (temaAtivo === "masculino" ? "💈" : "💅🏻");
 
 const iconeCliente = ["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "🧔" : "👩🏻";
 
@@ -1569,7 +1580,7 @@ useEffect(() => {
     if (sessao) {
       setProfissionalLogado(sessao);
       setTemaSelecionado(sessao.tema || "feminino");
-      setIconeSelecionado(sessao.icone || (sessao.tema === "masculino" ? "💈" : "💅"));
+      setIconeSelecionado(normalizarIcone(sessao.icone) || (sessao.tema === "masculino" ? "💈" : "💅🏻"));
       setTela(sessao.tipo === "super_admin" ? "admin" : "profissional");
     } else {
       setTela("login");
@@ -1628,7 +1639,7 @@ useEffect(() => {
           setProfissionalLogado(sessao);
           setTemaSelecionado(sessao.tema || "feminino");
           setIconeSelecionado(
-            sessao.icone || (sessao.tema === "masculino" ? "💈" : "💅")
+            normalizarIcone(sessao.icone) || (sessao.tema === "masculino" ? "💈" : "💅🏻")
           );
           setTela(sessao.tipo === "super_admin" ? "admin" : "profissional");
           return;
@@ -1793,7 +1804,7 @@ useEffect(() => {
       localStorage.setItem("profissionalLogado", JSON.stringify(atual));
       setProfissionalLogado(atual);
       setTemaSelecionado(atual.tema || "feminino");
-      setIconeSelecionado(atual.icone || (atual.tema === "masculino" ? "💈" : "💅"));
+      setIconeSelecionado(normalizarIcone(atual.icone) || (atual.tema === "masculino" ? "💈" : "💅🏻"));
       setTela(atual.tipo === "super_admin" ? "admin" : "profissional");
     } catch (e) {
       localStorage.removeItem("profissionalLogado");
@@ -3670,7 +3681,7 @@ localStorage.setItem("profissionalLogado", JSON.stringify(resultadoLogado));
 window.history.replaceState({}, "", window.location.pathname);
 setNotificacaoNovoAgendamento(null);
 setTemaSelecionado(resultadoLogado.tema || "feminino");
-setIconeSelecionado(resultadoLogado.icone || (resultadoLogado.tema === "masculino" ? "💈" : "💅"));
+setIconeSelecionado(normalizarIcone(resultadoLogado.icone) || (resultadoLogado.tema === "masculino" ? "💈" : "💅🏻"));
 
 setMensagemLogin("");
 
