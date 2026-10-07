@@ -2219,6 +2219,26 @@ function formatarDataBR(dia) {
   return `${diaNum}/${mes}/${ano}`;
 }
 
+// Abre o WhatsApp com a mensagem de lembrete prontinha para o cliente.
+// Sem custo e sem API: o profissional só toca em "enviar" no WhatsApp.
+function abrirLembreteWa(pedido) {
+  const numero = String(pedido.whatsapp || "").replace(/\D/g, "");
+  if (numero.length < 10) {
+    alert("Número de WhatsApp do cliente inválido.");
+    return;
+  }
+  const mensagem =
+    `Olá, ${pedido.nome}! 👋 Passando para lembrar do seu agendamento:\n\n` +
+    `📅 ${formatarDataBR(pedido.data)} às ⏰ ${pedido.horario}\n` +
+    `💈 ${pedido.servico}\n\n` +
+    `Qualquer dúvida é só chamar! 😉`;
+  window.open(
+    `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
+
 if (carregandoPerfil) {
   return (
     <div
@@ -7109,6 +7129,47 @@ horariosTrabalho.filter(
 
             <h2>📅 Agenda de horários</h2>
 
+{(() => {
+  const amanha = new Date();
+  amanha.setDate(amanha.getDate() + 1);
+  const amanhaISO = amanha.toLocaleDateString("sv-SE");
+  const agendamentosAmanha = pedidos.filter(
+    (p) => p.data === amanhaISO && p.status === "Agendado"
+  );
+  if (agendamentosAmanha.length === 0) return null;
+  return (
+    <div className="lembretes-amanha">
+      <h3>🔔 Agendamentos de amanhã — mande o lembrete</h3>
+      <p className="dica-dias-agendados">
+        Toque no botão verde para abrir o WhatsApp do cliente com a mensagem
+        pronta. É só apertar em enviar.
+      </p>
+      {agendamentosAmanha.map((pedido) => (
+        <div key={pedido.id} className="aprovacao-card">
+          <div className="aprovacao-info">
+            <strong>👤 {pedido.nome}</strong> — {pedido.servico}
+            <br />
+            <small>
+              📅 {formatarDataBR(pedido.data)} às ⏰ {pedido.horario} · 💰{" "}
+              {Number(pedido.valor_servico || 0).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </small>
+          </div>
+          <div className="aprovacao-botoes">
+            <button
+              className="btn-aprovar"
+              onClick={() => abrirLembreteWa(pedido)}
+            >
+              🔔 Enviar lembrete
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+})()}
 {pedidos.some((p) => p.status === "Pendente") && (
   <div className="aprovacoes-area">
     <button
@@ -7405,6 +7466,12 @@ onClick={async () => {
 {pedido.status === "Agendado" && (
 
 <>
+
+<button
+  onClick={() => abrirLembreteWa(pedido)}
+>
+  🔔 Lembrar no WhatsApp
+</button>
 
 <button
 onClick={async () => {

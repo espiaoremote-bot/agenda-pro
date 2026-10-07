@@ -1836,6 +1836,19 @@ button.btn.cadastrar {
   background: #fff4e0;
 }
 
+/* Lembretes de agendamento do dia seguinte (wa.me) */
+.lembretes-amanha {
+  border: 2px solid #25d366;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: #f0fbf4;
+}
+
+.lembretes-amanha h3 {
+  margin: 0 0 6px;
+}
+
 /* Seletor de promoções na tela do CLIENTE */
 .promo-cliente {
   margin-top: 16px;
