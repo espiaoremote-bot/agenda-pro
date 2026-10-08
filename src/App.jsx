@@ -2849,6 +2849,89 @@ function alternarDiaPromo(dia) {
   setPromoEditDias((prev) => ({ ...prev, [dia]: !prev[dia] }));
 }
 
+// Aplica os MESES/SEMANAS/DIAS que estão sendo editados para TODAS as outras
+// promoções do profissional de uma vez (evita ter que configurar uma por uma).
+// Valor e duração de cada produto NÃO são copiados — cada serviço mantém o seu.
+async function aplicarAgendaParaTodasPromocoes() {
+  if (!profissionalLogado || promoEditandoId == null) return;
+
+  const outras = minhasPromocoes.filter(
+    (p) => Number(p.id) !== Number(promoEditandoId)
+  );
+  if (outras.length === 0) {
+    alert("Não há outras promoções para aplicar.");
+    return;
+  }
+
+  if (
+    !window.confirm(
+      `Aplicar os MESES, SEMANAS e DIAS desta promoção para as outras ${outras.length} promoções?\n\nSó os períodos (meses/semanas/dias) serão copiados. Valor e duração de cada produto continuam os mesmos.`
+    )
+  )
+    return;
+
+  const meses = Object.keys(promoEditMeses)
+    .filter((m) => promoEditMeses[m])
+    .map(Number);
+  const semanas = {};
+  Object.keys(promoEditSemanas).forEach((mes) => {
+    if (promoEditMeses[Number(mes)]) semanas[mes] = promoEditSemanas[mes];
+  });
+  // Dias da semana permitidos. Ninguém marcado ou todos marcados = [] = todos.
+  const diasMarcados = Object.keys(promoEditDias)
+    .filter((d) => promoEditDias[d])
+    .map(Number);
+  const diasSemana = diasMarcados.length >= 7 ? [] : diasMarcados;
+
+  const ids = outras.map((p) => p.id);
+
+  // Tenta salvar TUDO (incluindo dias_semana). Se a coluna ainda não existe
+  // na base, salva o resto e avisa pra rodar a migração no Supabase.
+  const { error } = await supabase
+    .from("promocoes")
+    .update({ meses, semanas, dias_semana: diasSemana })
+    .in("id", ids);
+
+  if (error) {
+    const { error: erroSemDias } = await supabase
+      .from("promocoes")
+      .update({ meses, semanas })
+      .in("id", ids);
+
+    if (erroSemDias) {
+      console.error(error, erroSemDias);
+      alert("Erro ao aplicar: " + error.message);
+      return;
+    }
+
+    alert(
+      "Aplicado! ⚠️ Para usar os DIAS DA SEMANA, rode no SQL do Supabase:\n" +
+        "ALTER TABLE public.promocoes ADD COLUMN IF NOT EXISTS dias_semana integer[] NOT NULL DEFAULT '{}';"
+    );
+
+    setPromocoes((prev) =>
+      prev.map((p) =>
+        ids.some((id) => Number(id) === Number(p.id))
+          ? { ...p, meses, semanas }
+          : p
+      )
+    );
+  } else {
+    setPromocoes((prev) =>
+      prev.map((p) =>
+        ids.some((id) => Number(id) === Number(p.id))
+          ? { ...p, meses, semanas, dias_semana: diasSemana }
+          : p
+      )
+    );
+  }
+
+  setMensagemPromo(
+    `📋 Meses, semanas e dias aplicados para as outras ${outras.length} promoções!`
+  );
+  setMensagemPromoTipo("sucesso");
+}
+
 async function salvarPromocao() {
   if (!profissionalLogado || promoEditandoId == null) return;
   const promo = minhasPromocoes.find(
@@ -6446,6 +6529,17 @@ Adicionar serviço
                 );
               })}
             </div>
+
+            <button
+              style={{
+                width: "100%",
+                marginBottom: "8px",
+                background: "#7c3aed",
+              }}
+              onClick={aplicarAgendaParaTodasPromocoes}
+            >
+              📋 Aplicar estes dias/semanas/meses em TODAS as outras promoções
+            </button>
 
             <button onClick={salvarPromocao}>💾 Salvar promoção</button>
             <button
