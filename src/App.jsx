@@ -5425,7 +5425,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
     className={abaConfiguracoes === "servicos" ? "config-aba ativa" : "config-aba"}
     onClick={() => setAbaConfiguracoes("servicos")}
   >
-    💈 Serviços
+    📋 Serviços
   </button>
   <button
     className={abaConfiguracoes === "horarios" ? "config-aba ativa" : "config-aba"}
@@ -5924,7 +5924,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 
 {abaConfiguracoes === "servicos" && (
 <div>
-<h3>💈 Configurar serviços</h3>
+<h3>📋 Configurar serviços</h3>
 
 <input
 placeholder="Nome do serviço"
