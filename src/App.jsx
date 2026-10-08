@@ -2241,7 +2241,7 @@ function abrirLembreteWa(pedido) {
   const mensagem =
     `Olá, ${pedido.nome}! 👋🏻 Passando para lembrar do seu agendamento:\n\n` +
     `📅 ${formatarDataBR(pedido.data)} às ⏰ ${pedido.horario}\n` +
-    `💈 ${pedido.servico}\n\n` +
+    `✅ ${pedido.servico}\n\n` +
     `Qualquer dúvida é só chamar! 😉`;
   window.open(
     `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
