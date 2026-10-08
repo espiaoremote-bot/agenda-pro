@@ -659,6 +659,16 @@ const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 const [pedido, setPedido] = useState(null);
 const [pedidos, setPedidos] = useState([]);
 
+// IDs dos agendamentos de amanhã cujo lembrete já foi enviado.
+// Fica no localStorage para não voltarem à lista ao recarregar a página.
+const [lembretesEnviados, setLembretesEnviados] = useState(() => {
+  try {
+    return JSON.parse(localStorage.getItem("lembretes_amanha_enviados") || "[]");
+  } catch (e) {
+    return [];
+  }
+});
+
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
 const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
@@ -2232,7 +2242,7 @@ function formatarDataBR(dia) {
 
 // Abre o WhatsApp com a mensagem de lembrete prontinha para o cliente.
 // Sem custo e sem API: o profissional só toca em "enviar" no WhatsApp.
-function abrirLembreteWa(pedido) {
+function abrirLembreteWa(pedido, onEnviado) {
   const numero = String(pedido.whatsapp || "").replace(/\D/g, "");
   if (numero.length < 10) {
     alert("Número de WhatsApp do cliente inválido.");
@@ -2248,6 +2258,9 @@ function abrirLembreteWa(pedido) {
     "_blank",
     "noopener,noreferrer"
   );
+  if (typeof onEnviado === "function") {
+    onEnviado(pedido);
+  }
 }
 
 if (carregandoPerfil) {
@@ -7145,7 +7158,10 @@ horariosTrabalho.filter(
   amanha.setDate(amanha.getDate() + 1);
   const amanhaISO = amanha.toLocaleDateString("sv-SE");
   const agendamentosAmanha = pedidos.filter(
-    (p) => p.data === amanhaISO && p.status === "Agendado"
+    (p) =>
+      p.data === amanhaISO &&
+      p.status === "Agendado" &&
+      !lembretesEnviados.includes(p.id)
   );
   if (agendamentosAmanha.length === 0) return null;
   return (
@@ -7153,7 +7169,8 @@ horariosTrabalho.filter(
       <h3>🔔 Agendamentos de amanhã — mande o lembrete</h3>
       <p className="dica-dias-agendados">
         Toque no botão verde para abrir o WhatsApp do cliente com a mensagem
-        pronta. É só apertar em enviar.
+        pronta. É só apertar em enviar. Depois de enviar, o agendamento some
+        desta lista.
       </p>
       {agendamentosAmanha.map((pedido) => (
         <div key={pedido.id} className="aprovacao-card">
@@ -7171,7 +7188,18 @@ horariosTrabalho.filter(
           <div className="aprovacao-botoes">
             <button
               className="btn-aprovar"
-              onClick={() => abrirLembreteWa(pedido)}
+              onClick={() =>
+                abrirLembreteWa(pedido, (p) => {
+                  setLembretesEnviados((prev) => {
+                    const novos = prev.includes(p.id) ? prev : [...prev, p.id];
+                    localStorage.setItem(
+                      "lembretes_amanha_enviados",
+                      JSON.stringify(novos)
+                    );
+                    return novos;
+                  });
+                })
+              }
             >
               🔔 Enviar lembrete
             </button>
