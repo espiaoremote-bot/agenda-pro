@@ -207,9 +207,23 @@ const NOMES_MESES = [
 
 // Diz se uma promoção está ativa para a data (mês + semana + dias da semana).
 // Sem data, usa hoje. `dias_semana` vazio/ausente = vale todos os dias.
-function promocaoAtivaEm(promo, dataReferencia) {
+function promocaoAtivaEm(
+  promo,
+  dataReferencia,
+  { ignorarDiaSemana = false } = {}
+) {
   if (!promo || promo.ativo === false) return false;
-  const data = dataReferencia ? new Date(dataReferencia) : new Date();
+  const data =
+    typeof dataReferencia === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(dataReferencia)
+      ? new Date(
+          Number(dataReferencia.slice(0, 4)),
+          Number(dataReferencia.slice(5, 7)) - 1,
+          Number(dataReferencia.slice(8, 10))
+        )
+      : dataReferencia
+      ? new Date(dataReferencia)
+      : new Date();
   const mes = data.getMonth() + 1;
   if (!Array.isArray(promo.meses) || !promo.meses.map(Number).includes(mes)) {
     return false;
@@ -221,7 +235,11 @@ function promocaoAtivaEm(promo, dataReferencia) {
     if (confSemanas[indiceSemana] === false) return false;
   }
   // Dia da semana permitido? (dias_semana vazio/ausente = todos os dias)
-  if (Array.isArray(promo.dias_semana) && promo.dias_semana.length > 0) {
+  if (
+    !ignorarDiaSemana &&
+    Array.isArray(promo.dias_semana) &&
+    promo.dias_semana.length > 0
+  ) {
     if (!promo.dias_semana.map(Number).includes(data.getDay())) return false;
   }
   return true;
@@ -2095,11 +2113,12 @@ const minhasPromocoes = profissionalLogado?.id
 
 // Promoções que o CLIENTE vê neste momento (seletor ativo pelo profissional
 // + promoção ativa no mês/semana atuais + o serviço da promoção está ATIVO).
+// O dia da semana é validado depois, contra a data escolhida no agendamento.
 const promocoesParaCliente = promocoes.filter(
   (p) =>
     Number(p.profissional_id) === Number(profissionalCliente) &&
     dadosProfissionalCliente?.seletor_promocoes_habilitado !== false &&
-    promocaoAtivaEm(p) &&
+    promocaoAtivaEm(p, undefined, { ignorarDiaSemana: true }) &&
     servicos.some(
       (s) =>
         Number(s.profissional_id) === Number(profissionalCliente) &&
@@ -2121,7 +2140,7 @@ const promocoesParaAgendarCliente = profissionalLogado?.id
       (p) =>
         Number(p.profissional_id) === Number(profissionalLogado.id) &&
         dadosProfissionalCliente?.seletor_promocoes_habilitado !== false &&
-        promocaoAtivaEm(p) &&
+        promocaoAtivaEm(p, undefined, { ignorarDiaSemana: true }) &&
         meusServicos.some((s) => s.nome === p.servico && s.ativo)
     )
   : [];
@@ -6570,7 +6589,9 @@ Adicionar serviço
             </p>
             <p>
               🗓️{" "}
-              {promocaoAtivaEm(promo)
+              {promocaoAtivaEm(promo, undefined, {
+                ignorarDiaSemana: true,
+              })
                 ? "Ativa para o mês/semana atual"
                 : "Fora do período atual"}
             </p>
