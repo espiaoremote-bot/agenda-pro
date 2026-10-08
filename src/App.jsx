@@ -2239,7 +2239,7 @@ function abrirLembreteWa(pedido) {
     return;
   }
   const mensagem =
-    `Olá, ${pedido.nome}! 👋 Passando para lembrar do seu agendamento:\n\n` +
+    `Olá, ${pedido.nome}! 👋🏻 Passando para lembrar do seu agendamento:\n\n` +
     `📅 ${formatarDataBR(pedido.data)} às ⏰ ${pedido.horario}\n` +
     `💈 ${pedido.servico}\n\n` +
     `Qualquer dúvida é só chamar! 😉`;
@@ -4863,7 +4863,7 @@ Criar profissional
 </p>
 
 <h2>
-  Olá, {profissionalLogado?.nome} 👋
+  Olá, {profissionalLogado?.nome} 👋🏻
 </h2>
 <div style={{marginTop:"20px"}}>
 
