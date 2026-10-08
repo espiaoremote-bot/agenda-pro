@@ -2244,3 +2244,63 @@ button.btn.cadastrar {
 .aprovacao-botoes .btn-recusar:hover {
   background: #b91c1c;
 }
+
+/* =====================================
+   CONFIGURAÇÕES EM ABAS (Perfil / Serviços / Horários)
+===================================== */
+.config-abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.config-aba {
+  flex: 1 1 0;
+  min-width: 100px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--cor-borda);
+  background: var(--fundo);
+  color: var(--texto);
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.config-aba.ativa {
+  background: linear-gradient(135deg, var(--cor-secundaria), var(--cor-primaria));
+  color: #fff;
+  border-color: transparent;
+}
+
+.config-aba:hover:not(.ativa) {
+  opacity: 0.8;
+  transform: translateY(-2px);
+}
+
+.config-subtitulo {
+  margin: 24px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--cor-borda);
+  color: var(--texto);
+  font-size: 15px;
+}
+
+/* Reordena a aba Perfil: os itens de perfil (cor/ícone/pix/endereço)
+   aparecem primeiro e os demais ajustes ficam agrupados depois. */
+.config-ordenado {
+  display: flex;
+  flex-direction: column;
+}
+
+.config-ordenado > .tema-configuracao {
+  order: 0;
+}
+
+.config-ordenado > .link-profissional,
+.config-ordenado > .saldo-config,
+.config-ordenado > .config-subtitulo {
+  order: 1;
+}

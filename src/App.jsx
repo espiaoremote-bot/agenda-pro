@@ -671,15 +671,14 @@ const [lembretesEnviados, setLembretesEnviados] = useState(() => {
 
 const [dataSelecionada, setDataSelecionada] = useState(new Date());
 const [nome, setNome] = useState("");
-const [mostrarConfiguracaoServicos, setMostrarConfiguracaoServicos] = useState(false);
 
 // Aba ativa da lista "Serviços cadastrados" ("normais" | "promocao").
 const [abaServicos, setAbaServicos] = useState("normais");
 
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
+// Aba ativa dentro do painel de Configurações: "perfil" | "servicos" | "horarios".
+const [abaConfiguracoes, setAbaConfiguracoes] = useState("perfil");
  
-const [mostrarConfiguracaoHorarios, setMostrarConfiguracaoHorarios] = useState(false);
-
 // Pix de pagamento cadastrado pelo profissional (chave + banco).
 const [pixChave, setPixChave] = useState("");
 const [pixBanco, setPixBanco] = useState("");
@@ -5415,7 +5414,31 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
 {mostrarConfiguracoes && (
 <div>
 
-<div className="config-servicos">
+<div className="config-abas">
+  <button
+    className={abaConfiguracoes === "perfil" ? "config-aba ativa" : "config-aba"}
+    onClick={() => setAbaConfiguracoes("perfil")}
+  >
+    👤 Perfil
+  </button>
+  <button
+    className={abaConfiguracoes === "servicos" ? "config-aba ativa" : "config-aba"}
+    onClick={() => setAbaConfiguracoes("servicos")}
+  >
+    💈 Serviços
+  </button>
+  <button
+    className={abaConfiguracoes === "horarios" ? "config-aba ativa" : "config-aba"}
+    onClick={() => setAbaConfiguracoes("horarios")}
+  >
+    ⏰ Horários
+  </button>
+</div>
+
+{abaConfiguracoes === "perfil" && (
+<div className="config-servicos config-ordenado">
+
+<h4 className="config-subtitulo" style={{ order: 1 }}>⚙️ Outros ajustes</h4>
 
 
 
@@ -5896,27 +5919,12 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
     )}
   </div>
 </div>
+</div>
+)}
 
-<button
-onClick={() => {
-  setMostrarConfiguracaoServicos(
-    !mostrarConfiguracaoServicos
-  );
-}}
->
-{
-mostrarConfiguracaoServicos
-?
-"❌ Fechar serviços"
-:
-"⚙️ Configurar serviços"
-}
-</button>
-
-
-{mostrarConfiguracaoServicos && (
-
+{abaConfiguracoes === "servicos" && (
 <div>
+<h3>💈 Configurar serviços</h3>
 
 <input
 placeholder="Nome do serviço"
@@ -6500,22 +6508,7 @@ Adicionar serviço
 
 )}
 
-</div>
-
-
-<button
-  className="btn-config-horarios"
-  onClick={() =>
-    setMostrarConfiguracaoHorarios(!mostrarConfiguracaoHorarios)
-  }
->
-  {mostrarConfiguracaoHorarios
-    ? "❌ Fechar horários"
-    : "⚙️ Configurar horários"}
-</button>
-
-
-{mostrarConfiguracaoHorarios && (
+{abaConfiguracoes === "horarios" && (
 
 <div className={`config-horarios${diasFolga.includes(diaSelecionado) ? " dia-folga-ativo" : ""}`}>
 
