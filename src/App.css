@@ -1074,6 +1074,34 @@ body,
   gap:10px;
   align-items:center;
 }
+
+.editar-valor-agendamento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+
+.editar-valor-agendamento label {
+  flex-basis: 100%;
+  font-weight: bold;
+}
+
+.editar-valor-agendamento input {
+  width: 150px;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.editar-valor-agendamento button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .agenda-card .horario-card {
   background: var(--cor-primaria);
   color:white;
