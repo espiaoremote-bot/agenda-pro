@@ -1563,6 +1563,33 @@ select:focus {
   color: #fff !important;
 }
 
+.saldo-ciclo-personalizado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.saldo-ciclo-personalizado label {
+  font-weight: bold;
+}
+
+.saldo-ciclo-personalizado select {
+  padding: 8px 12px;
+  border: 2px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--branco);
+  color: var(--texto);
+  font-size: 15px;
+}
+
+.saldo-ciclo-personalizado .saldo-legenda {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .saldo-numero {
   font-size: 48px;
   font-weight: bold;

@@ -736,6 +736,7 @@ const [selecionarParaExcluir, setSelecionarParaExcluir] = useState(false);
 const [diasSelecionadosExclusao, setDiasSelecionadosExclusao] = useState([]);
 const [saldoHabilitado, setSaldoHabilitado] = useState(false);
 const [periodoSaldo, setPeriodoSaldo] = useState("semanal");
+const [diaInicioSaldo, setDiaInicioSaldo] = useState(1);
 const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
 const [mostrarAgendarCliente, setMostrarAgendarCliente] = useState(false);
 const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
@@ -2038,6 +2039,14 @@ useEffect(() => {
     setSaldoHabilitado(
       localStorage.getItem(`saldo_habilitado_${profissionalLogado.id}`) === "1"
     );
+    const diaSalvo = Number(
+      localStorage.getItem(`dia_inicio_saldo_${profissionalLogado.id}`)
+    );
+    if (Number.isInteger(diaSalvo) && diaSalvo >= 1 && diaSalvo <= 31) {
+      setDiaInicioSaldo(diaSalvo);
+    } else {
+      setDiaInicioSaldo(1);
+    }
   }
 }, [profissionalLogado]);
 
@@ -2212,7 +2221,42 @@ const hojeSaldoString = hojeSaldo.toLocaleDateString("sv-SE");
 const limiteSaldoDate = new Date();
 const diasSaldo = diasPeriodoSaldo[periodoSaldo] ?? 30;
 limiteSaldoDate.setDate(limiteSaldoDate.getDate() - diasSaldo);
-const limiteSaldoString = limiteSaldoDate.toLocaleDateString("sv-SE");
+const dataInicioMesSaldo = new Date(
+  hojeSaldo.getFullYear(),
+  hojeSaldo.getMonth(),
+  Math.min(
+    diaInicioSaldo,
+    new Date(hojeSaldo.getFullYear(), hojeSaldo.getMonth() + 1, 0).getDate()
+  )
+);
+const dataInicioCicloSaldo =
+  hojeSaldo < dataInicioMesSaldo
+    ? new Date(
+        hojeSaldo.getFullYear(),
+        hojeSaldo.getMonth() - 1,
+        Math.min(
+          diaInicioSaldo,
+          new Date(hojeSaldo.getFullYear(), hojeSaldo.getMonth(), 0).getDate()
+        )
+      )
+    : dataInicioMesSaldo;
+const dataFimCicloSaldo = new Date(
+  dataInicioCicloSaldo.getFullYear(),
+  dataInicioCicloSaldo.getMonth() + 1,
+  Math.min(
+    diaInicioSaldo,
+    new Date(
+      dataInicioCicloSaldo.getFullYear(),
+      dataInicioCicloSaldo.getMonth() + 2,
+      0
+    ).getDate()
+  ) - 1
+);
+const limiteSaldoString =
+  periodoSaldo === "personalizado"
+    ? dataInicioCicloSaldo.toLocaleDateString("sv-SE")
+    : limiteSaldoDate.toLocaleDateString("sv-SE");
+const fimCicloSaldoString = dataFimCicloSaldo.toLocaleDateString("sv-SE");
 
 // Datas de conclusão guardadas localmente neste navegador.
 // São usadas enquanto a coluna `dataconcluido` ainda não existe no banco,
@@ -7101,7 +7145,45 @@ horariosTrabalho.filter(
       >
         Mensal
       </button>
+      <button
+        className={periodoSaldo === "personalizado" ? "saldo-periodo-ativo" : ""}
+        onClick={() => setPeriodoSaldo("personalizado")}
+      >
+        Personalizado
+      </button>
     </div>
+
+    {periodoSaldo === "personalizado" && (
+      <div className="saldo-ciclo-personalizado">
+        <label htmlFor="saldo-dia-inicio">
+          Dia de início do ciclo:
+        </label>
+        <select
+          id="saldo-dia-inicio"
+          value={diaInicioSaldo}
+          onChange={(e) => {
+            const dia = Number(e.target.value);
+            setDiaInicioSaldo(dia);
+            if (profissionalLogado?.id) {
+              localStorage.setItem(
+                `dia_inicio_saldo_${profissionalLogado.id}`,
+                String(dia)
+              );
+            }
+          }}
+        >
+          {Array.from({ length: 31 }, (_, indice) => indice + 1).map((dia) => (
+            <option key={dia} value={dia}>
+              Dia {dia}
+            </option>
+          ))}
+        </select>
+        <p className="saldo-legenda">
+          Ciclo atual: {formatarDataBR(limiteSaldoString)} a{" "}
+          {formatarDataBR(fimCicloSaldoString)}
+        </p>
+      </div>
+    )}
 
     <p className="saldo-numero">R$ {trabalhosConcluidos.toFixed(2).replace(".", ",")}</p>
     <p className="saldo-legenda">
@@ -7111,6 +7193,8 @@ horariosTrabalho.filter(
         ? "valor dos trabalhos concluídos nos últimos 7 dias"
         : periodoSaldo === "quinzenal"
         ? "valor dos trabalhos concluídos nos últimos 15 dias"
+        : periodoSaldo === "personalizado"
+        ? "valor dos trabalhos concluídos no ciclo atual até hoje"
         : "valor dos trabalhos concluídos nos últimos 30 dias"}
     </p>
   </div>
