@@ -712,6 +712,9 @@ const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
 const [pedido, setPedido] = useState(null);
 const [pedidos, setPedidos] = useState([]);
+const [pedidoEditandoValor, setPedidoEditandoValor] = useState(null);
+const [valorAgendamentoEditando, setValorAgendamentoEditando] = useState("");
+const [salvandoValorAgendamento, setSalvandoValorAgendamento] = useState(false);
 
 // IDs dos agendamentos de amanhã cujo lembrete já foi enviado.
 // Fica no localStorage para não voltarem à lista ao recarregar a página.
@@ -7233,6 +7236,8 @@ horariosTrabalho.filter(
         ? "valor dos trabalhos concluídos nos últimos 7 dias"
         : periodoSaldo === "quinzenal"
         ? "valor dos trabalhos concluídos nos últimos 15 dias"
+        : periodoSaldo === "personalizado"
+        ? "valor dos trabalhos concluídos no ciclo atual até hoje"
         : "valor dos trabalhos concluídos nos últimos 30 dias"}
     </p>
   </div>
@@ -7746,6 +7751,18 @@ onClick={async () => {
 </button>
 
 <button
+  type="button"
+  onClick={() => {
+    setPedidoEditandoValor(pedido.id);
+    setValorAgendamentoEditando(String(pedido.valor_servico ?? 0));
+    setMensagemErroProfissional("");
+    setMensagemProfissional("");
+  }}
+>
+  ✏️ Alterar valor de serviço
+</button>
+
+<button
 onClick={async () => {
 
 
@@ -7890,6 +7907,91 @@ setMensagemErroProfissional("Agendamento cancelado!");
 >
   🔄 Reagendar
 </button>
+
+{pedidoEditandoValor === pedido.id && (
+  <div className="editar-valor-agendamento">
+    <label htmlFor={`valor-agendamento-${pedido.id}`}>
+      Novo valor do serviço (R$)
+    </label>
+    <input
+      id={`valor-agendamento-${pedido.id}`}
+      type="number"
+      min="0"
+      step="0.01"
+      value={valorAgendamentoEditando}
+      onChange={(e) => setValorAgendamentoEditando(e.target.value)}
+      disabled={salvandoValorAgendamento}
+    />
+    <button
+      type="button"
+      disabled={salvandoValorAgendamento}
+      onClick={async () => {
+        const valor = Number(
+          String(valorAgendamentoEditando).replace(",", ".")
+        );
+        if (
+          valorAgendamentoEditando.trim() === "" ||
+          !Number.isFinite(valor) ||
+          valor < 0
+        ) {
+          setMensagemErroProfissional("Digite um valor válido a partir de R$ 0,00.");
+          return;
+        }
+        if (!profissionalLogado?.id) {
+          setMensagemErroProfissional("Faça login como profissional para alterar o valor.");
+          return;
+        }
+
+        setSalvandoValorAgendamento(true);
+        setMensagemErroProfissional("");
+        setMensagemProfissional("");
+        const { data, error } = await supabase
+          .from("agendamentos")
+          .update({ valor_servico: valor })
+          .eq("id", pedido.id)
+          .eq("profissional_id", profissionalLogado.id)
+          .select("*")
+          .maybeSingle();
+
+        if (error) {
+          console.error(error);
+          setMensagemErroProfissional("Não foi possível salvar o novo valor. Tente novamente.");
+          setSalvandoValorAgendamento(false);
+          return;
+        }
+        if (!data) {
+          setMensagemErroProfissional("Agendamento não encontrado para este profissional.");
+          setSalvandoValorAgendamento(false);
+          return;
+        }
+
+        setPedidos((prev) => {
+          const atualizados = prev.map((item) =>
+            item.id === data.id ? data : item
+          );
+          localStorage.setItem("pedidos", JSON.stringify(atualizados));
+          return atualizados;
+        });
+        setPedidoEditandoValor(null);
+        setValorAgendamentoEditando("");
+        setSalvandoValorAgendamento(false);
+        setMensagemProfissional("Valor do agendamento atualizado!");
+      }}
+    >
+      {salvandoValorAgendamento ? "Salvando..." : "💾 Salvar valor"}
+    </button>
+    <button
+      type="button"
+      disabled={salvandoValorAgendamento}
+      onClick={() => {
+        setPedidoEditandoValor(null);
+        setValorAgendamentoEditando("");
+      }}
+    >
+      Cancelar
+    </button>
+  </div>
+)}
 
 {(() => {
   const grupoRecorrencia = mesesDaRecorrencia(pedido, pedidos, profissionalLogado?.id);
