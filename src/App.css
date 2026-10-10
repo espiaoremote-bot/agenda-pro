@@ -1530,6 +1530,36 @@ select:focus {
   cursor: pointer;
 }
 
+.saldo-personalizado {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.saldo-personalizado label {
+  display: flex;
+  flex: 1 1 140px;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 220px;
+  text-align: left;
+  font-weight: bold;
+}
+
+.saldo-personalizado input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--branco);
+  color: var(--texto);
+  font: inherit;
+}
+
 .saldo-periodo-ativo {
   background: var(--cor-primaria) !important;
   color: #fff !important;

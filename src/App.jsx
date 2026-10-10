@@ -7,6 +7,42 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import "./App.css";
 
+const URL_PUBLICA = "https://agenda-pro-gilt.vercel.app";
+
+function gerarLinkProfissional(idProfissional, login = false) {
+  const baseUrl = Capacitor.isNativePlatform()
+    ? URL_PUBLICA
+    : window.location.origin;
+  const parametros = new URLSearchParams({ profissional: String(idProfissional) });
+  if (login) parametros.set("login", "1");
+  return `${baseUrl}/?${parametros.toString()}`;
+}
+
+async function copiarTexto(texto) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      return;
+    } catch (error) {
+      console.warn("Clipboard API indisponível; tentando cópia compatível.", error);
+    }
+  }
+
+  const campo = document.createElement("textarea");
+  campo.value = texto;
+  campo.setAttribute("readonly", "");
+  campo.style.position = "fixed";
+  campo.style.opacity = "0";
+  document.body.appendChild(campo);
+  campo.select();
+  const copiado = document.execCommand("copy");
+  campo.remove();
+
+  if (!copiado) {
+    throw new Error("Não foi possível copiar o texto para a área de transferência.");
+  }
+}
+
 // Temas disponíveis para profissionais e para os clientes verem no agendamento.
 const themeOptions = [
   {
@@ -733,6 +769,9 @@ const [selecionarParaExcluir, setSelecionarParaExcluir] = useState(false);
 const [diasSelecionadosExclusao, setDiasSelecionadosExclusao] = useState([]);
 const [saldoHabilitado, setSaldoHabilitado] = useState(false);
 const [periodoSaldo, setPeriodoSaldo] = useState("semanal");
+const [inicioSaldoPersonalizado, setInicioSaldoPersonalizado] = useState(
+  () => new Date().toLocaleDateString("sv-SE")
+);
 const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(null);
 const [mostrarAgendarCliente, setMostrarAgendarCliente] = useState(false);
 const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
@@ -1186,6 +1225,8 @@ setCopiarHorariosMensagemTipo("sucesso");
 }
 
 useEffect(() => {
+  let cancelado = false;
+
   async function carregarHorariosCliente() {
     if (!profissionalCliente) {
       setHorariosPorLinhaCliente({});
@@ -1198,12 +1239,14 @@ useEffect(() => {
     const diasFolgaDoProfissional = profissionalCliente
       ? await buscarDiasFolga(profissionalCliente)
       : [];
+    if (cancelado) return;
     setDiasFolgaCliente(diasFolgaDoProfissional);
 
     // Datas específicas de folga do profissional que o cliente está vendo.
     const folgasDatasDoProfissional = profissionalCliente
       ? await buscarFolgasDatas(profissionalCliente)
       : [];
+    if (cancelado) return;
     setFolgasDatasCliente(folgasDatasDoProfissional);
 
     for (let i = 0; i < itensCliente.length; i++) {
@@ -1240,6 +1283,7 @@ useEffect(() => {
         console.error(error);
         continue;
       }
+      if (cancelado) return;
 
       const hojeData = new Date();
 
@@ -1252,7 +1296,7 @@ useEffect(() => {
 
       const agora = new Date();
 
-      const slotsDelDia = horarios.map((linha) => linha.horario);
+      const slotsDelDia = (horarios || []).map((linha) => linha.horario);
 
       // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas,
       // respetando a DURAÇÃO de cada serviço (ex.: 13:00 com 2h ocupa 13:00 e 14:00).
@@ -1292,7 +1336,7 @@ useEffect(() => {
         promocoes
       );
 
-      const horariosDisponiveisFiltrados = horarios
+      const horariosDisponiveisFiltrados = (horarios || [])
         .map((linha) => linha.horario)
         .filter((hora) =>
           slotsQueOcupa(hora, horasServicioLinha, slotsDelDia).every(
@@ -1324,14 +1368,19 @@ useEffect(() => {
       mapa[i] = horariosDisponiveisFiltrados;
     }
 
-    setHorariosPorLinhaCliente(mapa);
+    if (!cancelado) setHorariosPorLinhaCliente(mapa);
   }
 
   carregarHorariosCliente();
+  return () => {
+    cancelado = true;
+  };
 }, [profissionalCliente, itensCliente, pedidos, servicos, promocoes]);
 
 // Horários livres para AGENDAR POR um cliente (formulário dentro da área profissional).
 useEffect(() => {
+  let cancelado = false;
+
   async function carregarHorariosAgendarCliente() {
     if (!profissionalLogado || !mostrarAgendarCliente) {
       setHorariosPorLinhaAgendarCliente({});
@@ -1342,7 +1391,9 @@ useEffect(() => {
 
     // Dias de folga do profissional logado.
     const diasFolgaDoProfissional = await buscarDiasFolga(profissionalLogado.id);
+    if (cancelado) return;
     const folgasDatasDoProfissional = await buscarFolgasDatas(profissionalLogado.id);
+    if (cancelado) return;
 
     for (let i = 0; i < itensAgendarCliente.length; i++) {
       const item = itensAgendarCliente[i];
@@ -1378,6 +1429,7 @@ useEffect(() => {
         console.error(error);
         continue;
       }
+      if (cancelado) return;
 
       const agora = new Date();
 
@@ -1388,7 +1440,7 @@ useEffect(() => {
         "-" +
         String(agora.getDate()).padStart(2, "0");
 
-      const slotsDelDia = horarios.map((linha) => linha.horario);
+      const slotsDelDia = (horarios || []).map((linha) => linha.horario);
 
       // Ocupados: agendamentos ativos do dia + horários escolhidos nas outras linhas,
       // respetando a DURAÇÃO de cada serviço (ex.: 13:00 com 2h ocupa 13:00 e 14:00).
@@ -1427,7 +1479,7 @@ useEffect(() => {
         promocoes
       );
 
-      const horariosLivres = horarios
+      const horariosLivres = (horarios || [])
         .map((linha) => linha.horario)
         .filter((hora) =>
           slotsQueOcupa(hora, horasServicioLinha, slotsDelDia).every(
@@ -1456,10 +1508,13 @@ useEffect(() => {
       mapa[i] = horariosLivres;
     }
 
-    setHorariosPorLinhaAgendarCliente(mapa);
+    if (!cancelado) setHorariosPorLinhaAgendarCliente(mapa);
   }
 
   carregarHorariosAgendarCliente();
+  return () => {
+    cancelado = true;
+  };
 }, [profissionalLogado, mostrarAgendarCliente, itensAgendarCliente, pedidos, meusServicos, promocoes]);
 
 // Horários livres para REAGENDAR um agendamento (formulário dentro da agenda).
@@ -2008,6 +2063,20 @@ useEffect(() => {
     }
   };
 
+  const processarEventoAgendamento = (payload) => {
+    const novoPedido = payload?.new;
+    if (
+      payload?.eventType === "INSERT" &&
+      Number(novoPedido?.profissional_id) === Number(idProfissional) &&
+      !pedidosVistosRef.current.has(novoPedido.id) &&
+      (novoPedido.status === "Agendado" || novoPedido.status === "Pendente")
+    ) {
+      pedidosVistosRef.current.add(novoPedido.id);
+      setNotificacaoNovoAgendamento(novoPedido);
+    }
+    atualizarPedidos();
+  };
+
   // Sincronização imediata: os agendamentos que já existem entram na lista
   // de "já vistos" e não disparam notificação.
   atualizarPedidos();
@@ -2016,10 +2085,19 @@ useEffect(() => {
     .channel(`agendamentos-realtime-${idProfissional}`)
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "agendamentos" },
-      () => atualizarPedidos()
+      {
+        event: "*",
+        schema: "public",
+        table: "agendamentos",
+        filter: `profissional_id=eq.${idProfissional}`,
+      },
+      processarEventoAgendamento
     )
-    .subscribe();
+    .subscribe((status, erro) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error("Falha ao receber novos agendamentos em tempo real:", erro);
+      }
+    });
 
   intervalo = setInterval(atualizarPedidos, 20000);
 
@@ -2035,6 +2113,12 @@ useEffect(() => {
     setSaldoHabilitado(
       localStorage.getItem(`saldo_habilitado_${profissionalLogado.id}`) === "1"
     );
+    const dataInicioSalva = localStorage.getItem(
+      `saldo_data_inicio_${profissionalLogado.id}`
+    );
+    if (dataInicioSalva) {
+      setInicioSaldoPersonalizado(dataInicioSalva);
+    }
   }
 }, [profissionalLogado]);
 
@@ -2210,6 +2294,11 @@ const limiteSaldoDate = new Date();
 const diasSaldo = diasPeriodoSaldo[periodoSaldo] ?? 30;
 limiteSaldoDate.setDate(limiteSaldoDate.getDate() - diasSaldo);
 const limiteSaldoString = limiteSaldoDate.toLocaleDateString("sv-SE");
+const inicioPeriodoSaldo =
+  periodoSaldo === "personalizado"
+    ? inicioSaldoPersonalizado
+    : limiteSaldoString;
+const fimPeriodoSaldo = hojeSaldoString;
 
 // Datas de conclusão guardadas localmente neste navegador.
 // São usadas enquanto a coluna `dataconcluido` ainda não existe no banco,
@@ -2234,7 +2323,11 @@ const trabalhosConcluidos = pedidos
     // Preferência: coluna no banco → data local deste navegador → dia agendado.
     const dataConcluido =
       pedido.dataconcluido || datasConclusaoLocais[pedido.id] || pedido.data;
-    return dataConcluido >= limiteSaldoString && dataConcluido <= hojeSaldoString;
+    return (
+      inicioPeriodoSaldo <= fimPeriodoSaldo &&
+      dataConcluido >= inicioPeriodoSaldo &&
+      dataConcluido <= fimPeriodoSaldo
+    );
   })
   .reduce((soma, pedido) => soma + (Number(pedido.valor_servico) || 0), 0);
 
@@ -4644,12 +4737,13 @@ setTotalAgendamentos(count);
     <p>📅 Link do cliente — para o cliente agendar</p>
     <button
       onClick={async () => {
-        const link = `${window.location.origin}/?profissional=${profissional.id}`;
+        const link = gerarLinkProfissional(profissional.id);
         try {
-          await navigator.clipboard.writeText(link);
+          await copiarTexto(link);
           alert("Link do cliente copiado!");
         } catch (err) {
-          alert(link);
+          console.error("Falha ao copiar o link do cliente:", err);
+          window.prompt("Copie o link do cliente:", link);
         }
       }}
     >
@@ -4659,12 +4753,13 @@ setTotalAgendamentos(count);
     <p>💼 Link do profissional — para abrir o login direto</p>
     <button
       onClick={async () => {
-        const link = `${window.location.origin}/?profissional=${profissional.id}&login=1`;
+        const link = gerarLinkProfissional(profissional.id, true);
         try {
-          await navigator.clipboard.writeText(link);
+          await copiarTexto(link);
           alert("Link do profissional copiado!");
         } catch (err) {
-          alert(link);
+          console.error("Falha ao copiar o link do profissional:", err);
+          window.prompt("Copie o link do profissional:", link);
         }
       }}
     >
@@ -5558,12 +5653,13 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       width:"100%"
     }}
     onClick={async () => {
-      const link = `${window.location.origin}/?profissional=${profissionalLogado?.id}`;
+      const link = gerarLinkProfissional(profissionalLogado?.id);
       try {
-        await navigator.clipboard.writeText(link);
+        await copiarTexto(link);
         alert("Link de agendamento copiado!");
       } catch (err) {
-        alert(link);
+        console.error("Falha ao copiar o link de agendamento:", err);
+        window.prompt("Copie o link de agendamento:", link);
       }
     }}
   >
@@ -7098,11 +7194,40 @@ horariosTrabalho.filter(
       >
         Mensal
       </button>
+      <button
+        className={periodoSaldo === "personalizado" ? "saldo-periodo-ativo" : ""}
+        onClick={() => setPeriodoSaldo("personalizado")}
+      >
+        Personalizado
+      </button>
     </div>
+
+    {periodoSaldo === "personalizado" && (
+      <div className="saldo-personalizado">
+        <label>
+          Data inicial
+          <input
+            type="date"
+            value={inicioSaldoPersonalizado}
+            max={hojeSaldoString}
+            onChange={(e) => {
+              const data = e.target.value;
+              setInicioSaldoPersonalizado(data);
+              localStorage.setItem(
+                `saldo_data_inicio_${profissionalLogado.id}`,
+                data
+              );
+            }}
+          />
+        </label>
+      </div>
+    )}
 
     <p className="saldo-numero">R$ {trabalhosConcluidos.toFixed(2).replace(".", ",")}</p>
     <p className="saldo-legenda">
-      {periodoSaldo === "diario"
+      {periodoSaldo === "personalizado"
+        ? `valor dos trabalhos concluídos de ${inicioSaldoPersonalizado} até hoje`
+        : periodoSaldo === "diario"
         ? "valor dos trabalhos concluídos hoje"
         : periodoSaldo === "semanal"
         ? "valor dos trabalhos concluídos nos últimos 7 dias"
@@ -7920,6 +8045,8 @@ setMensagemErroProfissional("Agendamento cancelado!");
 {profissionalLogado && notificacaoNovoAgendamento && (
   <div
     className="notificacao-whatsapp notificacao-clicavel"
+    role="alert"
+    aria-live="assertive"
     onClick={() => setNotificacaoNovoAgendamento(null)}
     title="Clique para confirmar que viu"
   >
