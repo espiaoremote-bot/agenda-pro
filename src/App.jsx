@@ -3749,6 +3749,9 @@ return (
         <button
           className="btn entrar"
           onClick={() => {
+            if (profissionalLogado?.id) {
+              setProfissionalCliente(profissionalLogado.id);
+            }
             setTela("cliente");
           }}
         >
