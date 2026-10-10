@@ -78,6 +78,24 @@ body,
   font-size:16px;
 }
 
+.lembrar-login {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: #555;
+  font-size: 14px;
+  text-align: left;
+}
+
+.lembrar-login input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--cor-primaria);
+}
+
 
 .btn-login {
   width:100%;

@@ -669,8 +669,25 @@ class ProtectorDeErrores extends Component {
 function App() {
   const [tela, setTela] = useState("inicio");
 
-const [senha, setSenha] = useState("");
-const [loginNome, setLoginNome] = useState("");
+const [credenciaisLembradas] = useState(() => {
+  try {
+    const credenciais = JSON.parse(
+      localStorage.getItem("credenciais_profissional") || "null"
+    );
+    return typeof credenciais?.nome === "string" &&
+      typeof credenciais?.senha === "string"
+      ? credenciais
+      : null;
+  } catch (error) {
+    console.error("Falha ao ler o login salvo:", error);
+    return null;
+  }
+});
+const [senha, setSenha] = useState(() => credenciaisLembradas?.senha || "");
+const [loginNome, setLoginNome] = useState(() => credenciaisLembradas?.nome || "");
+const [lembrarLogin, setLembrarLogin] = useState(
+  () => credenciaisLembradas !== null
+);
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
@@ -1260,6 +1277,17 @@ useEffect(() => {
         continue;
       }
 
+      const promocaoDaLinha = item.em_promocao
+        ? promocoes.find((promo) => Number(promo.id) === Number(item.promo_id))
+        : null;
+      if (
+        item.em_promocao &&
+        (!promocaoDaLinha || !promocaoAtivaEm(promocaoDaLinha, item.data))
+      ) {
+        mapa[i] = [];
+        continue;
+      }
+
       const dataEscolhida = new Date(item.data + "T00:00:00");
 
       const diaSemana = diasSemanaPorIndice[dataEscolhida.getDay()];
@@ -1402,6 +1430,17 @@ useEffect(() => {
       const item = itensAgendarCliente[i];
 
       if (!item.data) {
+        mapa[i] = [];
+        continue;
+      }
+
+      const promocaoDaLinha = item.em_promocao
+        ? promocoes.find((promo) => Number(promo.id) === Number(item.promo_id))
+        : null;
+      if (
+        item.em_promocao &&
+        (!promocaoDaLinha || !promocaoAtivaEm(promocaoDaLinha, item.data))
+      ) {
         mapa[i] = [];
         continue;
       }
@@ -2755,6 +2794,9 @@ function atualizarLinhaCliente(indice, campo, valor) {
     prev.map((item, i) => {
       if (i !== indice) return item;
       const atualizado = { ...item, [campo]: valor };
+      if (campo === "data" || campo === "servico") {
+        atualizado.horario = "";
+      }
       if (campo === "servico") {
         const servicoEncontrado = servicos.find(
           (s) =>
@@ -3420,6 +3462,9 @@ function atualizarLinhaAgendarCliente(indice, campo, valor) {
     prev.map((item, i) => {
       if (i !== indice) return item;
       const atualizado = { ...item, [campo]: valor };
+      if (campo === "data" || campo === "servico") {
+        atualizado.horario = "";
+      }
       if (campo === "servico") {
         const servicoEncontrado = meusServicos.find(
           (s) => s.nome === valor && s.ativo
@@ -3427,6 +3472,8 @@ function atualizarLinhaAgendarCliente(indice, campo, valor) {
         atualizado.valor = servicoEncontrado?.valor || 0;
         atualizado.promo_id = null;
         if (item.em_promocao) {
+          atualizado.frequencia = "mensal";
+          atualizado.meses = 1;
           // Linha do seletor de promoções: usa o valor (e a duração) da promoção.
           const promo = promocoesParaAgendarCliente.find(
             (p) => p.servico === valor
@@ -3634,10 +3681,11 @@ async function enviarPedidoAgendarCliente() {
     // Linhas vazias (sem serviço/horário) são placeholders "➕" e se ignoran.
     if (!item.servico || !item.horario) continue;
 
-    const datasDaRecorrencia =
-      item.frequencia === "semanal"
-        ? datasParaSemanas(item.data, item.meses)
-        : datasParaMeses(item.data, item.meses);
+    const datasDaRecorrencia = item.em_promocao
+      ? [item.data]
+      : item.frequencia === "semanal"
+      ? datasParaSemanas(item.data, item.meses)
+      : datasParaMeses(item.data, item.meses);
 
     // Se alguma data da recorrência cai em folga (semana ou data específica),
     // bloqueia para não criar agendamento em dia de folga.
@@ -3849,6 +3897,26 @@ return (
   onChange={(e) => setSenha(e.target.value)}
 />
 
+<label className="lembrar-login">
+  <input
+    type="checkbox"
+    checked={lembrarLogin}
+    onChange={(e) => {
+      const lembrar = e.target.checked;
+      setLembrarLogin(lembrar);
+      if (!lembrar) {
+        try {
+          localStorage.removeItem("credenciais_profissional");
+        } catch (error) {
+          console.error("Falha ao remover o login salvo:", error);
+          alert("Não foi possível remover o login salvo neste aparelho.");
+        }
+      }
+    }}
+  />
+  Lembrar senha e login neste aparelho
+</label>
+
 <button className="btn-login"
 onClick={async () => {
 
@@ -3885,6 +3953,25 @@ if (!resultadoLogado.ativo) {
   return;
 }
 
+if (lembrarLogin) {
+  try {
+    localStorage.setItem(
+      "credenciais_profissional",
+      JSON.stringify({ nome: loginNome, senha })
+    );
+  } catch (error) {
+    console.error("Falha ao salvar o login neste aparelho:", error);
+    alert("Login realizado, mas não foi possível salvar os dados neste aparelho.");
+  }
+} else {
+  try {
+    localStorage.removeItem("credenciais_profissional");
+  } catch (error) {
+    console.error("Falha ao remover o login salvo:", error);
+    alert("Login realizado, mas não foi possível remover os dados salvos neste aparelho.");
+  }
+}
+
 setProfissionalLogado(resultadoLogado);
 localStorage.setItem("profissionalLogado", JSON.stringify(resultadoLogado));
 // Remove os parâmetros do link de login da URL para a sessão valer no refresh.
@@ -3901,8 +3988,10 @@ if (resultadoLogado.tipo === "super_admin") {
   setTela("profissional");
 }
 
-setSenha("");
-setLoginNome("");
+if (!lembrarLogin) {
+  setSenha("");
+  setLoginNome("");
+}
 
 }}
 >
@@ -4207,6 +4296,15 @@ onChange={(e) => {
           <label>Horário</label>
           <select
             value={item.horario}
+            disabled={
+              !item.data ||
+              !promocaoAtivaEm(
+                promocoes.find(
+                  (promo) => Number(promo.id) === Number(item.promo_id)
+                ),
+                item.data
+              )
+            }
             onChange={(e) => atualizarLinhaCliente(indice, "horario", e.target.value)}
           >
             <option value="">
@@ -4272,6 +4370,14 @@ onChange={(e) => {
               {diasFolgaCliente.includes(diaSemanaDaData(item.data)) ||
               folgasDatasCliente.includes(item.data)
                 ? "🚫 Este dia é folga do profissional. Escolha outra data."
+                : !promocaoAtivaEm(
+                    promocoes.find(
+                      (promo) =>
+                        Number(promo.id) === Number(item.promo_id)
+                    ),
+                    item.data
+                  )
+                ? "🚫 Esta promoção não está disponível nesta data. Escolha uma data permitida."
                 : "Nenhum horário livre para este dia. Escolha outra data."}
             </small>
           )}
@@ -5434,6 +5540,15 @@ itensAgendarCliente.map((item, indice) =>
                 <label>Horário</label>
                 <select
                   value={item.horario}
+                  disabled={
+                    !item.data ||
+                    !promocaoAtivaEm(
+                      promocoes.find(
+                        (promo) => Number(promo.id) === Number(item.promo_id)
+                      ),
+                      item.data
+                    )
+                  }
                   onChange={(e) =>
                     atualizarLinhaAgendarCliente(
                       indice,
@@ -5507,56 +5622,18 @@ itensAgendarCliente.map((item, indice) =>
                       {diasFolga.includes(diaSemanaDaData(item.data)) ||
                       folgasDatas.includes(item.data)
                         ? "🚫 Este dia é folga. Ninguém pode agendar nele."
-                        : "Nenhun horário livre para este dia. Escolha outra data."}
+                        : item.promo_id &&
+                          !promocaoAtivaEm(
+                            promocoes.find(
+                              (promo) =>
+                                Number(promo.id) === Number(item.promo_id)
+                            ),
+                            item.data
+                          )
+                        ? "🚫 Esta promoção não está disponível nesta data. Escolha uma data permitida."
+                        : "Nenhum horário livre para este dia. Escolha outra data."}
                     </small>
                   )}
-
-                <label>Frequência</label>
-                <select
-                  value={item.frequencia || "mensal"}
-                  onChange={(e) =>
-                    atualizarLinhaAgendarCliente(
-                      indice,
-                      "frequencia",
-                      e.target.value
-                    )
-                  }
-                >
-                  <option value="mensal">Mensal (todo mês)</option>
-                  <option value="semanal">Semanal (toda semana)</option>
-                </select>
-
-                <label>
-                  {item.frequencia === "semanal"
-                    ? "Repetir por quantas semanas?"
-                    : "Repetir por quantos meses?"}
-                </label>
-                <select
-                  value={item.meses}
-                  onChange={(e) => {
-                    const valor = Number(e.target.value);
-                    atualizarLinhaAgendarCliente(
-                      indice,
-                      "meses",
-                      Number.isNaN(valor) || valor < 1 ? 1 : valor
-                    );
-                  }}
-                >
-                  {Array.from(
-                    { length: item.frequencia === "semanal" ? 52 : 12 },
-                    (_, i) => i + 1
-                  ).map((qtd) => (
-                    <option key={qtd} value={qtd}>
-                      {qtd === 1
-                        ? item.frequencia === "semanal"
-                          ? "Somente esta semana"
-                          : "Somente este mês"
-                        : item.frequencia === "semanal"
-                        ? `Repetir por ${qtd} semanas`
-                        : `Repetir por ${qtd} meses`}
-                    </option>
-                  ))}
-                </select>
 
                 {linhasPromoAgendarCliente.length > 1 && (
                   <button
@@ -7229,7 +7306,9 @@ horariosTrabalho.filter(
     <p className="saldo-numero">R$ {trabalhosConcluidos.toFixed(2).replace(".", ",")}</p>
     <p className="saldo-legenda">
       {periodoSaldo === "personalizado"
-        ? `valor dos trabalhos concluídos de ${inicioSaldoPersonalizado} até hoje`
+        ? `valor dos trabalhos concluídos de ${formatarDataBR(
+            inicioSaldoPersonalizado
+          )} até hoje`
         : periodoSaldo === "diario"
         ? "valor dos trabalhos concluídos hoje"
         : periodoSaldo === "semanal"
