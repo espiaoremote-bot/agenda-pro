@@ -430,21 +430,44 @@ const diasSemanaPorIndice = [
 
 function formatarDiasAtendimentoPerfil(dias, ordemDias) {
   const nomesPorDia = {
-    segunda: "segundas-feiras",
-    terça: "terças-feiras",
-    quarta: "quartas-feiras",
-    quinta: "quintas-feiras",
-    sexta: "sextas-feiras",
-    sábado: "sábados",
-    domingo: "domingos",
+    segunda: { plural: "segundas-feiras", singular: "segunda" },
+    terça: { plural: "terças-feiras", singular: "terça" },
+    quarta: { plural: "quartas-feiras", singular: "quarta" },
+    quinta: { plural: "quintas-feiras", singular: "quinta" },
+    sexta: { plural: "sextas-feiras", singular: "sexta" },
+    sábado: { plural: "sábados", singular: "sábado" },
+    domingo: { plural: "domingos", singular: "domingo" },
   };
-  const nomes = ordemDias
-    .filter((dia) => dias.includes(dia))
-    .map((dia) => nomesPorDia[dia]);
+  const selecionados = ordemDias.filter((dia) => dias.includes(dia));
+  if (selecionados.length === ordemDias.length) return "todos os dias";
 
-  if (nomes.length < 2) return nomes[0] || "";
-  if (nomes.length === 2) return nomes.join(" e ");
-  return `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
+  const grupos = [];
+  for (const dia of selecionados) {
+    const grupoAtual = grupos[grupos.length - 1];
+    const indiceDia = ordemDias.indexOf(dia);
+    const indiceAnterior = ordemDias.indexOf(grupoAtual?.[grupoAtual.length - 1]);
+
+    if (grupoAtual && indiceDia === indiceAnterior + 1) {
+      grupoAtual.push(dia);
+    } else {
+      grupos.push([dia]);
+    }
+  }
+
+  const partes = grupos.map((grupo) => {
+    if (grupo.length > 1) {
+      return `de ${nomesPorDia[grupo[0]].singular} a ${
+        nomesPorDia[grupo[grupo.length - 1]].singular
+      }`;
+    }
+
+    const dia = grupo[0];
+    const preposicao = dia === "sábado" || dia === "domingo" ? "aos" : "às";
+    return `${preposicao} ${nomesPorDia[dia].plural}`;
+  });
+
+  if (partes.length < 2) return partes[0] || "";
+  return `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`;
 }
 
 // Devolve o nome (minúsculo) do dia da semana de uma data no formato "AAAA-MM-DD".
@@ -4087,7 +4110,7 @@ Entrar
     dadosProfissionalCliente?.horario_funcionamento_fim && (
       <p className="horario-funcionamento-cliente">
         {diasAtendimentoPerfilTexto
-          ? `Olá! Atendemos às ${diasAtendimentoPerfilTexto}, das `
+          ? `Olá! Atendemos ${diasAtendimentoPerfilTexto}, das `
           : "Olá, nosso horário de atendimento é das "}
         {dadosProfissionalCliente.horario_funcionamento_inicio} às{" "}
         {dadosProfissionalCliente.horario_funcionamento_fim}
