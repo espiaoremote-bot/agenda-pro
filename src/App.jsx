@@ -768,6 +768,9 @@ const [enderecoNumero, setEnderecoNumero] = useState("");
 const [enderecoCep, setEnderecoCep] = useState("");
 // O profissional decide se o endereço aparece (ou não) na página do cliente.
 const [mostrarEndereco, setMostrarEndereco] = useState(false);
+const [horarioFuncionamentoInicio, setHorarioFuncionamentoInicio] = useState("");
+const [horarioFuncionamentoFim, setHorarioFuncionamentoFim] = useState("");
+const [mostrarHorarioFuncionamento, setMostrarHorarioFuncionamento] = useState(false);
 // Mensagem de feedback do salvamento do endereço.
 const [enderecoMensagem, setEnderecoMensagem] = useState("");
 const [enderecoMensagemTipo, setEnderecoMensagemTipo] = useState("");
@@ -958,7 +961,7 @@ useEffect(() => {
   // existem na base (migração pendente), o PIX continua funcionando normal.
   supabase
     .from("profissionais")
-    .select("endereco_rua, endereco_numero, endereco_cep, mostrar_endereco")
+    .select("endereco_rua, endereco_numero, endereco_cep, mostrar_endereco, horario_funcionamento_inicio, horario_funcionamento_fim, mostrar_horario_funcionamento")
     .eq("id", profissionalLogado.id)
     .single()
     .then(({ data, error }) => {
@@ -970,6 +973,9 @@ useEffect(() => {
       setEnderecoNumero(data?.endereco_numero || "");
       setEnderecoCep(data?.endereco_cep || "");
       setMostrarEndereco(data?.mostrar_endereco === true);
+      setHorarioFuncionamentoInicio(data?.horario_funcionamento_inicio || "");
+      setHorarioFuncionamentoFim(data?.horario_funcionamento_fim || "");
+      setMostrarHorarioFuncionamento(data?.mostrar_horario_funcionamento === true);
     });
 }, [mostrarConfiguracoes, profissionalLogado?.id]);
 
@@ -4045,6 +4051,15 @@ Entrar
     "🟢 Disponível"
     }
   </p>
+  {dadosProfissionalCliente?.mostrar_horario_funcionamento &&
+    dadosProfissionalCliente?.horario_funcionamento_inicio &&
+    dadosProfissionalCliente?.horario_funcionamento_fim && (
+      <p className="horario-funcionamento-cliente">
+        Olá, nosso horário de atendimento é das{" "}
+        {dadosProfissionalCliente.horario_funcionamento_inicio} às{" "}
+        {dadosProfissionalCliente.horario_funcionamento_fim}
+      </p>
+    )}
 </div>
 
 
@@ -4192,7 +4207,7 @@ onChange={(e) => {
       (horariosPorLinhaCliente[indice] || []).length > 0 && (
         <small
           style={{
-            color: "#b45309",
+            color: "#dc2626",
             display: "block",
             marginTop: "6px",
             fontWeight: "bold",
@@ -4400,7 +4415,7 @@ onChange={(e) => {
                     ),
                     item.data
                   )
-                ? "🚫 Esta promoção não está disponível nesta data. Escolha uma data permitida."
+                ? <span style={{ color: "#dc2626", fontWeight: "bold" }}>🚫 Esta promoção não está disponível nesta data. Escolha uma data permitida.</span>
                 : "Nenhum horário livre para este dia. Escolha outra data."}
             </small>
           )}
@@ -5637,7 +5652,7 @@ itensAgendarCliente.map((item, indice) =>
                         <small
                           style={{
                             display: "block",
-                            color: "#b45309",
+                            color: "#dc2626",
                             fontWeight: "bold",
                             marginTop: "6px",
                           }}
@@ -5673,7 +5688,7 @@ itensAgendarCliente.map((item, indice) =>
                             ),
                             item.data
                           )
-                        ? "🚫 Esta promoção não está disponível nesta data. Escolha uma data permitida."
+                        ? <span style={{ color: "#dc2626", fontWeight: "bold" }}>🚫 Esta promoção não está disponível nesta data. Escolha uma data permitida.</span>
                         : "Nenhum horário livre para este dia. Escolha outra data."}
                     </small>
                   )}
@@ -6186,6 +6201,42 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
     />
     Mostrar endereço na página de agendamento do cliente
   </label>
+  <h4>Horário de funcionamento</h4>
+  <div className="pix-campos">
+    <label>
+      Das
+      <input
+        type="time"
+        value={horarioFuncionamentoInicio}
+        onChange={(e) => {
+          setHorarioFuncionamentoInicio(e.target.value);
+          setEnderecoMensagem("");
+        }}
+      />
+    </label>
+    <label>
+      às
+      <input
+        type="time"
+        value={horarioFuncionamentoFim}
+        onChange={(e) => {
+          setHorarioFuncionamentoFim(e.target.value);
+          setEnderecoMensagem("");
+        }}
+      />
+    </label>
+  </div>
+  <label className="endereco-mostrar-label">
+    <input
+      type="checkbox"
+      checked={mostrarHorarioFuncionamento}
+      onChange={(e) => {
+        setMostrarHorarioFuncionamento(e.target.checked);
+        setEnderecoMensagem("");
+      }}
+    />
+    Mostrar horário de funcionamento na página de agendamento do cliente
+  </label>
   <div>
     <button
       onClick={async () => {
@@ -6202,6 +6253,9 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
             endereco_numero: numeroLimpo,
             endereco_cep: cepLimpo,
             mostrar_endereco: mostrarEndereco,
+            horario_funcionamento_inicio: horarioFuncionamentoInicio || null,
+            horario_funcionamento_fim: horarioFuncionamentoFim || null,
+            mostrar_horario_funcionamento: mostrarHorarioFuncionamento,
           })
           .eq("id", profissionalLogado.id);
 
@@ -6218,13 +6272,16 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
           endereco_numero: numeroLimpo,
           endereco_cep: cepLimpo,
           mostrar_endereco: mostrarEndereco,
+          horario_funcionamento_inicio: horarioFuncionamentoInicio || null,
+          horario_funcionamento_fim: horarioFuncionamentoFim || null,
+          mostrar_horario_funcionamento: mostrarHorarioFuncionamento,
         });
 
         setEnderecoMensagem("✅ Endereço salvo com sucesso!");
         setEnderecoMensagemTipo("sucesso");
       }}
     >
-      Salvar endereço
+      Salvar endereço e horário
     </button>
 
     {enderecoMensagem && (
