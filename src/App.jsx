@@ -1052,6 +1052,8 @@ const [periodoHorario, setPeriodoHorario] = useState("todos");
 const [diasFolga, setDiasFolga] = useState([]);
 // Dias de folga vistos na tela do CLIENTE (do profissional que está agendando).
 const [diasFolgaCliente, setDiasFolgaCliente] = useState([]);
+const [profissionalDiasFolgaClienteCarregados, setProfissionalDiasFolgaClienteCarregados] =
+  useState(null);
 // Datas específicas de folga (um dia no mês) do profissional logado.
 const [folgasDatas, setFolgasDatas] = useState([]);
 // Datas específicas de folga vistas na tela do CLIENTE.
@@ -1310,6 +1312,8 @@ useEffect(() => {
   async function carregarHorariosCliente() {
     if (!profissionalCliente) {
       setHorariosPorLinhaCliente({});
+      setDiasFolgaCliente([]);
+      setProfissionalDiasFolgaClienteCarregados(null);
       return;
     }
 
@@ -1321,6 +1325,7 @@ useEffect(() => {
       : [];
     if (cancelado) return;
     setDiasFolgaCliente(diasFolgaDoProfissional);
+    setProfissionalDiasFolgaClienteCarregados(profissionalCliente);
 
     // Datas específicas de folga do profissional que o cliente está vendo.
     const folgasDatasDoProfissional = profissionalCliente
@@ -4097,13 +4102,12 @@ Entrar
   {console.log("PROFISSIONAL CLIENTE:", profissionalCliente)}
 
   <p className="status-text">
-    {
-    statusAtendimento === "Ocupado"
-    ?
-    "🔴 Ocupado"
-    :
-    "🟢 Disponível"
-    }
+    {profissionalDiasFolgaClienteCarregados === profissionalCliente &&
+    diasFolgaCliente.includes(diasSemanaPorIndice[new Date().getDay()])
+      ? "🔴 Hoje é Folga"
+      : statusAtendimento === "Ocupado"
+        ? "🔴 Ocupado"
+        : "🟢 Disponível"}
   </p>
   {dadosProfissionalCliente?.mostrar_horario_funcionamento &&
     dadosProfissionalCliente?.horario_funcionamento_inicio &&
