@@ -4138,24 +4138,30 @@ onChange={(e) => {
       onChange={(e) => atualizarLinhaCliente(indice, "data", e.target.value)}
     />
 
-    <label>Horário</label>
-    <select
-      value={item.horario}
-      onChange={(e) => atualizarLinhaCliente(indice, "horario", e.target.value)}
-    >
-      <option value="">
-        Escolha o horário
-      </option>
-
-      {(horariosPorLinhaCliente[indice] || []).map((hora) => (
-        <option
-          key={hora}
-          value={hora}
+    {(!item.data ||
+      (!diasFolgaCliente.includes(diaSemanaDaData(item.data)) &&
+        !folgasDatasCliente.includes(item.data))) && (
+      <>
+        <label>Horário</label>
+        <select
+          value={item.horario}
+          onChange={(e) => atualizarLinhaCliente(indice, "horario", e.target.value)}
         >
-          {hora}
-        </option>
-      ))}
-    </select>
+          <option value="">
+            Escolha o horário
+          </option>
+
+          {(horariosPorLinhaCliente[indice] || []).map((hora) => (
+            <option
+              key={hora}
+              value={hora}
+            >
+              {hora}
+            </option>
+          ))}
+        </select>
+      </>
+    )}
 
     {(() => {
       const horasServicio = duracaoHorasDeServicio(
@@ -4199,7 +4205,14 @@ onChange={(e) => {
       )}
 
     {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
-      <small>
+      <small
+        style={
+          diasFolgaCliente.includes(diaSemanaDaData(item.data)) ||
+          folgasDatasCliente.includes(item.data)
+            ? { color: "#dc2626", fontWeight: "bold" }
+            : undefined
+        }
+      >
         {diasFolgaCliente.includes(diaSemanaDaData(item.data)) ||
         folgasDatasCliente.includes(item.data)
           ? "🚫 Este dia é folga do profissional. Escolha outra data."
@@ -4369,7 +4382,14 @@ onChange={(e) => {
           })()}
 
           {item.data && (horariosPorLinhaCliente[indice] || []).length === 0 && (
-            <small>
+            <small
+              style={
+                diasFolgaCliente.includes(diaSemanaDaData(item.data)) ||
+                folgasDatasCliente.includes(item.data)
+                  ? { color: "#dc2626", fontWeight: "bold" }
+                  : undefined
+              }
+            >
               {diasFolgaCliente.includes(diaSemanaDaData(item.data)) ||
               folgasDatasCliente.includes(item.data)
                 ? "🚫 Este dia é folga do profissional. Escolha outra data."
@@ -5342,21 +5362,27 @@ statusAtendimento === "Disponível"
           }
         />
 
-        <label>Horário</label>
-        <select
-          value={item.horario}
-          onChange={(e) =>
-            atualizarLinhaAgendarCliente(indice, "horario", e.target.value)
-          }
-        >
-          <option value="">Escolha o horário</option>
+        {(!item.data ||
+          (!diasFolga.includes(diaSemanaDaData(item.data)) &&
+            !folgasDatas.includes(item.data))) && (
+          <>
+            <label>Horário</label>
+            <select
+              value={item.horario}
+              onChange={(e) =>
+                atualizarLinhaAgendarCliente(indice, "horario", e.target.value)
+              }
+            >
+              <option value="">Escolha o horário</option>
 
-          {(horariosPorLinhaAgendarCliente[indice] || []).map((hora) => (
-            <option key={hora} value={hora}>
-              {hora}
-            </option>
-          ))}
-        </select>
+              {(horariosPorLinhaAgendarCliente[indice] || []).map((hora) => (
+                <option key={hora} value={hora}>
+                  {hora}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
 
         {(() => {
           const horasServicio = duracaoHorasDeServicio(
@@ -5379,7 +5405,14 @@ statusAtendimento === "Disponível"
 
         {item.data &&
           (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
-            <small>
+            <small
+              style={
+                diasFolga.includes(diaSemanaDaData(item.data)) ||
+                folgasDatas.includes(item.data)
+                  ? { color: "#dc2626", fontWeight: "bold" }
+                  : undefined
+              }
+            >
               {diasFolga.includes(diaSemanaDaData(item.data)) ||
                 folgasDatas.includes(item.data)
                 ? "🚫 Este dia é folga. Ninguém pode agendar nele."
@@ -5621,7 +5654,14 @@ itensAgendarCliente.map((item, indice) =>
 
                 {item.data &&
                   (horariosPorLinhaAgendarCliente[indice] || []).length === 0 && (
-                    <small>
+                    <small
+                      style={
+                        diasFolga.includes(diaSemanaDaData(item.data)) ||
+                        folgasDatas.includes(item.data)
+                          ? { color: "#dc2626", fontWeight: "bold" }
+                          : undefined
+                      }
+                    >
                       {diasFolga.includes(diaSemanaDaData(item.data)) ||
                       folgasDatas.includes(item.data)
                         ? "🚫 Este dia é folga. Ninguém pode agendar nele."
@@ -8160,19 +8200,25 @@ setMensagemErroProfissional("Agendamento cancelado!");
       }}
     />
 
-    <label>Novo horário</label>
-    <select
-      value={novoHorarioReagendamento}
-      onChange={(e) => setNovoHorarioReagendamento(e.target.value)}
-    >
-      <option value="">Escolha o horário</option>
+    {(!novaDataReagendamento ||
+      (!diasFolga.includes(diaSemanaDaData(novaDataReagendamento)) &&
+        !folgasDatas.includes(novaDataReagendamento))) && (
+      <>
+        <label>Novo horário</label>
+        <select
+          value={novoHorarioReagendamento}
+          onChange={(e) => setNovoHorarioReagendamento(e.target.value)}
+        >
+          <option value="">Escolha o horário</option>
 
-      {horariosReagendamento.map((hora) => (
-        <option key={hora} value={hora}>
-          {hora}
-        </option>
-      ))}
-    </select>
+          {horariosReagendamento.map((hora) => (
+            <option key={hora} value={hora}>
+              {hora}
+            </option>
+          ))}
+        </select>
+      </>
+    )}
 
     {novaDataReagendamento && horariosReagendamento.length === 0 && (
       <small>
