@@ -4105,9 +4105,7 @@ Entrar
     {profissionalDiasFolgaClienteCarregados === profissionalCliente &&
     diasFolgaCliente.includes(diasSemanaPorIndice[new Date().getDay()])
       ? "🔴 Hoje é Folga"
-      : statusAtendimento === "Ocupado"
-        ? "🔴 Ocupado"
-        : "🟢 Disponível"}
+      : "🟢 Disponível"}
   </p>
   {dadosProfissionalCliente?.mostrar_horario_funcionamento &&
     dadosProfissionalCliente?.horario_funcionamento_inicio &&
