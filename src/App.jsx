@@ -428,6 +428,25 @@ const diasSemanaPorIndice = [
   "sábado",
 ];
 
+function formatarDiasAtendimentoPerfil(dias, ordemDias) {
+  const nomesPorDia = {
+    segunda: "segundas-feiras",
+    terça: "terças-feiras",
+    quarta: "quartas-feiras",
+    quinta: "quintas-feiras",
+    sexta: "sextas-feiras",
+    sábado: "sábados",
+    domingo: "domingos",
+  };
+  const nomes = ordemDias
+    .filter((dia) => dias.includes(dia))
+    .map((dia) => nomesPorDia[dia]);
+
+  if (nomes.length < 2) return nomes[0] || "";
+  if (nomes.length === 2) return nomes.join(" e ");
+  return `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
+}
+
 // Devolve o nome (minúsculo) do dia da semana de uma data no formato "AAAA-MM-DD".
 function diaSemanaDaData(dataISO) {
   return dataISO
@@ -771,6 +790,7 @@ const [mostrarEndereco, setMostrarEndereco] = useState(false);
 const [horarioFuncionamentoInicio, setHorarioFuncionamentoInicio] = useState("");
 const [horarioFuncionamentoFim, setHorarioFuncionamentoFim] = useState("");
 const [mostrarHorarioFuncionamento, setMostrarHorarioFuncionamento] = useState(false);
+const [diasAtendimentoPerfil, setDiasAtendimentoPerfil] = useState([]);
 // Mensagem de feedback do salvamento do endereço.
 const [enderecoMensagem, setEnderecoMensagem] = useState("");
 const [enderecoMensagemTipo, setEnderecoMensagemTipo] = useState("");
@@ -961,7 +981,7 @@ useEffect(() => {
   // existem na base (migração pendente), o PIX continua funcionando normal.
   supabase
     .from("profissionais")
-    .select("endereco_rua, endereco_numero, endereco_cep, mostrar_endereco, horario_funcionamento_inicio, horario_funcionamento_fim, mostrar_horario_funcionamento")
+    .select("endereco_rua, endereco_numero, endereco_cep, mostrar_endereco, horario_funcionamento_inicio, horario_funcionamento_fim, mostrar_horario_funcionamento, dias_atendimento_perfil")
     .eq("id", profissionalLogado.id)
     .single()
     .then(({ data, error }) => {
@@ -976,6 +996,11 @@ useEffect(() => {
       setHorarioFuncionamentoInicio(data?.horario_funcionamento_inicio || "");
       setHorarioFuncionamentoFim(data?.horario_funcionamento_fim || "");
       setMostrarHorarioFuncionamento(data?.mostrar_horario_funcionamento === true);
+      setDiasAtendimentoPerfil(
+        Array.isArray(data?.dias_atendimento_perfil)
+          ? data.dias_atendimento_perfil.filter((dia) => diasSemana.includes(dia))
+          : []
+      );
     });
 }, [mostrarConfiguracoes, profissionalLogado?.id]);
 
@@ -988,6 +1013,12 @@ const diasSemana = [
   "sábado",
   "domingo"
 ];
+const diasAtendimentoPerfilTexto = formatarDiasAtendimentoPerfil(
+  Array.isArray(dadosProfissionalCliente?.dias_atendimento_perfil)
+    ? dadosProfissionalCliente.dias_atendimento_perfil
+    : [],
+  diasSemana
+);
 const [diaSelecionado, setDiaSelecionado] = useState("segunda");
 
 const [horariosTrabalho, setHorariosTrabalho] = useState([]);
@@ -4055,7 +4086,9 @@ Entrar
     dadosProfissionalCliente?.horario_funcionamento_inicio &&
     dadosProfissionalCliente?.horario_funcionamento_fim && (
       <p className="horario-funcionamento-cliente">
-        Olá, nosso horário de atendimento é das{" "}
+        {diasAtendimentoPerfilTexto
+          ? `Olá! Atendemos às ${diasAtendimentoPerfilTexto}, das `
+          : "Olá, nosso horário de atendimento é das "}
         {dadosProfissionalCliente.horario_funcionamento_inicio} às{" "}
         {dadosProfissionalCliente.horario_funcionamento_fim}
       </p>
@@ -6237,6 +6270,28 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
     />
     Mostrar horário de funcionamento na página de agendamento do cliente
   </label>
+  <p style={{ margin: "10px 0 6px" }}>
+    Dias informados no perfil do cliente (não alteram os agendamentos):
+  </p>
+  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 14px" }}>
+    {diasSemana.map((dia) => (
+      <label key={dia} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+        <input
+          type="checkbox"
+          checked={diasAtendimentoPerfil.includes(dia)}
+          onChange={(e) => {
+            setDiasAtendimentoPerfil((diasAtuais) =>
+              e.target.checked
+                ? [...diasAtuais, dia]
+                : diasAtuais.filter((item) => item !== dia)
+            );
+            setEnderecoMensagem("");
+          }}
+        />
+        {dia.charAt(0).toUpperCase() + dia.slice(1)}
+      </label>
+    ))}
+  </div>
   <div>
     <button
       onClick={async () => {
@@ -6256,12 +6311,13 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
             horario_funcionamento_inicio: horarioFuncionamentoInicio || null,
             horario_funcionamento_fim: horarioFuncionamentoFim || null,
             mostrar_horario_funcionamento: mostrarHorarioFuncionamento,
+            dias_atendimento_perfil: diasAtendimentoPerfil,
           })
           .eq("id", profissionalLogado.id);
 
         if (error) {
           console.error(error);
-          setEnderecoMensagem("❌ Erro ao salvar o endereço: " + error.message);
+          setEnderecoMensagem("❌ Erro ao salvar o endereço e horário: " + error.message);
           setEnderecoMensagemTipo("erro");
           return;
         }
@@ -6275,9 +6331,10 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
           horario_funcionamento_inicio: horarioFuncionamentoInicio || null,
           horario_funcionamento_fim: horarioFuncionamentoFim || null,
           mostrar_horario_funcionamento: mostrarHorarioFuncionamento,
+          dias_atendimento_perfil: diasAtendimentoPerfil,
         });
 
-        setEnderecoMensagem("✅ Endereço salvo com sucesso!");
+        setEnderecoMensagem("✅ Endereço e horário salvos com sucesso!");
         setEnderecoMensagemTipo("sucesso");
       }}
     >
