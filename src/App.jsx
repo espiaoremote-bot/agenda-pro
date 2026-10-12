@@ -711,24 +711,33 @@ class ProtectorDeErrores extends Component {
 function App() {
   const [tela, setTela] = useState("inicio");
 
-const [credenciaisLembradas] = useState(() => {
+const [credenciaisLembradas, setCredenciaisLembradas] = useState(() => {
   try {
-    const credenciais = JSON.parse(
+    const armazenadas = JSON.parse(
       localStorage.getItem("credenciais_profissional") || "null"
     );
-    return typeof credenciais?.nome === "string" &&
-      typeof credenciais?.senha === "string"
-      ? credenciais
-      : null;
+    const lista = Array.isArray(armazenadas)
+      ? armazenadas
+      : [armazenadas];
+    return lista.filter(
+      (credencial) =>
+        typeof credencial?.nome === "string" &&
+        typeof credencial?.senha === "string"
+    );
   } catch (error) {
     console.error("Falha ao ler o login salvo:", error);
-    return null;
+    return [];
   }
 });
-const [senha, setSenha] = useState(() => credenciaisLembradas?.senha || "");
-const [loginNome, setLoginNome] = useState(() => credenciaisLembradas?.nome || "");
+const [credencialSelecionada, setCredencialSelecionada] = useState(
+  () => (credenciaisLembradas.length > 0 ? "0" : "")
+);
+const [senha, setSenha] = useState(() => credenciaisLembradas[0]?.senha || "");
+const [loginNome, setLoginNome] = useState(
+  () => credenciaisLembradas[0]?.nome || ""
+);
 const [lembrarLogin, setLembrarLogin] = useState(
-  () => credenciaisLembradas !== null
+  () => credenciaisLembradas.length > 0
 );
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
@@ -3946,14 +3955,42 @@ return (
   Gerencie seus agendamentos com facilidade,
 </p>
 
+{credenciaisLembradas.length > 0 && (
+  <select
+    className="input-login"
+    aria-label="Escolha um login salvo"
+    value={credencialSelecionada}
+    onChange={(e) => {
+      const indice = e.target.value;
+      setCredencialSelecionada(indice);
+      if (indice === "") return;
 
+      const credencial = credenciaisLembradas[Number(indice)];
+      if (credencial) {
+        setLoginNome(credencial.nome);
+        setSenha(credencial.senha);
+        setLembrarLogin(true);
+      }
+    }}
+  >
+    <option value="">Usar outro login</option>
+    {credenciaisLembradas.map((credencial, indice) => (
+      <option key={`${credencial.nome}-${indice}`} value={String(indice)}>
+        {credencial.nome}
+      </option>
+    ))}
+  </select>
+)}
 
 <input
   className="input-login"
   type="text"
   placeholder="Digite seu nome"
   value={loginNome}
-  onChange={(e) => setLoginNome(e.target.value)}
+  onChange={(e) => {
+    setLoginNome(e.target.value);
+    setCredencialSelecionada("");
+  }}
 />
 
 
@@ -3962,7 +3999,10 @@ return (
   type="password"
   placeholder="Digite a senha"
   value={senha}
-  onChange={(e) => setSenha(e.target.value)}
+  onChange={(e) => {
+    setSenha(e.target.value);
+    setCredencialSelecionada("");
+  }}
 />
 
 <label className="lembrar-login">
@@ -3972,12 +4012,25 @@ return (
     onChange={(e) => {
       const lembrar = e.target.checked;
       setLembrarLogin(lembrar);
-      if (!lembrar) {
+      if (!lembrar && credencialSelecionada !== "") {
+        const credenciaisAtualizadas = credenciaisLembradas.filter(
+          (_, indice) => String(indice) !== credencialSelecionada
+        );
         try {
-          localStorage.removeItem("credenciais_profissional");
+          if (credenciaisAtualizadas.length > 0) {
+            localStorage.setItem(
+              "credenciais_profissional",
+              JSON.stringify(credenciaisAtualizadas)
+            );
+          } else {
+            localStorage.removeItem("credenciais_profissional");
+          }
+          setCredenciaisLembradas(credenciaisAtualizadas);
+          setCredencialSelecionada("");
         } catch (error) {
           console.error("Falha ao remover o login salvo:", error);
-          alert("Não foi possível remover o login salvo neste aparelho.");
+          setLembrarLogin(true);
+          alert("Não foi possível remover este login salvo neste aparelho.");
         }
       }
     }}
@@ -4023,20 +4076,24 @@ if (!resultadoLogado.ativo) {
 
 if (lembrarLogin) {
   try {
+    const credencialAtual = { nome: loginNome, senha };
+    const credenciaisAtualizadas = [
+      ...credenciaisLembradas.filter(
+        (credencial) =>
+          credencial.nome !== credencialAtual.nome ||
+          credencial.senha !== credencialAtual.senha
+      ),
+      credencialAtual,
+    ];
     localStorage.setItem(
       "credenciais_profissional",
-      JSON.stringify({ nome: loginNome, senha })
+      JSON.stringify(credenciaisAtualizadas)
     );
+    setCredenciaisLembradas(credenciaisAtualizadas);
+    setCredencialSelecionada(String(credenciaisAtualizadas.length - 1));
   } catch (error) {
     console.error("Falha ao salvar o login neste aparelho:", error);
     alert("Login realizado, mas não foi possível salvar os dados neste aparelho.");
-  }
-} else {
-  try {
-    localStorage.removeItem("credenciais_profissional");
-  } catch (error) {
-    console.error("Falha ao remover o login salvo:", error);
-    alert("Login realizado, mas não foi possível remover os dados salvos neste aparelho.");
   }
 }
 
@@ -4104,8 +4161,16 @@ Entrar
   <p className="status-text">
     {profissionalDiasFolgaClienteCarregados === profissionalCliente &&
     diasFolgaCliente.includes(diasSemanaPorIndice[new Date().getDay()])
-      ? "🔴 Hoje é Folga"
-      : "🟢 Disponível"}
+      ? (
+        <>
+          <span aria-hidden="true" style={{ color: "#dc2626" }}>●</span> Fechado
+        </>
+      )
+      : (
+        <>
+          <span aria-hidden="true" style={{ color: "#16a34a" }}>●</span> Aberto
+        </>
+      )}
   </p>
   {dadosProfissionalCliente?.mostrar_horario_funcionamento &&
     dadosProfissionalCliente?.horario_funcionamento_inicio &&
