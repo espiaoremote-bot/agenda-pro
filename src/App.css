@@ -173,6 +173,12 @@ body,
   margin-top:10px;
 }
 
+.status-bolinha {
+  font-size:22px;
+  line-height:1;
+  vertical-align:middle;
+}
+
 /* LEGENDA DE STATUS DO CLIENTE */
 
 .legenda-status {

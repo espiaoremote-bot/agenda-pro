@@ -9,6 +9,10 @@ import "./App.css";
 
 const URL_PUBLICA = "https://agenda-pro-gilt.vercel.app";
 
+function statusAtendimentoAberto(status) {
+  return status !== "Ocupado" && status !== "Fechado";
+}
+
 function gerarLinkProfissional(idProfissional, login = false) {
   const baseUrl = Capacitor.isNativePlatform()
     ? URL_PUBLICA
@@ -836,7 +840,7 @@ const [temaSelecionado, setTemaSelecionado] = useState("feminino");
 const [iconeSelecionado, setIconeSelecionado] = useState("💅");
 const [mostrarSaldo, setMostrarSaldo] = useState(true);
  
-const [statusAtendimento, setStatusAtendimento] = useState("Disponível");
+const [statusAtendimento, setStatusAtendimento] = useState("Aberto");
 const [horariosDisponiveis, setHorariosDisponiveis] = useState([]);
 const [mostrarDiasAgendados, setMostrarDiasAgendados] = useState(false);
 const [mostrarAprovacoes, setMostrarAprovacoes] = useState(false);
@@ -950,7 +954,7 @@ setHorariosDisponiveis(
 
 
 setStatusAtendimento(
-resultado.status_atendimento || "Disponível"
+resultado.status_atendimento || "Aberto"
 );
 
 
@@ -1322,6 +1326,7 @@ useEffect(() => {
     if (!profissionalCliente) {
       setHorariosPorLinhaCliente({});
       setDiasFolgaCliente([]);
+      setFolgasDatasCliente([]);
       setProfissionalDiasFolgaClienteCarregados(null);
       return;
     }
@@ -1334,7 +1339,6 @@ useEffect(() => {
       : [];
     if (cancelado) return;
     setDiasFolgaCliente(diasFolgaDoProfissional);
-    setProfissionalDiasFolgaClienteCarregados(profissionalCliente);
 
     // Datas específicas de folga do profissional que o cliente está vendo.
     const folgasDatasDoProfissional = profissionalCliente
@@ -1342,6 +1346,7 @@ useEffect(() => {
       : [];
     if (cancelado) return;
     setFolgasDatasCliente(folgasDatasDoProfissional);
+    setProfissionalDiasFolgaClienteCarregados(profissionalCliente);
 
     for (let i = 0; i < itensCliente.length; i++) {
       const item = itensCliente[i];
@@ -2080,7 +2085,7 @@ setDadosProfissionalCliente(data);
 setCarregandoPerfil(false);
 
 setStatusAtendimento(
-  data.status_atendimento || "Disponível"
+  data.status_atendimento || "Aberto"
 );
 
 console.log("TEMA DO PROFISSIONAL:", data.tema);
@@ -2331,6 +2336,14 @@ const promocoesParaCliente = promocoes.filter(
 // Quando não existe nenhuma, o "seletor abaixo do seletor normal" é mostrado
 // como um `<select>` placeholder (a primeira escolha já adiciona a linha).
 const linhasPromoCliente = itensCliente.filter((item) => item.em_promocao);
+const dataStatusPerfilCliente =
+  itensCliente.find((item) => item.data)?.data ||
+  new Date().toLocaleDateString("sv-SE");
+const statusPerfilClienteFechado =
+  !statusAtendimentoAberto(statusAtendimento) ||
+  (profissionalDiasFolgaClienteCarregados === profissionalCliente &&
+    (diasFolgaCliente.includes(diaSemanaDaData(dataStatusPerfilCliente)) ||
+      folgasDatasCliente.includes(dataStatusPerfilCliente)));
 
 // Promoções que o PROFESSIONAL pode usar no formulário "Agendar por um cliente"
 // (mesmas regras do cliente: seletor habilitado + promoção ativa no mês/semana
@@ -4159,18 +4172,15 @@ Entrar
   {console.log("PROFISSIONAL CLIENTE:", profissionalCliente)}
 
   <p className="status-text">
-    {profissionalDiasFolgaClienteCarregados === profissionalCliente &&
-    diasFolgaCliente.includes(diasSemanaPorIndice[new Date().getDay()])
-      ? (
-        <>
-          <span aria-hidden="true" style={{ color: "#dc2626" }}>●</span> Fechado
-        </>
-      )
-      : (
-        <>
-          <span aria-hidden="true" style={{ color: "#16a34a" }}>●</span> Aberto
-        </>
-      )}
+    {statusPerfilClienteFechado ? (
+      <>
+        <span className="status-bolinha" aria-hidden="true">🔴</span> Fechado
+      </>
+    ) : (
+      <>
+        <span className="status-bolinha" aria-hidden="true">🟢</span> Aberto
+      </>
+    )}
   </p>
   {dadosProfissionalCliente?.mostrar_horario_funcionamento &&
     dadosProfissionalCliente?.horario_funcionamento_inicio &&
@@ -5283,7 +5293,7 @@ setEditarSenha("");
           senha: novaSenha,
           tipo: "profissional",
           ativo: true,
-          status_atendimento: "Disponível",
+          status_atendimento: "Aberto",
           tema: temaNovo,
           validade_plano: novaValidadePlano,
           plano_ilimitado: false
@@ -5362,10 +5372,9 @@ Criar profissional
 <button
 onClick={async () => {
 
-const novoStatus =
-statusAtendimento === "Disponível"
-? "Ocupado"
-: "Disponível";
+const novoStatus = statusAtendimentoAberto(statusAtendimento)
+  ? "Fechado"
+  : "Aberto";
 
 
 const { error } = await supabase
@@ -5392,11 +5401,9 @@ setProfissionalLogado({
 }}
 >
 {
-statusAtendimento === "Disponível"
-?
-"🟢 Disponível"
-:
-"🔴 Ocupado"
+statusAtendimentoAberto(statusAtendimento)
+  ? "🟢 Aberto"
+  : "🔴 Fechado"
 }
 
 </button>
@@ -8164,12 +8171,12 @@ setMensagemProfissional("Trabalho concluído!");
 await supabase
 .from("profissionais")
 .update({
- status_atendimento: "Disponível"
+ status_atendimento: "Aberto"
 })
 .eq("id", profissionalLogado.id);
 
 
-setStatusAtendimento("Disponível");
+setStatusAtendimento("Aberto");
 }}
 >
 ✅ Finalizar trabalho
