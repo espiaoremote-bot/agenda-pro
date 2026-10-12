@@ -733,9 +733,6 @@ const [credenciaisLembradas, setCredenciaisLembradas] = useState(() => {
     return [];
   }
 });
-const [credencialSelecionada, setCredencialSelecionada] = useState(
-  () => (credenciaisLembradas.length > 0 ? "0" : "")
-);
 const [senha, setSenha] = useState(() => credenciaisLembradas[0]?.senha || "");
 const [loginNome, setLoginNome] = useState(
   () => credenciaisLembradas[0]?.nome || ""
@@ -3968,54 +3965,37 @@ return (
   Gerencie seus agendamentos com facilidade,
 </p>
 
-{credenciaisLembradas.length > 0 && (
-  <select
-    className="input-login"
-    aria-label="Escolha um login salvo"
-    value={credencialSelecionada}
-    onChange={(e) => {
-      const indice = e.target.value;
-      setCredencialSelecionada(indice);
-      if (indice === "") return;
-
-      const credencial = credenciaisLembradas[Number(indice)];
-      if (credencial) {
-        setLoginNome(credencial.nome);
-        setSenha(credencial.senha);
-        setLembrarLogin(true);
-      }
-    }}
-  >
-    <option value="">Usar outro login</option>
-    {credenciaisLembradas.map((credencial, indice) => (
-      <option key={`${credencial.nome}-${indice}`} value={String(indice)}>
-        {credencial.nome}
-      </option>
-    ))}
-  </select>
-)}
-
 <input
   className="input-login"
   type="text"
   placeholder="Digite seu nome"
+  list="logins-profissional-salvos"
   value={loginNome}
   onChange={(e) => {
-    setLoginNome(e.target.value);
-    setCredencialSelecionada("");
+    const nome = e.target.value;
+    setLoginNome(nome);
+    const credencial = [...credenciaisLembradas]
+      .reverse()
+      .find((item) => item.nome === nome);
+    if (credencial) {
+      setSenha(credencial.senha);
+      setLembrarLogin(true);
+    }
   }}
 />
 
+<datalist id="logins-profissional-salvos">
+  {[...new Set(credenciaisLembradas.map((credencial) => credencial.nome))].map(
+    (nome) => <option key={nome} value={nome} />
+  )}
+</datalist>
 
 <input
   className="input-login"
   type="password"
   placeholder="Digite a senha"
   value={senha}
-  onChange={(e) => {
-    setSenha(e.target.value);
-    setCredencialSelecionada("");
-  }}
+  onChange={(e) => setSenha(e.target.value)}
 />
 
 <label className="lembrar-login">
@@ -4025,9 +4005,16 @@ return (
     onChange={(e) => {
       const lembrar = e.target.checked;
       setLembrarLogin(lembrar);
-      if (!lembrar && credencialSelecionada !== "") {
+      if (!lembrar) {
+        const credencialExiste = credenciaisLembradas.some(
+          (credencial) =>
+            credencial.nome === loginNome && credencial.senha === senha
+        );
+        if (!credencialExiste) return;
+
         const credenciaisAtualizadas = credenciaisLembradas.filter(
-          (_, indice) => String(indice) !== credencialSelecionada
+          (credencial) =>
+            credencial.nome !== loginNome || credencial.senha !== senha
         );
         try {
           if (credenciaisAtualizadas.length > 0) {
@@ -4039,7 +4026,6 @@ return (
             localStorage.removeItem("credenciais_profissional");
           }
           setCredenciaisLembradas(credenciaisAtualizadas);
-          setCredencialSelecionada("");
         } catch (error) {
           console.error("Falha ao remover o login salvo:", error);
           setLembrarLogin(true);
@@ -4103,7 +4089,6 @@ if (lembrarLogin) {
       JSON.stringify(credenciaisAtualizadas)
     );
     setCredenciaisLembradas(credenciaisAtualizadas);
-    setCredencialSelecionada(String(credenciaisAtualizadas.length - 1));
   } catch (error) {
     console.error("Falha ao salvar o login neste aparelho:", error);
     alert("Login realizado, mas não foi possível salvar os dados neste aparelho.");
@@ -4174,11 +4159,11 @@ Entrar
   <p className="status-text">
     {statusPerfilClienteFechado ? (
       <>
-        <span className="status-bolinha" aria-hidden="true">🔴</span> Fechado
+        <span aria-hidden="true">🔴</span> Fechado
       </>
     ) : (
       <>
-        <span className="status-bolinha" aria-hidden="true">🟢</span> Aberto
+        <span aria-hidden="true">🟢</span> Aberto
       </>
     )}
   </p>
