@@ -35,7 +35,7 @@ self.addEventListener("notificationclick", (event) => {
         const existente = clientes.find((cliente) => {
           try {
             return new URL(cliente.url).origin === self.location.origin;
-          } catch (error) {
+          } catch {
             return false;
           }
         });

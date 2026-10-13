@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS public.push_deliveries (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Somente a função Edge com service-role pode acessar essas tabelas até o
--- registro de dispositivos ser migrado para um endpoint autenticado.
+-- As tabelas ficam acessíveis somente às funções Edge com service-role.
+-- O endpoint de dispositivos valida as credenciais do profissional antes
+-- de registrar, associar ou remover uma assinatura.
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_deliveries ENABLE ROW LEVEL SECURITY;

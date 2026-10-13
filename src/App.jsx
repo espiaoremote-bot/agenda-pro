@@ -1105,8 +1105,8 @@ const ativarNotificacoes = async () => {
 };
 
 const salvarAssinaturaPush = async (plataforma, assinatura) => {
-  const idProfissional = profissionalPushRef.current?.id;
-  if (!idProfissional) {
+  const profissional = profissionalPushRef.current;
+  if (!profissional?.id || !profissional?.senha) {
     throw new Error("Entre na área profissional para registrar este dispositivo.");
   }
   let idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
@@ -1115,17 +1115,18 @@ const salvarAssinaturaPush = async (plataforma, assinatura) => {
     localStorage.setItem("agenda_pro_push_dispositivo", idDispositivo);
   }
 
-  const { error } = await supabase.from("push_subscriptions").upsert(
-    {
-      id: idDispositivo,
-      profissional_id: idProfissional,
+  const { error } = await supabase.functions.invoke("manage-push-device", {
+    body: {
+      action: "register",
+      deviceId: idDispositivo,
+      profissionalId: profissional.id,
+      profissionalSenha: profissional.senha,
       plataforma,
-      token_fcm: plataforma === "android" ? assinatura : null,
-      assinatura_web: plataforma === "web" ? assinatura : null,
-      updated_at: new Date().toISOString(),
+      ...(plataforma === "android"
+        ? { tokenFcm: assinatura }
+        : { assinaturaWeb: assinatura }),
     },
-    { onConflict: "id" }
-  );
+  });
   if (error) throw error;
   setPushConfigurado(true);
   localStorage.setItem(`agenda_pro_push_registrado_${plataforma}`, "1");
@@ -1139,12 +1140,22 @@ const desativarNotificacoes = () => {
     try {
       const plataforma = Capacitor.isNativePlatform() ? "android" : "web";
       const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
+      const profissional = profissionalPushRef.current;
       if (idDispositivo) {
-        const { error } = await supabase
-          .from("push_subscriptions")
-          .delete()
-          .eq("id", idDispositivo)
-          .eq("profissional_id", profissionalLogado?.id);
+        if (!profissional?.id || !profissional?.senha) {
+          throw new Error("Entre novamente para remover este dispositivo.");
+        }
+        const { error } = await supabase.functions.invoke(
+          "manage-push-device",
+          {
+            body: {
+              action: "remove",
+              deviceId: idDispositivo,
+              profissionalId: profissional.id,
+              profissionalSenha: profissional.senha,
+            },
+          }
+        );
         if (error) throw error;
       }
       if (plataforma === "web") {
@@ -1292,11 +1303,17 @@ useEffect(() => {
 useEffect(() => {
   if (!profissionalLogado?.id || !notificacoesAtivas) return;
   const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
-  if (!idDispositivo) return;
-  supabase
-    .from("push_subscriptions")
-    .update({ profissional_id: profissionalLogado.id })
-    .eq("id", idDispositivo)
+  const profissional = profissionalPushRef.current;
+  if (!idDispositivo || !profissional?.senha) return;
+  supabase.functions
+    .invoke("manage-push-device", {
+      body: {
+        action: "associate",
+        deviceId: idDispositivo,
+        profissionalId: profissional.id,
+        profissionalSenha: profissional.senha,
+      },
+    })
     .then(({ error }) => {
       if (error) {
         console.error("Falha ao associar o push à conta profissional:", error);
@@ -1310,18 +1327,25 @@ useEffect(() => {
   const data = params.get("pushDate");
   if (!profissionalId || !data) return;
 
+  let timer = null;
   try {
     localStorage.setItem(
       "agenda_pro_notificacao_pendente",
       JSON.stringify({ profissional_id: profissionalId, data })
     );
     if (profissionalLogado?.id) {
-      abrirNotificacaoPendente(profissionalLogado.id);
+      timer = window.setTimeout(
+        () => abrirNotificacaoPendente(profissionalLogado.id),
+        0
+      );
     }
     window.history.replaceState({}, "", window.location.pathname);
   } catch (error) {
     console.error("Falha ao processar o link da notificação web:", error);
   }
+  return () => {
+    if (timer !== null) window.clearTimeout(timer);
+  };
 }, [profissionalLogado]);
 
 useEffect(() => {

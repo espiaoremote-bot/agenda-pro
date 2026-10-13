@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "145717674967",
+    "project_id": "agenda-pro-2905b",
+    "storage_bucket": "agenda-pro-2905b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:145717674967:android:c3489dba857a983450c192",
+        "android_client_info": {
+          "package_name": "com.agendapro.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLHWS3w-zCE9-R4Lgq0k0TlSMcTN3RVr4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

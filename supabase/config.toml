@@ -1,2 +1,5 @@
 [functions.send-appointment-push]
 verify_jwt = false
+
+[functions.manage-push-device]
+verify_jwt = false
