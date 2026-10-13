@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.push_deliveries (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- O app atual usa acesso direto do cliente ao Supabase nas demais tabelas.
--- A função Edge usa a service-role key para ler e gravar estas tabelas.
-ALTER TABLE public.push_subscriptions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.push_deliveries DISABLE ROW LEVEL SECURITY;
+-- Somente a função Edge com service-role pode acessar essas tabelas até o
+-- registro de dispositivos ser migrado para um endpoint autenticado.
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_deliveries ENABLE ROW LEVEL SECURITY;
