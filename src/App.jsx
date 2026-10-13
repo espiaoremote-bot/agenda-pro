@@ -4,10 +4,20 @@ import "react-calendar/dist/Calendar.css";
 import { useState, useEffect, useRef, Component } from "react";
 import { supabase } from "./supabaseClient";
 import { App as CapacitorApp } from "@capacitor/app";
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
 import "./App.css";
 
 const URL_PUBLICA = "https://agenda-pro-gilt.vercel.app";
+const CHAVE_PUBLICA_VAPID =
+  "BHmE7f6Kb0SnrWK8dyQif8_vJaXDNOFaA5d8hmVdVQ4gfH8OOjw1e08tkNBbepTHIzTytuADKCuRmYbCxU3MiUM";
+
+function chaveVapidParaBytes(chave) {
+  const base64 = chave.replace(/-/g, "+").replace(/_/g, "/");
+  const dados = window.atob(base64);
+  return Uint8Array.from(dados, (caractere) => caractere.charCodeAt(0));
+}
 
 function statusAtendimentoAberto(status) {
   return status !== "Ocupado" && status !== "Fechado";
@@ -802,7 +812,7 @@ const [nome, setNome] = useState("");
 const [abaServicos, setAbaServicos] = useState("normais");
 
 const [mostrarConfiguracoes, setMostrarConfiguracoes] = useState(false);
-// Aba ativa dentro do painel de Configurações: "perfil" | "servicos" | "horarios".
+// Aba ativa dentro do painel de Configurações.
 const [abaConfiguracoes, setAbaConfiguracoes] = useState("perfil");
  
 // Pix de pagamento cadastrado pelo profissional (chave + banco).
@@ -886,6 +896,31 @@ const [mensagemReagendamento, setMensagemReagendamento] = useState("");
 const [tipoMensagemReagendamento, setTipoMensagemReagendamento] = useState("");
 const pedidosVistosRef = useRef(new Set());
 const primeiraCargaRef = useRef(true);
+const [notificacoesAtivas, setNotificacoesAtivas] = useState(false);
+const [mensagemNotificacaoSistema, setMensagemNotificacaoSistema] = useState("");
+const notificacoesAtivasRef = useRef(false);
+const notificarAgendamentoRef = useRef(null);
+const abrirCalendarioNotificacaoRef = useRef(null);
+const profissionalPushRef = useRef(null);
+profissionalPushRef.current = profissionalLogado;
+const [pushConfigurado, setPushConfigurado] = useState(false);
+const abrirNotificacaoPendente = (idProfissional) => {
+  try {
+    const pendente = JSON.parse(
+      localStorage.getItem("agenda_pro_notificacao_pendente") || "null"
+    );
+    if (Number(pendente?.profissional_id) !== Number(idProfissional)) return;
+
+    const data = new Date(`${pendente.data}T00:00:00`);
+    if (Number.isNaN(data.getTime())) return;
+
+    setDataSelecionada(data);
+    setTela("profissional");
+    localStorage.removeItem("agenda_pro_notificacao_pendente");
+  } catch (error) {
+    console.error("Falha ao abrir o dia do agendamento notificado:", error);
+  }
+};
 const [mostrarListaAdmin, setMostrarListaAdmin] = useState(null);
 const [desbloqueadoAdmin, setDesbloqueadoAdmin] = useState(false);
 const [senhaOpcoesAdmin, setSenhaOpcoesAdmin] = useState("");
@@ -915,6 +950,408 @@ const iconeAtivo =
   (temaAtivo === "masculino" ? "💈" : "💅🏻");
 
 const iconeCliente = ["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "🧔" : "👩🏻";
+
+const abrirCalendarioDoAgendamento = (agendamento) => {
+  if (!agendamento?.data) return;
+  const idProfissional = Number(agendamento.profissional_id);
+  if (!idProfissional) return;
+
+  const data = new Date(`${agendamento.data}T00:00:00`);
+  if (Number.isNaN(data.getTime())) return;
+
+  if (Number(profissionalLogado?.id) === idProfissional) {
+    setDataSelecionada(data);
+    setTela("profissional");
+    return;
+  }
+
+  if (!profissionalLogado) {
+    try {
+      localStorage.setItem(
+        "agenda_pro_notificacao_pendente",
+        JSON.stringify(agendamento)
+      );
+    } catch (error) {
+      console.error("Falha ao guardar o agendamento da notificação:", error);
+    }
+    setTela("login");
+    supabase
+      .from("profissionais")
+      .select("nome")
+      .eq("id", idProfissional)
+      .maybeSingle()
+      .then(({ data: profissional, error }) => {
+        if (error) {
+          console.error("Falha ao localizar o profissional da notificação:", error);
+          return;
+        }
+        if (profissional?.nome) setLoginNome(profissional.nome);
+      });
+    return;
+  }
+
+  setMensagemNotificacaoSistema(
+    "Entre na conta do profissional deste agendamento para abrir o dia."
+  );
+};
+abrirCalendarioNotificacaoRef.current = abrirCalendarioDoAgendamento;
+
+const notificarNovoAgendamento = async (agendamento) => {
+  setNotificacaoNovoAgendamento(agendamento);
+  if (!notificacoesAtivasRef.current) return;
+  const plataformaNotificacao = Capacitor.isNativePlatform() ? "android" : "web";
+  if (
+    localStorage.getItem(
+      `agenda_pro_push_registrado_${plataformaNotificacao}`
+    ) === "1"
+  ) {
+    return;
+  }
+
+  const texto = `${agendamento.servico || "Serviço"} · ${formatarDataCompleta(
+    agendamento.data
+  )} às ${agendamento.horario || ""}`;
+
+  try {
+    if (Capacitor.isNativePlatform()) {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Date.now() % 2147483647,
+            title: "Novo agendamento",
+            body: texto,
+            schedule: { at: new Date(Date.now() + 500) },
+            extra: { agendamento },
+          },
+        ],
+      });
+      return;
+    }
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      const notification = new Notification("Novo agendamento", {
+        body: texto,
+        icon: "/favicon.svg",
+        tag: `agenda-pro-${agendamento.id}`,
+      });
+      notification.onclick = () => {
+        window.focus();
+        abrirCalendarioNotificacaoRef.current?.(agendamento);
+        notification.close();
+      };
+    }
+  } catch (error) {
+    console.error("Falha ao exibir a notificação do novo agendamento:", error);
+    setMensagemNotificacaoSistema(
+      "Não foi possível exibir a notificação. Verifique as permissões do dispositivo."
+    );
+  }
+};
+notificarAgendamentoRef.current = notificarNovoAgendamento;
+notificacoesAtivasRef.current = notificacoesAtivas;
+
+const ativarNotificacoes = async () => {
+  try {
+    let permitido = false;
+    if (Capacitor.isNativePlatform()) {
+      const permissaoAtual = await PushNotifications.checkPermissions();
+      const permissao =
+        permissaoAtual.receive === "granted"
+          ? permissaoAtual
+          : await PushNotifications.requestPermissions();
+      permitido = permissao.receive === "granted";
+      if (permitido) await PushNotifications.register();
+    } else if ("Notification" in window) {
+      permitido = (await Notification.requestPermission()) === "granted";
+      if (permitido) {
+        const registration = await navigator.serviceWorker.register("/push-sw.js");
+        const subscription =
+          (await registration.pushManager.getSubscription()) ||
+          (await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: chaveVapidParaBytes(CHAVE_PUBLICA_VAPID),
+          }));
+        await salvarAssinaturaPush("web", subscription.toJSON());
+      }
+    } else {
+      setMensagemNotificacaoSistema(
+        "Este navegador não oferece suporte a notificações do sistema."
+      );
+      return;
+    }
+
+    setNotificacoesAtivas(permitido);
+    if (permitido && profissionalLogado?.id) {
+      localStorage.setItem(
+        `agenda_pro_notificacoes_${profissionalLogado.id}_${Capacitor.isNativePlatform() ? "app" : "web"}`,
+        "1"
+      );
+    }
+    if (!permitido) {
+      setMensagemNotificacaoSistema(
+        "Permita notificações nas configurações do dispositivo para receber os avisos."
+      );
+    } else if (Capacitor.isNativePlatform()) {
+      setMensagemNotificacaoSistema(
+        "Permissão concedida. Registrando este aparelho no serviço de notificações..."
+      );
+    }
+  } catch (error) {
+    console.error("Falha ao solicitar permissão para notificações:", error);
+    setMensagemNotificacaoSistema(
+      "Não foi possível ativar as notificações neste dispositivo."
+    );
+  }
+};
+
+const salvarAssinaturaPush = async (plataforma, assinatura) => {
+  const idProfissional = profissionalPushRef.current?.id;
+  if (!idProfissional) {
+    throw new Error("Entre na área profissional para registrar este dispositivo.");
+  }
+  let idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
+  if (!idDispositivo) {
+    idDispositivo = crypto.randomUUID();
+    localStorage.setItem("agenda_pro_push_dispositivo", idDispositivo);
+  }
+
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      id: idDispositivo,
+      profissional_id: idProfissional,
+      plataforma,
+      token_fcm: plataforma === "android" ? assinatura : null,
+      assinatura_web: plataforma === "web" ? assinatura : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
+  if (error) throw error;
+  setPushConfigurado(true);
+  localStorage.setItem(`agenda_pro_push_registrado_${plataforma}`, "1");
+  setMensagemNotificacaoSistema(
+    "Este dispositivo foi registrado para receber avisos."
+  );
+};
+
+const desativarNotificacoes = () => {
+  const removerPush = async () => {
+    try {
+      const plataforma = Capacitor.isNativePlatform() ? "android" : "web";
+      const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
+      if (idDispositivo) {
+        const { error } = await supabase
+          .from("push_subscriptions")
+          .delete()
+          .eq("id", idDispositivo)
+          .eq("profissional_id", profissionalLogado?.id);
+        if (error) throw error;
+      }
+      if (plataforma === "web") {
+        const registration =
+          await navigator.serviceWorker.getRegistration("/push-sw.js");
+        const subscription = await registration?.pushManager.getSubscription();
+        await subscription?.unsubscribe();
+      } else {
+        await PushNotifications.unregister();
+      }
+      localStorage.setItem(
+        `agenda_pro_notificacoes_${profissionalLogado?.id}_${plataforma}`,
+        "0"
+      );
+      localStorage.removeItem(`agenda_pro_push_registrado_${plataforma}`);
+      setPushConfigurado(false);
+      notificacoesAtivasRef.current = false;
+      setNotificacoesAtivas(false);
+      setMensagemNotificacaoSistema("Alertas desativados neste dispositivo.");
+    } catch (error) {
+      console.error("Falha ao desativar notificações neste dispositivo:", error);
+      setMensagemNotificacaoSistema(
+        "Não foi possível desativar neste dispositivo."
+      );
+    }
+  };
+  removerPush();
+};
+
+const enviarNotificacaoTeste = async () => {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Date.now() % 2147483647,
+            title: "Teste de notificação",
+            body: "As notificações deste aparelho estão funcionando.",
+            schedule: { at: new Date(Date.now() + 500) },
+          },
+        ],
+      });
+    } else if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Teste de notificação", {
+        body: "As notificações deste navegador estão funcionando.",
+        icon: "/favicon.svg",
+      });
+    } else {
+      setMensagemNotificacaoSistema("Ative a permissão antes de enviar o teste.");
+      return;
+    }
+    setMensagemNotificacaoSistema("Notificação de teste enviada.");
+  } catch (error) {
+    console.error("Falha ao enviar notificação de teste:", error);
+    setMensagemNotificacaoSistema("Falha no teste. Confira as permissões do dispositivo.");
+  }
+};
+
+useEffect(() => {
+  let ativo = true;
+  if (!profissionalLogado?.id) {
+    return () => {
+      ativo = false;
+    };
+  }
+
+  const atualizarPermissao = async () => {
+    try {
+      const permissaoSistema = Capacitor.isNativePlatform()
+        ? (await PushNotifications.checkPermissions()).receive === "granted"
+        : "Notification" in window && Notification.permission === "granted";
+      const preferenciaSalva = localStorage.getItem(
+        `agenda_pro_notificacoes_${profissionalLogado.id}_${Capacitor.isNativePlatform() ? "app" : "web"}`
+      );
+      const permitido = permissaoSistema && preferenciaSalva !== "0";
+      if (ativo) setNotificacoesAtivas(permitido);
+      if (ativo) {
+        setPushConfigurado(
+          localStorage.getItem(
+            `agenda_pro_push_registrado_${Capacitor.isNativePlatform() ? "android" : "web"}`
+          ) === "1"
+        );
+      }
+    } catch (error) {
+      console.error("Falha ao verificar permissão para notificações:", error);
+    }
+  };
+
+  atualizarPermissao();
+  return () => {
+    ativo = false;
+  };
+}, [profissionalLogado]);
+
+useEffect(() => {
+  if (!Capacitor.isNativePlatform()) return;
+
+  let ativo = true;
+  const listeners = [];
+  const registrarListener = (promessa) => {
+    promessa
+      .then((listener) => {
+        if (ativo) listeners.push(listener);
+        else listener.remove();
+      })
+      .catch((error) => {
+        console.error("Falha ao registrar evento de notificação:", error);
+      });
+  };
+  registrarListener(
+    PushNotifications.addListener("registration", ({ value }) => {
+      salvarAssinaturaPush("android", value).catch((error) => {
+        console.error("Falha ao salvar o token push do Android:", error);
+        setMensagemNotificacaoSistema(
+          "Permissão concedida, mas não foi possível registrar o aparelho no servidor."
+        );
+      });
+    })
+  );
+  registrarListener(
+    PushNotifications.addListener("registrationError", (error) => {
+      console.error("Falha ao registrar o aparelho no Firebase:", error);
+      setMensagemNotificacaoSistema(
+        "Não foi possível registrar o aparelho no Firebase. Confira a configuração e tente novamente."
+      );
+    })
+  );
+  registrarListener(
+    PushNotifications.addListener(
+      "pushNotificationActionPerformed",
+      (evento) => {
+        const dados = evento.notification.data;
+        abrirCalendarioNotificacaoRef.current?.({
+          data: dados?.data,
+          profissional_id: dados?.profissional_id,
+        });
+      }
+    )
+  );
+  registrarListener(
+    PushNotifications.addListener("pushNotificationReceived", (evento) => {
+      if (evento.title || evento.body) {
+        LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Date.now() % 2147483647,
+              title: evento.title || "Novo agendamento",
+              body: evento.body || "Um cliente agendou um horário.",
+              schedule: { at: new Date(Date.now() + 250) },
+              extra: evento.data,
+            },
+          ],
+        }).catch((error) => {
+          console.error("Falha ao apresentar a notificação recebida:", error);
+        });
+      }
+    })
+  );
+  registrarListener(
+    LocalNotifications.addListener(
+      "localNotificationActionPerformed",
+      (evento) => {
+        abrirCalendarioNotificacaoRef.current?.(evento.notification.extra);
+      }
+    )
+  );
+
+  return () => {
+    ativo = false;
+    listeners.forEach((listener) => listener.remove());
+  };
+}, []);
+
+useEffect(() => {
+  if (!profissionalLogado?.id || !notificacoesAtivas) return;
+  const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
+  if (!idDispositivo) return;
+  supabase
+    .from("push_subscriptions")
+    .update({ profissional_id: profissionalLogado.id })
+    .eq("id", idDispositivo)
+    .then(({ error }) => {
+      if (error) {
+        console.error("Falha ao associar o push à conta profissional:", error);
+      }
+    });
+}, [profissionalLogado, notificacoesAtivas]);
+
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const profissionalId = Number(params.get("pushProfessional"));
+  const data = params.get("pushDate");
+  if (!profissionalId || !data) return;
+
+  try {
+    localStorage.setItem(
+      "agenda_pro_notificacao_pendente",
+      JSON.stringify({ profissional_id: profissionalId, data })
+    );
+    if (profissionalLogado?.id) {
+      abrirNotificacaoPendente(profissionalLogado.id);
+    }
+    window.history.replaceState({}, "", window.location.pathname);
+  } catch (error) {
+    console.error("Falha ao processar o link da notificação web:", error);
+  }
+}, [profissionalLogado]);
 
 useEffect(() => {
   const root = document.documentElement;
@@ -1779,6 +2216,7 @@ useEffect(() => {
 
     if (sessao) {
       setProfissionalLogado(sessao);
+      abrirNotificacaoPendente(sessao.id);
       setTemaSelecionado(sessao.tema || "feminino");
       setIconeSelecionado(normalizarIcone(sessao.icone) || (sessao.tema === "masculino" ? "💈" : "💅🏻"));
       setTela(sessao.tipo === "super_admin" ? "admin" : "profissional");
@@ -1837,6 +2275,7 @@ useEffect(() => {
 
         if (sessao) {
           setProfissionalLogado(sessao);
+          abrirNotificacaoPendente(sessao.id);
           setTemaSelecionado(sessao.tema || "feminino");
           setIconeSelecionado(
             normalizarIcone(sessao.icone) || (sessao.tema === "masculino" ? "💈" : "💅🏻")
@@ -2003,6 +2442,7 @@ useEffect(() => {
 
       localStorage.setItem("profissionalLogado", JSON.stringify(atual));
       setProfissionalLogado(atual);
+      abrirNotificacaoPendente(atual.id);
       setTemaSelecionado(atual.tema || "feminino");
       setIconeSelecionado(normalizarIcone(atual.icone) || (atual.tema === "masculino" ? "💈" : "💅🏻"));
       setTela(atual.tipo === "super_admin" ? "admin" : "profissional");
@@ -2172,7 +2612,7 @@ useEffect(() => {
         );
 
         if (novos.length > 0) {
-          setNotificacaoNovoAgendamento(novos[0]);
+          notificarAgendamentoRef.current?.(novos[0]);
         }
       }
 
@@ -2190,7 +2630,7 @@ useEffect(() => {
       (novoPedido.status === "Agendado" || novoPedido.status === "Pendente")
     ) {
       pedidosVistosRef.current.add(novoPedido.id);
-      setNotificacaoNovoAgendamento(novoPedido);
+      notificarAgendamentoRef.current?.(novoPedido);
     }
     atualizarPedidos();
   };
@@ -3516,6 +3956,22 @@ async function enviarPedidoCliente() {
 
   if (pedidosSalvos.length > 0) {
     setPedido(pedidosSalvos);
+    const resultadosPush = await Promise.all(
+      pedidosSalvos.map((agendamentoSalvo) =>
+        supabase.functions.invoke("send-appointment-push", {
+          body: { appointmentId: agendamentoSalvo.id },
+        })
+      )
+    );
+    const falhasPush = resultadosPush.filter((resultado) => resultado.error);
+    if (falhasPush.length > 0) {
+      falhasPush.forEach((resultado) =>
+        console.error("Falha ao enviar push do novo agendamento:", resultado.error)
+      );
+      setMensagemNotificacaoSistema(
+        "Agendamento salvo, mas não foi possível enviar o push. Confira a configuração do servidor."
+      );
+    }
   }
 
   setPedidos((prev) => [...prev, ...pedidosSalvos]);
@@ -4096,6 +4552,7 @@ if (lembrarLogin) {
 }
 
 setProfissionalLogado(resultadoLogado);
+abrirNotificacaoPendente(resultadoLogado.id);
 localStorage.setItem("profissionalLogado", JSON.stringify(resultadoLogado));
 // Remove os parâmetros do link de login da URL para a sessão valer no refresh.
 window.history.replaceState({}, "", window.location.pathname);
@@ -5349,7 +5806,6 @@ Criar profissional
   <small>
     Gerencie seus agendamentos com facilidade
   </small>
-
         </div>
 <h3>
   {iconeAtivo} Meus serviços
@@ -5883,7 +6339,52 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   >
     ⏰ Horários
   </button>
+  <button
+    className={abaConfiguracoes === "notificacoes" ? "config-aba ativa" : "config-aba"}
+    onClick={() => setAbaConfiguracoes("notificacoes")}
+  >
+    🔔 Notificações
+  </button>
 </div>
+
+{abaConfiguracoes === "notificacoes" && (
+  <div className="config-servicos">
+    <h3>🔔 Alertas de agendamento</h3>
+    <p>
+      Ative os alertas de agendamento neste {Capacitor.isNativePlatform() ? "aplicativo" : "navegador"}
+      {" "}para receber avisos de novos agendamentos.
+    </p>
+    <p role="status" aria-live="polite">
+      {pushConfigurado
+        ? "Este dispositivo está registrado para receber notificações Push."
+        : notificacoesAtivas
+        ? "Permissão concedida; aguardando confirmar o registro Push no servidor."
+        : "Notificações ainda não estão ativadas neste dispositivo."}
+    </p>
+    <button type="button" onClick={ativarNotificacoes} disabled={pushConfigurado}>
+      {notificacoesAtivas ? "🔄 Registrar este dispositivo novamente" : "🔔 Ativar notificações"}
+    </button>
+    {notificacoesAtivas && (
+      <>
+        <button type="button" onClick={enviarNotificacaoTeste}>
+          Enviar notificação de teste
+        </button>
+        <button type="button" onClick={desativarNotificacoes}>
+          Desativar neste dispositivo
+        </button>
+      </>
+    )}
+    {mensagemNotificacaoSistema && (
+      <p role="status" aria-live="polite">{mensagemNotificacaoSistema}</p>
+    )}
+    {!pushConfigurado && (
+      <p>
+        Para concluir o Push, o administrador ainda precisa configurar no
+        Supabase a migração de notificações e os segredos do Firebase/VAPID.
+      </p>
+    )}
+  </div>
+)}
 
 {abaConfiguracoes === "perfil" && (
 <div className="config-servicos config-ordenado">
@@ -8473,8 +8974,11 @@ setMensagemErroProfissional("Agendamento cancelado!");
     className="notificacao-whatsapp notificacao-clicavel"
     role="alert"
     aria-live="assertive"
-    onClick={() => setNotificacaoNovoAgendamento(null)}
-    title="Clique para confirmar que viu"
+    onClick={() => {
+      abrirCalendarioDoAgendamento(notificacaoNovoAgendamento);
+      setNotificacaoNovoAgendamento(null);
+    }}
+    title="Abrir o calendário no dia deste agendamento"
   >
     <div className="notificacao-icone">
       <FaWhatsapp />
@@ -8485,7 +8989,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
       <span><FaWhatsapp /> {notificacaoNovoAgendamento.whatsapp}</span>
       <span>{iconeAtivo} {notificacaoNovoAgendamento.servico}</span>
       <span>📅 {formatarDataCompleta(notificacaoNovoAgendamento.data)} · ⏰ {notificacaoNovoAgendamento.horario}</span>
-      <span className="notificacao-confirmar">✓ Clique para confirmar que viu</span>
+      <span className="notificacao-confirmar">✓ Clique para abrir este dia no calendário</span>
     </div>
   </div>
 )}
