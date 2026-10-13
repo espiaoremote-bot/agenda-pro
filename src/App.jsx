@@ -1174,35 +1174,6 @@ const desativarNotificacoes = () => {
   removerPush();
 };
 
-const enviarNotificacaoTeste = async () => {
-  try {
-    if (Capacitor.isNativePlatform()) {
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: Date.now() % 2147483647,
-            title: "Teste de notificação",
-            body: "As notificações deste aparelho estão funcionando.",
-            schedule: { at: new Date(Date.now() + 500) },
-          },
-        ],
-      });
-    } else if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Teste de notificação", {
-        body: "As notificações deste navegador estão funcionando.",
-        icon: "/favicon.svg",
-      });
-    } else {
-      setMensagemNotificacaoSistema("Ative a permissão antes de enviar o teste.");
-      return;
-    }
-    setMensagemNotificacaoSistema("Notificação de teste enviada.");
-  } catch (error) {
-    console.error("Falha ao enviar notificação de teste:", error);
-    setMensagemNotificacaoSistema("Falha no teste. Confira as permissões do dispositivo.");
-  }
-};
-
 useEffect(() => {
   let ativo = true;
   if (!profissionalLogado?.id) {
@@ -6365,14 +6336,9 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
       {notificacoesAtivas ? "🔄 Registrar este dispositivo novamente" : "🔔 Ativar notificações"}
     </button>
     {notificacoesAtivas && (
-      <>
-        <button type="button" onClick={enviarNotificacaoTeste}>
-          Enviar notificação de teste
-        </button>
-        <button type="button" onClick={desativarNotificacoes}>
-          Desativar neste dispositivo
-        </button>
-      </>
+      <button type="button" onClick={desativarNotificacoes}>
+        Desativar neste dispositivo
+      </button>
     )}
     {mensagemNotificacaoSistema && (
       <p role="status" aria-live="polite">{mensagemNotificacaoSistema}</p>
