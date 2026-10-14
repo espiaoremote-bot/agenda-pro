@@ -285,7 +285,16 @@ Deno.serve(async (request) => {
                         profissional_id: String(appointment.profissional_id),
                         data: String(appointment.data),
                       },
-                      android: { priority: "HIGH" },
+                      android: {
+                        priority: "HIGH",
+                        notification: {
+                          channel_id: "agendamentos",
+                          default_sound: true,
+                          default_vibrate_timings: true,
+                          notification_priority: "PRIORITY_MAX",
+                          visibility: "PUBLIC",
+                        },
+                      },
                     },
                   }),
                 },

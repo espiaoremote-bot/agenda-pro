@@ -1060,7 +1060,22 @@ const ativarNotificacoes = async () => {
           ? permissaoAtual
           : await PushNotifications.requestPermissions();
       permitido = permissao.receive === "granted";
-      if (permitido) await PushNotifications.register();
+      if (permitido) {
+        // Canal de alta prioridade para os agendamentos. Sem criar o canal,
+        // no Android 8+ o push pode cair em canal de importancia baixa e nao
+        // aparecer (ou nao tocar) com o app fechado / tela desligada.
+        await PushNotifications.createChannel({
+          id: "agendamentos",
+          name: "Agendamentos",
+          description: "Avisos de novos agendamentos e confirmacoes",
+          importance: 5, // ImportanceMax
+          visibility: 1, // PUBLIC: mostra na tela de bloqueio
+          vibration: true,
+        }).catch((error) => {
+          console.error("Falha ao criar o canal de notificacoes:", error);
+        });
+        await PushNotifications.register();
+      }
     } else if ("Notification" in window) {
       permitido = (await Notification.requestPermission()) === "granted";
       if (permitido) {

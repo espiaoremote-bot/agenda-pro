@@ -48,4 +48,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Obrigatoria a partir do Android 13 (API 33) para exibir notificacoes. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Ajuda a entregar/exibir a notificacao mesmo com a tela desligada. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>
