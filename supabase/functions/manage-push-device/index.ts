@@ -59,12 +59,15 @@ Deno.serve(async (request) => {
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: profissional, error: profissionalError } = await admin
-    .from("profissionais")
-    .select("id, ativo")
-    .eq("id", profissionalId)
-    .eq("senha", senha)
-    .maybeSingle();
+  const { data: verificacao, error: profissionalError } = await admin
+    .rpc("push_verify", { p_id: profissionalId, p_senha: senha });
+
+  if (profissionalError) {
+    console.error("Falha ao validar profissional para gestão de push:", profissionalError);
+    return jsonResponse({ error: "Could not validate professional." }, 500);
+  }
+  const profissional =
+    Array.isArray(verificacao) && verificacao.length > 0 ? verificacao[0] : null;
 
   if (profissionalError) {
     console.error("Falha ao validar profissional para gestão de push:", profissionalError);

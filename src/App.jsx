@@ -4540,10 +4540,7 @@ const blocoDownloadApp = (
 onClick={async () => {
 
 const { data: resultado, error } = await supabase
-  .from("profissionais")
-  .select("*")
-  .eq("nome", loginNome)
-  .eq("senha", senha);
+  .rpc("profissionais_login", { p_nome: loginNome, p_senha: senha });
 
 console.log("RETORNO LOGIN:", resultado);
 console.log("ERRO LOGIN:", error);
