@@ -8,10 +8,14 @@ set "APK_BACKUP=%TEMP%\agenda-pro-%RANDOM%-%RANDOM%.apk"
 set "APK_SOURCE=%PROJECT_DIR%android\app\build\outputs\apk\debug\app-debug.apk"
 set "APK_DOWNLOAD=%USERPROFILE%\Desktop\Agenda-Pro.apk"
 
+rem Remove o APK antigo ANTES de buildar para que o Vite/cap sync
+rem nao empacote o APK dentro do proprio APK novo (evita duplicar o tamanho).
 if exist "%APK_PUBLIC%" (
   move /y "%APK_PUBLIC%" "%APK_BACKUP%" >nul
   if errorlevel 1 goto erro
 )
+if exist "%PROJECT_DIR%dist\agenda-pro.apk" del /f /q "%PROJECT_DIR%dist\agenda-pro.apk" >nul
+if exist "%PROJECT_DIR%android\app\src\main\assets\public\agenda-pro.apk" del /f /q "%PROJECT_DIR%android\app\src\main\assets\public\agenda-pro.apk" >nul
 
 pushd "%PROJECT_DIR%"
 

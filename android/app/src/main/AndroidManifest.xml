@@ -52,4 +52,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Ajuda a entregar/exibir a notificacao mesmo com a tela desligada. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Necessaria para o aparelho vibrar nas notificacoes de agendamento. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>
