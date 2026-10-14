@@ -585,9 +585,10 @@ console.log("ESTOU NO ARQUIVO CERTO 999");
 console.log("Supabase:", supabase);
 console.log("ESTOU NO APP JSX CERTO");
 
-// Senha do administrador (segunda senha) - necessária para desbloquear
-// as opções de gerenciamento: editar, desativar, excluir e ver senha.
-const SENHA_ADMIN_OPCOES = "9622";
+// A senha de administrador (opcoes de gerenciamento) NAO fica mais no codigo.
+// Ela vive como secret do Supabase (ADMIN_SENHA_OPCOES) e e validada pela
+// Edge Function "verify-admin-opcoes" via desbloquearAdminSeguro().
+const SENHA_ADMIN_OPCOES_REMOVIDA = true;
 
 // ==========================================
 // PACOTE MENSAL — dias de uso do profissional
@@ -4392,7 +4393,22 @@ const blocoDownloadApp = (
     </small>
   </div>
 );
-return (
+
+  const desbloquearAdminSeguro = async () => {
+    const { data, error } = await supabase.functions.invoke("verify-admin-opcoes", {
+      body: { senha: senhaOpcoesAdmin },
+    });
+    const ok = !error && data && data.ok === true;
+    if (ok) {
+      setDesbloqueadoAdmin(true);
+    } else {
+      alert("Senha incorreta!");
+    }
+    setSenhaOpcoesAdmin("");
+    return ok;
+  };
+
+  return (
   <ProtectorDeErrores>
   <div style={appStyles} className={`app-wrapper ${["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "cor-masculina" : ""}`}>
     <div className="app-content">
@@ -5217,25 +5233,13 @@ Enviar pedido
               onChange={(e) => setSenhaOpcoesAdmin(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  if (senhaOpcoesAdmin === SENHA_ADMIN_OPCOES) {
-                    setDesbloqueadoAdmin(true);
-                    setSenhaOpcoesAdmin("");
-                  } else {
-                    alert("Senha incorreta!");
-                    setSenhaOpcoesAdmin("");
-                  }
+                  desbloquearAdminSeguro();
                 }
               }}
             />
             <button
               onClick={() => {
-                if (senhaOpcoesAdmin === SENHA_ADMIN_OPCOES) {
-                  setDesbloqueadoAdmin(true);
-                  setSenhaOpcoesAdmin("");
-                } else {
-                  alert("Senha incorreta!");
-                  setSenhaOpcoesAdmin("");
-                }
+                desbloquearAdminSeguro();
               }}
             >
               🔓 Desbloquear opções

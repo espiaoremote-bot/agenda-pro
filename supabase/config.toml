@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.manage-push-device]
 verify_jwt = false
+
+[functions.verify-admin-opcoes]
+verify_jwt = false
