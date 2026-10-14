@@ -29,6 +29,15 @@ const rejeitado = (reason: unknown): PromiseRejectedResult => ({
   reason,
 });
 
+// Converte "AAAA-MM-DD" (ou ISO com hora) para "DD/MM/AAAA".
+// Se não reconhecer o padrão, devolve o valor original sem quebrar.
+const formatarDataBr = (dataIso: string): string => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dataIso || "");
+  if (!match) return dataIso;
+  const [, ano, mes, dia] = match;
+  return `${dia}/${mes}/${ano}`;
+};
+
 async function obterTokenFirebase(
   serviceAccountJson: string,
 ): Promise<{ account: FirebaseServiceAccount; accessToken: string }> {
@@ -207,7 +216,7 @@ Deno.serve(async (request) => {
   const titulo = "Novo agendamento";
   const texto = `${appointment.nome || "Cliente"} · ${
     appointment.servico || "Serviço"
-  } · ${appointment.data} às ${appointment.horario}`;
+  } · ${formatarDataBr(appointment.data)} às ${appointment.horario}`;
   const dispositivos = subscriptions as Assinatura[];
   const webSubscriptions = dispositivos.filter(
     (subscription) => subscription.plataforma === "web",
