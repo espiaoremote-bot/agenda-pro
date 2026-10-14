@@ -1064,8 +1064,10 @@ const ativarNotificacoes = async () => {
         // Canal de alta prioridade para os agendamentos. Sem criar o canal,
         // no Android 8+ o push pode cair em canal de importancia baixa e nao
         // aparecer (ou nao tocar) com o app fechado / tela desligada.
+        // NOTA: id "agendamentos_v2" (novo). Canais do Android travam som/vibracao
+        // apos criados; usar um id novo garante um canal com SOM desde o inicio.
         await PushNotifications.createChannel({
-          id: "agendamentos",
+          id: "agendamentos_v2",
           name: "Agendamentos",
           description: "Avisos de novos agendamentos e confirmacoes",
           importance: 5, // ImportanceMax
@@ -1242,8 +1244,9 @@ useEffect(() => {
   // Garante que o canal de alta prioridade exista desde a abertura do app,
   // mesmo antes de o usuario tocar em "Ativar notificacoes". Assim, pushes que
   // chegarem com o app fechado sempre cairao neste canal e serao exibidos.
+  // id "agendamentos_v2" garante canal novo com som (canais Android travam apos criados).
   PushNotifications.createChannel({
-    id: "agendamentos",
+    id: "agendamentos_v2",
     name: "Agendamentos",
     description: "Avisos de novos agendamentos e confirmacoes",
     importance: 5,

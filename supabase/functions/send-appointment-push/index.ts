@@ -288,7 +288,7 @@ Deno.serve(async (request) => {
                       android: {
                         priority: "HIGH",
                         notification: {
-                          channel_id: "agendamentos",
+                          channel_id: "agendamentos_v2",
                           default_sound: true,
                           default_vibrate_timings: true,
                           notification_priority: "PRIORITY_MAX",
