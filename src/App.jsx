@@ -1239,6 +1239,20 @@ useEffect(() => {
 useEffect(() => {
   if (!Capacitor.isNativePlatform()) return;
 
+  // Garante que o canal de alta prioridade exista desde a abertura do app,
+  // mesmo antes de o usuario tocar em "Ativar notificacoes". Assim, pushes que
+  // chegarem com o app fechado sempre cairao neste canal e serao exibidos.
+  PushNotifications.createChannel({
+    id: "agendamentos",
+    name: "Agendamentos",
+    description: "Avisos de novos agendamentos e confirmacoes",
+    importance: 5,
+    visibility: 1,
+    vibration: true,
+  }).catch((error) => {
+    console.error("Falha ao criar o canal de notificacoes:", error);
+  });
+
   let ativo = true;
   const listeners = [];
   const registrarListener = (promessa) => {
