@@ -723,6 +723,18 @@ class ProtectorDeErrores extends Component {
   }
 }
 
+// Colunas liberadas para leitura pública em `profissionais` (pós-blindagem).
+// NUNCA usar select("*") em profissionais: o Supabase nega o "*" quando há privilégio
+// por coluna (senha/senha_hash escondidas).
+const COLUNAS_PERFIL =
+  "id,nome,tipo,ativo,tema,icone,status_atendimento,horarios_disponiveis," +
+  "validade_plano,plano_ilimitado,exigir_aprovacao_dezembro," +
+  "chave_pix,banco_pix,nome_pix," +
+  "endereco_rua,endereco_numero,endereco_cep,mostrar_endereco," +
+  "horario_funcionamento_inicio,horario_funcionamento_fim," +
+  "mostrar_horario_funcionamento,dias_atendimento_perfil," +
+  "seletor_promocoes_habilitado";
+
 function App() {
   const [tela, setTela] = useState("inicio");
 
@@ -2439,9 +2451,9 @@ useEffect(() => {
 
       const { data: atual, error } = await supabase
         .from("profissionais")
-        .select("*")
+        .select(COLUNAS_PERFIL)
         .eq("id", dados.id)
-        .single();
+        .maybeSingle();
 
       if (error || !atual) {
         // Perfil foi excluído / não existe mais.
@@ -2521,9 +2533,9 @@ if(!profissionalCliente) return;
 
 const { data, error } = await supabase
 .from("profissionais")
-.select("*")
+.select(COLUNAS_PERFIL)
 .eq("id", profissionalCliente)
-.single();
+.maybeSingle();
 
 
 if(error){
@@ -2988,7 +3000,8 @@ if (carregandoPerfil) {
 // Busca os profissionais no banco, desativa automaticamente quem tiver o
 // plano expirado e atualiza a listagem usada no painel do admin.
 async function carregarProfissionaisAdmin() {
-  const { data } = await supabase.from("profissionais").select("*");
+  const { data, error } = await supabase.from("profissionais").select(COLUNAS_PERFIL);
+  if (error) console.error("Erro ao carregar profissionais:", error);
   if (!data) return;
 
   const expirados = data.filter(
@@ -3008,7 +3021,7 @@ async function carregarProfissionaisAdmin() {
 
     if (error) console.error("Erro ao desativar planos expirados:", error);
 
-    const { data: atualizado } = await supabase.from("profissionais").select("*");
+    const { data: atualizado } = await supabase.from("profissionais").select(COLUNAS_PERFIL);
     setProfissionais(atualizado || data);
     return;
   }
@@ -3157,9 +3170,9 @@ async function alternarAtivoProfissional(profissional) {
 
   const { data } = await supabase
     .from("profissionais")
-    .select("*");
+    .select(COLUNAS_PERFIL);
 
-  setProfissionais(data);
+  if (data) setProfissionais(data);
 
 }
 
@@ -5687,9 +5700,9 @@ setTotalAgendamentos(count);
 
     const { data } = await supabase
       .from("profissionais")
-      .select("*");
+      .select(COLUNAS_PERFIL);
 
-   setProfissionais(data);
+   if (data) setProfissionais(data);
 
     setProfissionalEditando(null);
 
@@ -5780,9 +5793,9 @@ setEditarSenha("");
         alert("Profissional criado com sucesso!");
         const { data } = await supabase
 .from("profissionais")
-.select("*");
+.select(COLUNAS_PERFIL);
 
-setProfissionais(data);
+if (data) setProfissionais(data);
 
 setNovoNome("");
 setNovaSenha("");
