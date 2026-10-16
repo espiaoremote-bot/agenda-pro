@@ -3,6 +3,7 @@ import webpush from "npm:web-push@3.6.7";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 
 type Assinatura = {
+  id?: string;
   assinatura_web: PushSubscriptionJSON | null;
   token_fcm: string | null;
   plataforma: "android" | "web";
@@ -187,7 +188,7 @@ Deno.serve(async (request) => {
 
   const { data: subscriptions, error: subscriptionsError } = await admin
     .from("push_subscriptions")
-    .select("assinatura_web, token_fcm, plataforma")
+    .select("id, assinatura_web, token_fcm, plataforma")
     .eq("profissional_id", appointment.profissional_id);
   if (subscriptionsError) {
     console.error("Falha ao carregar dispositivos:", subscriptionsError);
@@ -242,17 +243,27 @@ Deno.serve(async (request) => {
             if (!subscription.assinatura_web) {
               throw new Error("Web subscription is missing.");
             }
-            await webpush.sendNotification(
-              subscription.assinatura_web,
-              JSON.stringify({
-                title: titulo,
-                body: texto,
-                data: {
-                  profissional_id: String(appointment.profissional_id),
-                  data: appointment.data,
-                },
-              }),
-            );
+            try {
+              await webpush.sendNotification(
+                subscription.assinatura_web,
+                JSON.stringify({
+                  title: titulo,
+                  body: texto,
+                  data: {
+                    profissional_id: String(appointment.profissional_id),
+                    data: appointment.data,
+                  },
+                }),
+              );
+            } catch (e) {
+              // Assinatura web expirada (410/404): remove para não travar a fila.
+              const status = (e as { statusCode?: number })?.statusCode;
+              if ((status === 410 || status === 404) && subscription.id) {
+                await admin.from("push_subscriptions").delete().eq("id", subscription.id);
+                console.log(`Assinatura web morta removida: ${subscription.id}`);
+              }
+              throw e;
+            }
           }),
         )),
       );
@@ -310,6 +321,19 @@ Deno.serve(async (request) => {
               );
               if (!response.ok) {
                 console.error("Firebase push delivery failed:", response.status);
+                // Token morto (app reinstalado / dados limpos): 404/400 = apaga
+                // o registro para não travar os próximos envios nem gerar fila.
+                if ((response.status === 404 || response.status === 400) && subscription.id) {
+                  const { error: delError } = await admin
+                    .from("push_subscriptions")
+                    .delete()
+                    .eq("id", subscription.id);
+                  if (delError) {
+                    console.error("Falha ao remover token morto:", delError);
+                  } else {
+                    console.log(`Token morto removido: ${subscription.id}`);
+                  }
+                }
                 throw new Error(`Firebase delivery failed (${response.status}).`);
               }
             }),
