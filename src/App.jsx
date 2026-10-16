@@ -1143,36 +1143,89 @@ const ativarNotificacoes = async () => {
   }
 };
 
-const salvarAssinaturaPush = async (plataforma, assinatura) => {
+function msgErroPush(error) {
+  const msg = String(error?.message || error || "");
+  const baixo = msg.toLowerCase();
+  if (baixo.includes("could not find the function") || baixo.includes("push_verify_token") || baixo.includes("schema cache"))
+    return "Função de push desatualizada no servidor. Rode o SQL _blindagem_perfil.sql e faça deploy de manage-push-device.";
+  if (baixo.includes("invalid device registration") || baixo.includes("invalid push"))
+    return "Registro recusado pelo servidor. Saia e entre de novo, depois toque em Ativar notificações.";
+  if (baixo.includes("invalid professional credentials"))
+    return "Sua sessão expirou. Saia e entre de novo para registrar este aparelho.";
+  if (baixo.includes("firebase") || baixo.includes("fcm"))
+    return "Falha no Firebase (token inválido ou secret ausente). Reative as notificações neste aparelho.";
+  if (baixo.includes("network") || baixo.includes("fetch") || baixo.includes("failed"))
+    return "Sem conexão com o servidor de push. Confira a internet e tente de novo.";
+  return msg || "Não foi possível registrar este aparelho no servidor.";
+}
+
+const salvarAssinaturaPush = async (plataforma, assinatura, tentativa = 1) => {
   const profissional = profissionalPushRef.current;
-  const token = ag.getToken();
-  if (!profissional?.id || !token) {
+  if (!profissional?.id) {
     throw new Error("Entre na área profissional para registrar este dispositivo.");
   }
+  const token = ag.getToken();
+  // TOLERANTE: sem token (sessão restaurada antiga) ainda tenta registrar.
+  // A função no servidor aceita senha como fallback durante a transição;
+  // se falhar, guardamos o token FCM para reenviar após o próximo login.
   let idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
   if (!idDispositivo) {
     idDispositivo = crypto.randomUUID();
     localStorage.setItem("agenda_pro_push_dispositivo", idDispositivo);
   }
+  try {
+    localStorage.setItem(
+      `agenda_pro_push_pendente_${plataforma}`,
+      JSON.stringify({ assinatura, quando: Date.now() })
+    );
+  } catch { /* ignora */ }
+
+  const corpo = {
+    action: "register",
+    deviceId: idDispositivo,
+    profissionalId: profissional.id,
+    plataforma,
+    ...(plataforma === "android"
+      ? { tokenFcm: assinatura }
+      : { assinaturaWeb: assinatura }),
+  };
+  if (token) corpo.profissionalToken = token;
+  else if (profissional.senha) corpo.profissionalSenha = profissional.senha;
 
   const { error } = await supabase.functions.invoke("manage-push-device", {
-    body: {
-      action: "register",
-      deviceId: idDispositivo,
-      profissionalId: profissional.id,
-      profissionalToken: token,
-      plataforma,
-      ...(plataforma === "android"
-        ? { tokenFcm: assinatura }
-        : { assinaturaWeb: assinatura }),
-    },
+    body: corpo,
   });
-  if (error) throw error;
+  if (error) {
+    // 1ª falha pode ser função velha em cache: tenta 1x de novo antes de avisar.
+    if (tentativa === 1) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return salvarAssinaturaPush(plataforma, assinatura, 2);
+    }
+    throw new Error(msgErroPush(error));
+  }
+  try {
+    localStorage.removeItem(`agenda_pro_push_pendente_${plataforma}`);
+  } catch { /* ignora */ }
   setPushConfigurado(true);
   localStorage.setItem(`agenda_pro_push_registrado_${plataforma}`, "1");
   setMensagemNotificacaoSistema(
     "Este dispositivo foi registrado para receber avisos."
   );
+};
+
+// Quando o profissional entra, reenvia o registro pendente (FCM novo ou
+// falha anterior) sem precisar tocar em "Ativar" de novo.
+const reenviarPushPendente = async () => {
+  try {
+    const plataforma = Capacitor.isNativePlatform() ? "android" : "web";
+    const pendente = localStorage.getItem(`agenda_pro_push_pendente_${plataforma}`);
+    if (!pendente) return;
+    const { assinatura } = JSON.parse(pendente);
+    if (!assinatura) return;
+    await salvarAssinaturaPush(plataforma, assinatura);
+  } catch (error) {
+    console.error("Push pendente não pôde ser reenviado agora:", error);
+  }
 };
 
 const desativarNotificacoes = () => {
@@ -1296,9 +1349,7 @@ useEffect(() => {
     PushNotifications.addListener("registration", ({ value }) => {
       salvarAssinaturaPush("android", value).catch((error) => {
         console.error("Falha ao salvar o token push do Android:", error);
-        setMensagemNotificacaoSistema(
-          "Permissão concedida, mas não foi possível registrar o aparelho no servidor."
-        );
+        setMensagemNotificacaoSistema(String(error?.message || "Permissão concedida, mas não foi possível registrar o aparelho no servidor."));
       });
     })
   );
@@ -1358,22 +1409,28 @@ useEffect(() => {
 
 useEffect(() => {
   if (!profissionalLogado?.id || !notificacoesAtivas) return;
+  // Ao entrar, tenta reenviar registro pendente (modo tolerante).
+  reenviarPushPendente();
   const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
   const profissional = profissionalPushRef.current;
   const token = ag.getToken();
-  if (!idDispositivo || !token) return;
+  if (!idDispositivo) return;
+  const corpo = {
+    action: "associate",
+    deviceId: idDispositivo,
+    profissionalId: profissional.id,
+  };
+  if (token) corpo.profissionalToken = token;
+  else if (profissional.senha) corpo.profissionalSenha = profissional.senha;
+  else return;
   supabase.functions
     .invoke("manage-push-device", {
-      body: {
-        action: "associate",
-        deviceId: idDispositivo,
-        profissionalId: profissional.id,
-        profissionalToken: token,
-      },
+      body: corpo,
     })
     .then(({ error }) => {
       if (error) {
         console.error("Falha ao associar o push à conta profissional:", error);
+        setMensagemNotificacaoSistema(String(msgErroPush(error)));
       }
     });
 }, [profissionalLogado, notificacoesAtivas]);

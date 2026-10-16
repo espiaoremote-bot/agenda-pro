@@ -89,16 +89,30 @@ Deno.serve(async (request) => {
       profissional = { id: data.id, ativo: Boolean(data.ativo) };
     }
   } else {
-    const { data: verificacao, error: profissionalError } = await admin
-      .rpc("push_verify", { p_id: profissionalId, p_senha: senha });
-    if (profissionalError) {
-      console.error("Falha ao validar profissional para gestão de push:", profissionalError);
+    // Fallback por senha (transição / banco antigo): busca o nome pelo id
+    // (service_role ignora RLS) e valida por hash com profissionais_login.
+    const { data: perfil, error: perfilError } = await admin
+      .from("profissionais")
+      .select("id,nome,ativo")
+      .eq("id", profissionalId)
+      .maybeSingle();
+    if (perfilError) {
+      console.error("Falha ao localizar profissional para gestão de push:", perfilError);
       return jsonResponse({ error: "Could not validate professional." }, 500);
     }
-    const encontrado =
-      Array.isArray(verificacao) && verificacao.length > 0 ? verificacao[0] : null;
-    if (encontrado) {
-      profissional = { id: encontrado.id, ativo: Boolean(encontrado.ativo) };
+    if (perfil?.nome) {
+      const { data: verificacao, error: profissionalError } = await admin
+        .rpc("profissionais_login", { p_nome: perfil.nome, p_senha: senha });
+      if (profissionalError) {
+        console.error("Falha ao validar profissional para gestão de push:", profissionalError);
+        return jsonResponse({ error: "Could not validate professional." }, 500);
+      }
+      const lista = Array.isArray(verificacao) ? verificacao : verificacao ? [verificacao] : [];
+      const encontrado =
+        lista.find((p) => Number(p?.id) === Number(profissionalId)) ?? null;
+      if (encontrado) {
+        profissional = { id: encontrado.id, ativo: Boolean(encontrado.ativo) };
+      }
     }
   }
 
