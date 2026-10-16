@@ -8,6 +8,7 @@ type RequestBody = {
   deviceId?: string;
   profissionalId?: number;
   profissionalSenha?: string;
+  profissionalToken?: string;
   plataforma?: Platform;
   tokenFcm?: string;
   assinaturaWeb?: {
@@ -43,15 +44,29 @@ Deno.serve(async (request) => {
 
   const profissionalId = body.profissionalId;
   const senha = body.profissionalSenha;
+  const token = body.profissionalToken;
+  const usouToken = typeof token === "string" && token.length > 0;
+
   if (
+    typeof body.deviceId !== "string" ||
+    !uuidPattern.test(body.deviceId)
+  ) {
+    return jsonResponse({ error: "Invalid device registration." }, 400);
+  }
+
+  // Autenticação: preferimos o token de sessão. Mantemos a senha como
+  // fallback durante a transição (remover quando todo app estiver no token).
+  if (usouToken) {
+    if (token.length > 256) {
+      return jsonResponse({ error: "Invalid device registration." }, 400);
+    }
+  } else if (
     typeof profissionalId !== "number" ||
     !Number.isSafeInteger(profissionalId) ||
     profissionalId < 1 ||
     typeof senha !== "string" ||
     senha.length === 0 ||
-    senha.length > 256 ||
-    typeof body.deviceId !== "string" ||
-    !uuidPattern.test(body.deviceId)
+    senha.length > 256
   ) {
     return jsonResponse({ error: "Invalid device registration." }, 400);
   }
@@ -59,20 +74,34 @@ Deno.serve(async (request) => {
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: verificacao, error: profissionalError } = await admin
-    .rpc("push_verify", { p_id: profissionalId, p_senha: senha });
 
-  if (profissionalError) {
-    console.error("Falha ao validar profissional para gestão de push:", profissionalError);
-    return jsonResponse({ error: "Could not validate professional." }, 500);
-  }
-  const profissional =
-    Array.isArray(verificacao) && verificacao.length > 0 ? verificacao[0] : null;
+  let profissional: { id: number; ativo: boolean } | null = null;
 
-  if (profissionalError) {
-    console.error("Falha ao validar profissional para gestão de push:", profissionalError);
-    return jsonResponse({ error: "Could not validate professional." }, 500);
+  if (usouToken) {
+    const { data, error } = await admin.rpc("push_verify_token", {
+      p_token: token,
+    });
+    if (error) {
+      console.error("Falha ao validar token para gestão de push:", error);
+      return jsonResponse({ error: "Could not validate professional." }, 500);
+    }
+    if (data && typeof data.id === "number") {
+      profissional = { id: data.id, ativo: Boolean(data.ativo) };
+    }
+  } else {
+    const { data: verificacao, error: profissionalError } = await admin
+      .rpc("push_verify", { p_id: profissionalId, p_senha: senha });
+    if (profissionalError) {
+      console.error("Falha ao validar profissional para gestão de push:", profissionalError);
+      return jsonResponse({ error: "Could not validate professional." }, 500);
+    }
+    const encontrado =
+      Array.isArray(verificacao) && verificacao.length > 0 ? verificacao[0] : null;
+    if (encontrado) {
+      profissional = { id: encontrado.id, ativo: Boolean(encontrado.ativo) };
+    }
   }
+
   if (!profissional || !profissional.ativo) {
     return jsonResponse({ error: "Invalid professional credentials." }, 401);
   }

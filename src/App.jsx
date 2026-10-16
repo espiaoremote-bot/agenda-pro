@@ -3,6 +3,8 @@ import { FaWhatsapp } from "react-icons/fa";
 import "react-calendar/dist/Calendar.css";
 import { useState, useEffect, useRef, Component } from "react";
 import { supabase } from "./supabaseClient";
+import * as ag from "./lib/agendamentosApi";
+import * as cat from "./lib/catalogoApi";
 import { App as CapacitorApp } from "@capacitor/app";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
@@ -21,6 +23,13 @@ function chaveVapidParaBytes(chave) {
 
 function statusAtendimentoAberto(status) {
   return status !== "Ocupado" && status !== "Fechado";
+}
+
+// Mensagem amigável para erros das RPCs do catálogo (serviços/promoções).
+function msgErroCatalogo(error) {
+  if (ag.erroSessaoInvalida(error))
+    return "Sua sessão expirou. Entre novamente para salvar.";
+  return error?.message || String(error);
 }
 
 function gerarLinkProfissional(idProfissional, login = false) {
@@ -1136,7 +1145,8 @@ const ativarNotificacoes = async () => {
 
 const salvarAssinaturaPush = async (plataforma, assinatura) => {
   const profissional = profissionalPushRef.current;
-  if (!profissional?.id || !profissional?.senha) {
+  const token = ag.getToken();
+  if (!profissional?.id || !token) {
     throw new Error("Entre na área profissional para registrar este dispositivo.");
   }
   let idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
@@ -1150,7 +1160,7 @@ const salvarAssinaturaPush = async (plataforma, assinatura) => {
       action: "register",
       deviceId: idDispositivo,
       profissionalId: profissional.id,
-      profissionalSenha: profissional.senha,
+      profissionalToken: token,
       plataforma,
       ...(plataforma === "android"
         ? { tokenFcm: assinatura }
@@ -1172,7 +1182,8 @@ const desativarNotificacoes = () => {
       const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
       const profissional = profissionalPushRef.current;
       if (idDispositivo) {
-        if (!profissional?.id || !profissional?.senha) {
+        const token = ag.getToken();
+        if (!profissional?.id || !token) {
           throw new Error("Entre novamente para remover este dispositivo.");
         }
         const { error } = await supabase.functions.invoke(
@@ -1182,7 +1193,7 @@ const desativarNotificacoes = () => {
               action: "remove",
               deviceId: idDispositivo,
               profissionalId: profissional.id,
-              profissionalSenha: profissional.senha,
+              profissionalToken: token,
             },
           }
         );
@@ -1349,14 +1360,15 @@ useEffect(() => {
   if (!profissionalLogado?.id || !notificacoesAtivas) return;
   const idDispositivo = localStorage.getItem("agenda_pro_push_dispositivo");
   const profissional = profissionalPushRef.current;
-  if (!idDispositivo || !profissional?.senha) return;
+  const token = ag.getToken();
+  if (!idDispositivo || !token) return;
   supabase.functions
     .invoke("manage-push-device", {
       body: {
         action: "associate",
         deviceId: idDispositivo,
         profissionalId: profissional.id,
-        profissionalSenha: profissional.senha,
+        profissionalToken: token,
       },
     })
     .then(({ error }) => {
@@ -2429,6 +2441,33 @@ useEffect(() => {
   restaurarProfissionalCliente();
 }, []);
 
+// Colunas liberadas para leitura pública em `profissionais` (pós-blindagem).
+// NUNCA usar select("*") aqui: o Supabase nega o "*" quando há privilégio
+// por coluna (senha/senha_hash escondidas) e isso apagava a sessão salva.
+// Manter sincronizado com as colunas usadas pelo app.
+const COLUNAS_PERFIL =
+  "id,nome,tipo,ativo,tema,icone,status_atendimento,horarios_disponiveis," +
+  "validade_plano,plano_ilimitado,exigir_aprovacao_dezembro," +
+  "chave_pix,banco_pix,nome_pix," +
+  "endereco_rua,endereco_numero,endereco_cep,mostrar_endereco," +
+  "horario_funcionamento_inicio,horario_funcionamento_fim," +
+  "mostrar_horario_funcionamento,dias_atendimento_perfil," +
+  "seletor_promocoes_habilitado";
+
+// Entra direto na área com os dados salvos (modo offline / falha de rede),
+// sem apagar a sessão. Só apaga quando o perfil realmente não existe mais.
+function entrarComSessaoSalva(salvo) {
+  setProfissionalLogado(salvo);
+  try {
+    abrirNotificacaoPendente(salvo.id);
+  } catch {}
+  setTemaSelecionado(salvo.tema || "feminino");
+  setIconeSelecionado(
+    normalizarIcone(salvo.icone) || (salvo.tema === "masculino" ? "💈" : "💅🏻")
+  );
+  setTela(salvo.tipo === "super_admin" ? "admin" : "profissional");
+}
+
 // Restaura a sessão do profissional ao atualizar a página (F5),
 // sem precisar logar novamente. Valida no banco se ainda está ativo.
 useEffect(() => {
@@ -2442,26 +2481,76 @@ useEffect(() => {
   if (!salvo) return;
 
   async function restaurarSessao() {
+    let dados = null;
     try {
-      const dados = JSON.parse(salvo);
-      if (!dados?.id) {
-        localStorage.removeItem("profissionalLogado");
-        return;
-      }
+      dados = JSON.parse(salvo);
+    } catch {
+      localStorage.removeItem("profissionalLogado");
+      return;
+    }
+    if (!dados?.id) {
+      localStorage.removeItem("profissionalLogado");
+      return;
+    }
 
-      const { data: atual, error } = await supabase
+    try {
+    // Sem token de sessão válido neste aparelho, mantém a tela inicial
+    // mas NÃO apaga os dados salvos (o token pode ter sido limpo sem logout).
+    if (!ag.getToken()) {
+      entrarComSessaoSalva(dados);
+      return;
+    }
+
+    let atual = null;
+    let error = null;
+    try {
+      const resposta = await supabase
         .from("profissionais")
         .select(COLUNAS_PERFIL)
         .eq("id", dados.id)
         .maybeSingle();
+      atual = resposta.data;
+      error = resposta.error;
+    } catch (e) {
+      // Sem internet / falha de rede ao reabrir o app: entra com os dados
+      // salvos em vez de apagar a sessão e mostrar "perfil excluído".
+      console.error("Falha de rede ao validar sessão salva:", e);
+      entrarComSessaoSalva(dados);
+      return;
+    }
 
-      if (error || !atual) {
-        // Perfil foi excluído / não existe mais.
-        localStorage.removeItem("profissionalLogado");
-        setTela("login");
-        setMensagemLogin("Este perfil não existe mais ou foi excluído.");
+    if (error) {
+      const codigo = String(error.code || "");
+      const mensagem = String(error.message || "").toLowerCase();
+      const ehPermissaoOuRede =
+        codigo === "42501" ||
+        mensagem.includes("permission denied") ||
+        mensagem.includes("sem permiss") ||
+        mensagem.includes("network") ||
+        mensagem.includes("fetch") ||
+        mensagem.includes("failed") ||
+        mensagem.includes("timeout");
+      if (ehPermissaoOuRede) {
+        // Coluna nova ainda sem grant, RLS ou app offline: não apaga a sessão.
+        console.error("Sessão mantida (falha ao validar no banco):", error);
+        entrarComSessaoSalva(dados);
         return;
       }
+      // Erro real de banco: pede login de novo, mas mostra msg genérica.
+      console.error("Erro ao validar sessão salva:", error);
+      setTela("login");
+      setMensagemLogin("Não foi possível validar sua sessão. Entre novamente.");
+      return;
+    }
+
+    if (!atual) {
+      // Aqui sim: o perfil foi excluído / não existe mais no banco.
+      localStorage.removeItem("profissionalLogado");
+      ag.setToken(null);
+      setTela("login");
+      setMensagemLogin("Este perfil não existe mais ou foi excluído.");
+      return;
+    }
 
       if (!atual.ativo) {
         // Perfil foi desativado pelo administrador.
@@ -2487,6 +2576,15 @@ useEffect(() => {
       setIconeSelecionado(normalizarIcone(atual.icone) || (atual.tema === "masculino" ? "💈" : "💅🏻"));
       setTela(atual.tipo === "super_admin" ? "admin" : "profissional");
     } catch (e) {
+      // Erro inesperado: mantém a sessão salva e entra offline.
+      console.error("Falha inesperada ao restaurar sessão:", e);
+      try {
+        const dadosSalvos = JSON.parse(salvo);
+        if (dadosSalvos?.id) {
+          entrarComSessaoSalva(dadosSalvos);
+          return;
+        }
+      } catch {}
       localStorage.removeItem("profissionalLogado");
     }
   }
@@ -2541,7 +2639,14 @@ const { data, error } = await supabase
 if(error){
 console.error(error);
 setCarregandoPerfil(false);
+// Falha de permissão/rede (pós-blindagem): não derruba a tela do cliente.
 return;
+}
+if (!data) {
+  setCarregandoPerfil(false);
+  alert("Este profissional está indisponível.");
+  setTela("inicio");
+  return;
 }
 if (!data.ativo) {
   setCarregandoPerfil(false);
@@ -2579,6 +2684,11 @@ useEffect(() => {
 if (profissionalLogado?.tema) {
   setTemaSelecionado(profissionalLogado.tema);
 }
+// Expõe o id para o modo de compatibilidade (banco antigo sem token).
+try {
+  if (profissionalLogado?.id) window.__profissionalLogadoId = profissionalLogado.id;
+  else delete window.__profissionalLogadoId;
+} catch { /* ignora */ }
 }, [profissionalLogado]);
 
 useEffect(() => {
@@ -2594,15 +2704,30 @@ if (!profissionalLogado && !profissionalCliente) {
   return;
 }
 
-    const { data: resultado, error } = await supabase
-      .from("agendamentos")
-      .select("*")
-      .eq("profissional_id", idProfissional)
-      .order("id", { ascending: false });
-
-
-    if (error) {
+    let resultado;
+    try {
+      resultado = profissionalLogado
+        ? await ag.listar()
+        : await ag.listarPublico(profissionalCliente);
+    } catch (error) {
       console.error(error);
+      if (profissionalLogado && ag.erroSessaoInvalida(error)) {
+        const msg = String(error?.message || "").toLowerCase();
+        const ehRede =
+          msg.includes("network") ||
+          msg.includes("fetch") ||
+          msg.includes("failed") ||
+          msg.includes("timeout") ||
+          !navigator.onLine;
+        if (!ehRede) {
+          localStorage.removeItem("profissionalLogado");
+          ag.setToken(null);
+          setProfissionalLogado(null);
+          setTela("login");
+          setMensagemLogin("Sua sessão expirou. Entre novamente.");
+        }
+        // Se for só falha de rede, mantém a sessão salva e tenta de novo depois.
+      }
       return;
     }
 
@@ -2633,13 +2758,30 @@ useEffect(() => {
   pedidosVistosRef.current = new Set();
 
   const atualizarPedidos = async () => {
-    const { data: resultado, error } = await supabase
-      .from("agendamentos")
-      .select("*")
-      .eq("profissional_id", idProfissional)
-      .order("id", { ascending: false });
+    let resultado;
+    try {
+      resultado = await ag.listar();
+    } catch (error) {
+      console.error(error);
+      if (ag.erroSessaoInvalida(error) && navigator.onLine !== false) {
+        const msg = String(error?.message || "").toLowerCase();
+        const ehRede =
+          msg.includes("network") ||
+          msg.includes("fetch") ||
+          msg.includes("failed") ||
+          msg.includes("timeout");
+        if (!ehRede) {
+          localStorage.removeItem("profissionalLogado");
+          ag.setToken(null);
+          setProfissionalLogado(null);
+          setTela("login");
+          setMensagemLogin("Sua sessão expirou. Entre novamente.");
+        }
+      }
+      return;
+    }
 
-    if (!error && Array.isArray(resultado)) {
+    if (Array.isArray(resultado)) {
       // Na primeira carga só guarda os agendamentos que já existem,
       // para não notificar os antigos quando o profissional entrar.
       if (primeiraCargaRef.current) {
@@ -2662,40 +2804,19 @@ useEffect(() => {
   };
 
   const processarEventoAgendamento = (payload) => {
-    const novoPedido = payload?.new;
-    if (
-      payload?.eventType === "INSERT" &&
-      Number(novoPedido?.profissional_id) === Number(idProfissional) &&
-      !pedidosVistosRef.current.has(novoPedido.id) &&
-      (novoPedido.status === "Agendado" || novoPedido.status === "Pendente")
-    ) {
-      pedidosVistosRef.current.add(novoPedido.id);
-      notificarAgendamentoRef.current?.(novoPedido);
-    }
+    // Mantido apenas para compatibilidade: com RLS ligado, o Realtime não
+    // recebe mais eventos desta tabela. A sincronização é por polling.
     atualizarPedidos();
   };
+  void processarEventoAgendamento;
 
   // Sincronização imediata: os agendamentos que já existem entram na lista
   // de "já vistos" e não disparam notificação.
   atualizarPedidos();
 
-  canal = supabase
-    .channel(`agendamentos-realtime-${idProfissional}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "agendamentos",
-        filter: `profissional_id=eq.${idProfissional}`,
-      },
-      processarEventoAgendamento
-    )
-    .subscribe((status, erro) => {
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        console.error("Falha ao receber novos agendamentos em tempo real:", erro);
-      }
-    });
+  // OBS: com o RLS ligado em `agendamentos`, o canal Realtime (postgres_changes)
+  // deixa de receber eventos da tabela para a chave pública. A sincronização
+  // passa a ser feita pelo polling abaixo (a cada 20s), que continua funcionando.
 
   intervalo = setInterval(atualizarPedidos, 20000);
 
@@ -3261,15 +3382,10 @@ async function salvarReagendamento() {
   const finReagendado = inicioReagendado + duracionReagendada;
 
   // Confere se o novo dia/horário já está ocupado por outro agendamento ativo.
-  const { data: agendamentosDia, error: erroBusca } = await supabase
-    .from("agendamentos")
-    .select("*")
-    .eq("profissional_id", profissionalLogado.id)
-    .eq("data", novaDataReagendamento)
-    .eq("status", "Agendado")
-    .neq("id", reagendandoPedido.id);
-
-  if (erroBusca) {
+  let agendamentosDia;
+  try {
+    agendamentosDia = await ag.listar();
+  } catch (erroBusca) {
     console.error(erroBusca);
     setMensagemReagendamento(
       "Ocorreu um erro ao conferir o horário. Tente novamente."
@@ -3277,6 +3393,12 @@ async function salvarReagendamento() {
     setTipoMensagemReagendamento("erro");
     return;
   }
+  agendamentosDia = (agendamentosDia || []).filter(
+    (existente) =>
+      existente.data === novaDataReagendamento &&
+      existente.status === "Agendado" &&
+      existente.id !== reagendandoPedido.id
+  );
 
   const ocupadoReagendamento = (agendamentosDia || []).some((existente) => {
     if (existente.horario_liberado === true) return false;
@@ -3306,16 +3428,13 @@ async function salvarReagendamento() {
     return;
   }
 
-  const { error } = await supabase
-    .from("agendamentos")
-    .update({
+  try {
+    await ag.atualizar(reagendandoPedido.id, {
       data: novaDataReagendamento,
       horario: novoHorarioReagendamento,
-    })
-    .eq("id", reagendandoPedido.id);
-
-  if (error) {
-    if (error.code === "23505") {
+    });
+  } catch (error) {
+    if (ag.erroHorarioOcupado(error)) {
       setMensagemReagendamento(
         "Esse horário acabou de ser reservado por outra pessoa. Escolha outro."
       );
@@ -3330,14 +3449,11 @@ async function salvarReagendamento() {
   }
 
   // Recarrega a agenda com os dados atualizados.
-  const { data: resultado, error: erroRecarga } = await supabase
-    .from("agendamentos")
-    .select("*")
-    .eq("profissional_id", profissionalLogado.id)
-    .order("id", { ascending: false });
-
-  if (!erroRecarga) {
-    setPedidos(resultado);
+  try {
+    const recarga = await ag.listar();
+    setPedidos(recarga);
+  } catch (erroRecarga) {
+    console.error(erroRecarga);
   }
 
   setMensagemProfissional(
@@ -3435,20 +3551,13 @@ async function alternarSeletorPromocoes() {
   const atual = profissionalLogado.seletor_promocoes_habilitado !== false;
   const novo = !atual;
 
-  const { error } = await supabase
-    .from("profissionais")
-    .update({ seletor_promocoes_habilitado: novo })
-    .eq("id", profissionalLogado.id);
-
-  if (error) {
+  try {
+    await cat.promoSeletor(novo);
+  } catch (error) {
     console.error(error);
-    alert(
-      "Não consegui salvar. Rode no SQL do Supabase: " +
-        "ALTER TABLE profissionais ADD COLUMN seletor_promocoes_habilitado boolean NOT NULL DEFAULT true;"
-    );
+    alert("Erro ao salvar o seletor de promoções: " + msgErroCatalogo(error));
     return;
   }
-
   setProfissionalLogado((prev) => ({
     ...prev,
     seletor_promocoes_habilitado: novo,
@@ -3468,14 +3577,11 @@ async function alternarPromocaoDoServico(servico) {
 
   if (existente) {
     if (!window.confirm(`Remover "${servico.nome}" das promoções?`)) return;
-    const { error } = await supabase
-      .from("promocoes")
-      .delete()
-      .eq("id", existente.id);
-
-    if (error) {
+    try {
+      await cat.promoExcluir(existente.id);
+    } catch (error) {
       console.error(error);
-      alert("Erro ao remover: " + error.message);
+      alert("Erro ao remover: " + msgErroCatalogo(error));
       return;
     }
 
@@ -3485,25 +3591,16 @@ async function alternarPromocaoDoServico(servico) {
     return;
   }
 
-  const { data: criada, error } = await supabase
-    .from("promocoes")
-    .insert([
-      {
-        profissional_id: profissionalLogado.id,
-        servico: servico.nome,
-        valor: servico.valor || 0,
-        duracao: servico.duracao || "",
-        meses: [],
-        semanas: {},
-        ativo: true,
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) {
+  let criada;
+  try {
+    criada = await cat.promoCriar({
+      servico: servico.nome,
+      valor: servico.valor || 0,
+      duracao: servico.duracao || "",
+    });
+  } catch (error) {
     console.error(error);
-    alert("Erro ao adicionar: " + error.message);
+    alert("Erro ao adicionar: " + msgErroCatalogo(error));
     return;
   }
 
@@ -3607,46 +3704,27 @@ async function aplicarAgendaParaTodasPromocoes() {
 
   const ids = outras.map((p) => p.id);
 
-  // Tenta salvar TUDO (incluindo dias_semana). Se a coluna ainda não existe
-  // na base, salva o resto e avisa pra rodar a migração no Supabase.
-  const { error } = await supabase
-    .from("promocoes")
-    .update({ meses, semanas, dias_semana: diasSemana })
-    .in("id", ids);
-
-  if (error) {
-    const { error: erroSemDias } = await supabase
-      .from("promocoes")
-      .update({ meses, semanas })
-      .in("id", ids);
-
-    if (erroSemDias) {
-      console.error(error, erroSemDias);
-      alert("Erro ao aplicar: " + error.message);
-      return;
-    }
-
-    alert(
-      "Aplicado! ⚠️ Para usar os DIAS DA SEMANA, rode no SQL do Supabase:\n" +
-        "ALTER TABLE public.promocoes ADD COLUMN IF NOT EXISTS dias_semana integer[] NOT NULL DEFAULT '{}';"
-    );
-
-    setPromocoes((prev) =>
-      prev.map((p) =>
-        ids.some((id) => Number(id) === Number(p.id))
-          ? { ...p, meses, semanas }
-          : p
-      )
-    );
-  } else {
-    setPromocoes((prev) =>
-      prev.map((p) =>
-        ids.some((id) => Number(id) === Number(p.id))
-          ? { ...p, meses, semanas, dias_semana: diasSemana }
-          : p
-      )
-    );
+  // Salva meses/semanas/dias via RPC (a coluna dias_semana é garantida pelo
+  // _blindagem_servicos_promocoes.sql).
+  try {
+    await cat.promoAtualizarVarios(ids, {
+      meses,
+      semanas,
+      dias_semana: diasSemana,
+    });
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao aplicar: " + msgErroCatalogo(error));
+    return;
   }
+
+  setPromocoes((prev) =>
+    prev.map((p) =>
+      ids.some((id) => Number(id) === Number(p.id))
+        ? { ...p, meses, semanas, dias_semana: diasSemana }
+        : p
+    )
+  );
 
   setMensagemPromo(
     `📋 Meses, semanas e dias aplicados para as outras ${outras.length} promoções!`
@@ -3681,33 +3759,17 @@ async function salvarPromocao() {
     meses,
     semanas,
     ativo: promoEditAtivo,
+    dias_semana: diasSemana,
   };
 
-  // Tenta salvar TUDO (incluindo dias_semana). Se a coluna ainda não existe
-  // na base, salva o resto e avisa pra rodar a migração no Supabase.
-  const { error } = await supabase
-    .from("promocoes")
-    .update({ ...dadosPromo, dias_semana: diasSemana })
-    .eq("id", promo.id);
-
-  if (error) {
-    const { error: erroSemDias } = await supabase
-      .from("promocoes")
-      .update(dadosPromo)
-      .eq("id", promo.id);
-
-    if (erroSemDias) {
-      console.error(error, erroSemDias);
-      alert("Erro ao salvar: " + error.message);
-      return;
-    }
-
-    alert(
-      "Promoção salva! ⚠️ Para usar os DIAS DA SEMANA, rode no SQL do Supabase:\n" +
-        "ALTER TABLE public.promocoes ADD COLUMN IF NOT EXISTS dias_semana integer[] NOT NULL DEFAULT '{}';"
-    );
-  } else {
-    dadosPromo.dias_semana = diasSemana;
+  // Salva via RPC (a coluna dias_semana é garantida pelo
+  // _blindagem_servicos_promocoes.sql).
+  try {
+    await cat.promoAtualizar(promo.id, dadosPromo);
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar: " + msgErroCatalogo(error));
+    return;
   }
 
   setPromocoes((prev) =>
@@ -3722,11 +3784,11 @@ async function salvarPromocao() {
 
 async function excluirPromocao(promo) {
   if (!window.confirm(`Excluir a promoção de "${promo.servico}"?`)) return;
-  const { error } = await supabase.from("promocoes").delete().eq("id", promo.id);
-
-  if (error) {
+  try {
+    await cat.promoExcluir(promo.id);
+  } catch (error) {
     console.error(error);
-    alert("Erro ao excluir: " + error.message);
+    alert("Erro ao excluir: " + msgErroCatalogo(error));
     return;
   }
 
@@ -3741,14 +3803,11 @@ async function excluirPromocao(promo) {
 // banco e o cliente deixa de ver (ou volta a ver) a promoção.
 async function alternarAtivoPromocao(promo) {
   const novo = promo.ativo === false;
-  const { error } = await supabase
-    .from("promocoes")
-    .update({ ativo: novo })
-    .eq("id", promo.id);
-
-  if (error) {
+  try {
+    await cat.promoAtualizar(promo.id, { ativo: novo });
+  } catch (error) {
     console.error(error);
-    alert("Erro ao alterar: " + error.message);
+    alert("Erro ao alterar: " + msgErroCatalogo(error));
     return;
   }
 
@@ -3916,19 +3975,18 @@ async function enviarPedidoCliente() {
     // Busca uma única vez todos os agendamentos ativos do mesmo dia e depois
     // compara usando a REGRA DE DURACIÓN (cruza o intervalo ocupado pelo outro).
     if (!cacheAgendamentosDia[item.data]) {
-      const { data: agendamentosDia, error: erroBusca } = await supabase
-        .from("agendamentos")
-        .select("*")
-        .eq("profissional_id", profissionalCliente)
-        .eq("data", item.data)
-        .eq("status", "Agendado");
-
-      if (erroBusca) {
+      let agendamentosDia;
+      try {
+        agendamentosDia = await ag.listarPublico(profissionalCliente);
+      } catch (erroBusca) {
         console.error(erroBusca);
         return;
       }
 
-      cacheAgendamentosDia[item.data] = agendamentosDia || [];
+      cacheAgendamentosDia[item.data] = (agendamentosDia || []).filter(
+        (existente) =>
+          existente.data === item.data && existente.status === "Agendado"
+      );
     }
 
     const ocupaExistente = (cacheAgendamentosDia[item.data] || []).some(
@@ -3959,31 +4017,25 @@ async function enviarPedidoCliente() {
       return;
     }
 
-    const { data: pedidoSalvo, error } = await supabase
-      .from("agendamentos")
-      .insert([
-        {
-          nome,
-          whatsapp,
-          servico: item.servico,
-          valor_servico: item.valor,
-          data: item.data,
-          horario: item.horario,
-          status: precisaAprovacaoProfissional(
-            item.data,
-            dadosProfissionalCliente?.exigir_aprovacao_dezembro
-          )
-            ? "Pendente"
-            : "Agendado",
-          horario_liberado: false,
-          profissional_id: profissionalCliente,
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === "23505") {
+    let pedidoSalvo;
+    try {
+      pedidoSalvo = await ag.criarCliente({
+        profissionalId: profissionalCliente,
+        nome,
+        whatsapp,
+        servico: item.servico,
+        valor: item.valor,
+        data: item.data,
+        horario: item.horario,
+        status: precisaAprovacaoProfissional(
+          item.data,
+          dadosProfissionalCliente?.exigir_aprovacao_dezembro
+        )
+          ? "Pendente"
+          : "Agendado",
+      });
+    } catch (error) {
+      if (ag.erroHorarioOcupado(error)) {
         setMensagem("Esse horário acabou de ser reservado por outra pessoa.");
         setTipoMensagem("erro");
         return;
@@ -4287,17 +4339,18 @@ async function enviarPedidoAgendarCliente() {
 
     // Busca todos os agendamentos ativos da recorrência e compara usando a
     // REGRA DE DURACIÓN (cruza o intervalo ocupado pelo outro).
-    const { data: agendamentos, error: erroBusca } = await supabase
-      .from("agendamentos")
-      .select("*")
-      .eq("profissional_id", profissionalLogado.id)
-      .in("data", datasDaRecorrencia)
-      .eq("status", "Agendado");
-
-    if (erroBusca) {
+    let agendamentos;
+    try {
+      agendamentos = await ag.listar();
+    } catch (erroBusca) {
       console.error(erroBusca);
       return;
     }
+    agendamentos = (agendamentos || []).filter(
+      (existente) =>
+        datasDaRecorrencia.includes(existente.data) &&
+        existente.status === "Agendado"
+    );
 
     const conflito = (agendamentos || []).find((existente) => {
       if (!datasDaRecorrencia.includes(existente.data)) return false;
@@ -4340,13 +4393,11 @@ async function enviarPedidoAgendarCliente() {
       profissional_id: profissionalLogado.id,
     }));
 
-    const { data: pedidosCriados, error } = await supabase
-      .from("agendamentos")
-      .insert(linhasAgendamento)
-      .select();
-
-    if (error) {
-      if (error.code === "23505") {
+    let pedidosCriados;
+    try {
+      pedidosCriados = await ag.criarProfissional(linhasAgendamento);
+    } catch (error) {
+      if (ag.erroHorarioOcupado(error)) {
         setMensagemAgendarCliente(
           "Esse horário acabou de ser reservado por outra pessoa."
         );
@@ -4360,14 +4411,11 @@ async function enviarPedidoAgendarCliente() {
     totalCriados += pedidosCriados?.length || 0;
   }
 
-  const { data: resultado, error: erroRecarga } = await supabase
-    .from("agendamentos")
-    .select("*")
-    .eq("profissional_id", profissionalLogado.id)
-    .order("id", { ascending: false });
-
-  if (!erroRecarga) {
-    setPedidos(resultado);
+  try {
+    const recarga = await ag.listar();
+    setPedidos(recarga);
+  } catch (erroRecarga) {
+    console.error(erroRecarga);
   }
 
   setMensagemAgendarCliente(
@@ -4552,23 +4600,33 @@ const blocoDownloadApp = (
 <button className="btn-login"
 onClick={async () => {
 
-const { data: resultado, error } = await supabase
-  .rpc("profissionais_login", { p_nome: loginNome, p_senha: senha });
+if (profissionalLogado?.id) {
+  setMensagemLogin("");
+  if (profissionalLogado.tipo === "super_admin") {
+    setTela("admin");
+  } else {
+    setTela("profissional");
+  }
+  return;
+}
 
-console.log("RETORNO LOGIN:", resultado);
-console.log("ERRO LOGIN:", error);
+let sessao;
+try {
+  sessao = await ag.login(loginNome, senha);
+} catch (erroLogin) {
+  console.error("ERRO LOGIN:", erroLogin);
+  setMensagemLogin("Não foi possível entrar. Tente novamente.");
+  return;
+}
 
+console.log("RETORNO LOGIN:", sessao);
 
-if (error || !resultado || resultado.length === 0) {
+if (!sessao) {
   setMensagemLogin("Nome ou senha incorretos!");
   return;
 }
-if (resultado.length > 1) {
-  setMensagemLogin("Existem perfis com esse nome e senha duplicados. O administrador precisa corrigir.");
-  return;
-}
 
-const resultadoLogado = resultado[0];
+const resultadoLogado = sessao.profissional;
 
 if (planoExpirado(resultadoLogado)) {
   // Plano venceu => desativa a conta e impede o login.
@@ -5203,6 +5261,17 @@ Enviar pedido
 >
   Voltar
 </button>
+{profissionalLogado?.id && (
+  <button
+    style={{ marginLeft: "8px" }}
+    onClick={() => {
+      setProfissionalCliente(profissionalLogado.id);
+      setTela("profissional");
+    }}
+  >
+    💼 Voltar ao meu painel
+  </button>
+)}
 {/* O link de download só aparece fora do app (navegador). Dentro do app instalado
     não faz sentido oferecer o download dele mesmo. Usamos isNativePlatform()
     porque window.Capacitor existe também no navegador (o core do Capacitor
@@ -5435,9 +5504,7 @@ Enviar pedido
     // Carrega a lista e já desativa automaticamente quem tiver o plano vencido.
     await carregarProfissionaisAdmin();
 
-    const { count } = await supabase
-  .from("agendamentos")
-  .select("*", { count: "exact", head: true });
+    const count = await ag.contarAdmin();
 
 setTotalAgendamentos(count);
 
@@ -5482,7 +5549,7 @@ setTotalAgendamentos(count);
 
 {
   profissionais.filter(
-    (p) => p.nome === profissional.nome && p.senha === profissional.senha
+    (p) => p.nome === profissional.nome
   ).length > 1 && (
     <p style={{ color: "#d32f2f", fontWeight: "bold", marginTop: "8px" }}>
       ⚠️ Nome e senha duplicados! Ajuste um deles para evitar confusão no login.
@@ -5649,7 +5716,7 @@ setTotalAgendamentos(count);
 
         setEditarNome(profissional.nome);
 
-        setEditarSenha(profissional.senha);
+        setEditarSenha("");
 
         setMostrarSenha(false);
 
@@ -5670,26 +5737,40 @@ setTotalAgendamentos(count);
 
 <input
   type={mostrarSenha ? "text" : "password"}
-  placeholder="Nova senha"
+  placeholder="Nova senha (deixe em branco para manter a atual)"
   value={editarSenha}
   onChange={(e) => setEditarSenha(e.target.value)}
 />
 
 <button
-  onClick={() => setMostrarSenha(!mostrarSenha)}
+  onClick={async () => {
+    // A senha não vem mais no select * (blindada). Buscamos via RPC, que só
+    // permite para super_admin autenticado.
+    try {
+      const senhaAtual = await ag.adminVerSenha(profissional.id);
+      if (senhaAtual != null) setEditarSenha(senhaAtual);
+      setMostrarSenha(true);
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível carregar a senha. Verifique se você é administrador.");
+    }
+  }}
 >
-  {mostrarSenha ? "🙈 Esconder senha" : "👁️ Ver senha"}
+  👁️ Ver senha
 </button>
 
 <button
   onClick={async () => {
 
+    // Só envia a senha se o admin preencheu uma nova; senão, mantém a atual.
+    const mudouSenha = editarSenha.trim().length > 0;
+    const dadosAtualizacao = mudouSenha
+      ? { nome: editarNome, senha: editarSenha }
+      : { nome: editarNome };
+
     const { error } = await supabase
       .from("profissionais")
-      .update({
-        nome: editarNome,
-        senha: editarSenha,
-      })
+      .update(dadosAtualizacao)
       .eq("id", profissional.id);
 
     if (error) {
@@ -5812,6 +5893,7 @@ Criar profissional
     <button
       onClick={() => {
         localStorage.removeItem("profissionalLogado");
+        ag.setToken(null);
         setProfissionalLogado(null);
         setTela("inicio");
       }}
@@ -5838,8 +5920,6 @@ Criar profissional
   Olá, {profissionalLogado?.nome} 👋🏻
 </h2>
 <div style={{marginTop:"20px"}}>
-
-
 
 
 </div>
@@ -7022,21 +7102,21 @@ if (!novoServico.trim()) {
 
 const criarPromo = promoAoCriarServico;
 
-const { error } = await supabase
-.from("servicos")
-.insert([
-{
-  nome: novoServico,
-  valor: novoValor || null,
-  duracao: novaDuracao || null,
-  profissional_id: profissionalLogado.id,
-  ativo: true
+let erroCriacao = null;
+try {
+  await cat.servCriar({
+    nome: novoServico,
+    valor: novoValor || null,
+    duracao: novaDuracao || null,
+  });
+} catch (error) {
+  erroCriacao = error;
 }
-]);
 
 
-if(error){
-console.error(error);
+if(erroCriacao){
+console.error(erroCriacao);
+alert("Erro ao criar serviço: " + msgErroCatalogo(erroCriacao));
 return;
 }
 
@@ -7062,27 +7142,23 @@ setPromoAoCriarServico(false);
 
 if (criarPromo) {
   // Já cria a promoção do mesmo serviço (fica no seletor de promoções).
-  const { data: novaPromo, error: erroPromo } = await supabase
-    .from("promocoes")
-    .insert([
-      {
-        profissional_id: profissionalLogado.id,
-        servico: novoServico,
-        valor: novoValor || 0,
-        duracao: novaDuracao || "",
-        meses: [],
-        semanas: {},
-        ativo: true,
-      },
-    ])
-    .select()
-    .single();
+  let novaPromo = null;
+  let erroPromo = null;
+  try {
+    novaPromo = await cat.promoCriar({
+      servico: novoServico,
+      valor: novoValor || 0,
+      duracao: novaDuracao || "",
+    });
+  } catch (error) {
+    erroPromo = error;
+  }
 
   if (erroPromo) {
     console.error(erroPromo);
     alert(
       "Serviço criado, mas não consegui colocar na promoção: " +
-        erroPromo.message
+        msgErroCatalogo(erroPromo)
     );
     return;
   }
@@ -7164,18 +7240,20 @@ Adicionar serviço
             return;
           }
 
-          const { error } = await supabase
-            .from("servicos")
-            .update({
+          let erroEdicao = null;
+          try {
+            await cat.servAtualizar(item.id, {
               nome: editaNome,
               valor: editaValor || null,
               duracao: editaDuracao || null,
-            })
-            .eq("id", item.id);
+            });
+          } catch (error) {
+            erroEdicao = error;
+          }
 
-          if (error) {
-            console.error(error);
-            alert("Erro ao editar serviço: " + error.message);
+          if (erroEdicao) {
+            console.error(erroEdicao);
+            alert("Erro ao editar serviço: " + msgErroCatalogo(erroEdicao));
             return;
           }
 
@@ -7260,14 +7338,16 @@ Adicionar serviço
       onClick={async () => {
 
         if (item.ativo) {
-          const { error } = await supabase
-            .from("servicos")
-            .update({ ativo: false })
-            .eq("id", item.id);
+          let erroStatus = null;
+          try {
+            await cat.servAtualizar(item.id, { ativo: false });
+          } catch (error) {
+            erroStatus = error;
+          }
 
-          if(error){
-            console.error(error);
-            alert("Erro ao desativar serviço: " + error.message);
+          if(erroStatus){
+            console.error(erroStatus);
+            alert("Erro ao desativar serviço: " + msgErroCatalogo(erroStatus));
             return;
           }
 
@@ -7285,14 +7365,16 @@ Adicionar serviço
 
           alert("Serviço desativado!");
         } else {
-          const { error } = await supabase
-            .from("servicos")
-            .update({ ativo: true })
-            .eq("id", item.id);
+          let erroStatus = null;
+          try {
+            await cat.servAtualizar(item.id, { ativo: true });
+          } catch (error) {
+            erroStatus = error;
+          }
 
-          if(error){
-            console.error(error);
-            alert("Erro ao reativar serviço: " + error.message);
+          if(erroStatus){
+            console.error(erroStatus);
+            alert("Erro ao reativar serviço: " + msgErroCatalogo(erroStatus));
             return;
           }
 
@@ -7319,14 +7401,16 @@ Adicionar serviço
     <button
       style={{ marginLeft: "8px", background: "#d32f2f" }}
       onClick={async () => {
-        const { error } = await supabase
-          .from("servicos")
-          .delete()
-          .eq("id", item.id);
+        let erroExclusao = null;
+        try {
+          await cat.servExcluir(item.id);
+        } catch (error) {
+          erroExclusao = error;
+        }
 
-        if(error){
-          console.error(error);
-          alert("Erro ao excluir: " + error.message + "\n\nProvavelmente há agendamentos vinculados. Use 'Desativar' em vez de excluir.");
+        if(erroExclusao){
+          console.error(erroExclusao);
+          alert("Erro ao excluir: " + msgErroCatalogo(erroExclusao) + "\n\nProvavelmente há agendamentos vinculados. Use 'Desativar' em vez de excluir.");
           return;
         }
 
@@ -8193,27 +8277,27 @@ horariosTrabalho.filter(
                   return;
                 }
 
-                const { error } = await supabase
-                  .from("agendamentos")
-                  .delete()
-                  .eq("profissional_id", profissionalLogado.id)
-                  .in("data", diasSelecionadosExclusao)
-                  .eq("status", "Agendado");
+                const idsParaExcluir = pedidos
+                  .filter(
+                    (pedido) =>
+                      pedido.status === "Agendado" &&
+                      diasSelecionadosExclusao.includes(pedido.data)
+                  )
+                  .map((pedido) => pedido.id);
 
-                if (error) {
+                try {
+                  await ag.excluir(idsParaExcluir);
+                } catch (error) {
                   console.error(error);
                   return;
                 }
 
-                const { data, error: erroBusca } = await supabase
-                  .from("agendamentos")
-                  .select("*")
-                  .eq("profissional_id", profissionalLogado.id)
-                  .order("id", { ascending: false });
-
-                if (!erroBusca) {
-                  setPedidos(data);
-                  localStorage.setItem("pedidos", JSON.stringify(data));
+                try {
+                  const recarga = await ag.listar();
+                  setPedidos(recarga);
+                  localStorage.setItem("pedidos", JSON.stringify(recarga));
+                } catch (erroBusca) {
+                  console.error(erroBusca);
                 }
 
                 setDiasSelecionadosExclusao([]);
@@ -8337,19 +8421,20 @@ horariosTrabalho.filter(
             <button
               className="btn-aprovar"
               onClick={async () => {
-                const { data: conflito, error: erroConflito } = await supabase
-                  .from("agendamentos")
-                  .select("*")
-                  .eq("profissional_id", profissionalLogado.id)
-                  .eq("data", pedido.data)
-                  .eq("horario", pedido.horario)
-                  .eq("status", "Agendado")
-                  .maybeSingle();
-
-                if (erroConflito) {
+                let lista;
+                try {
+                  lista = await ag.listar();
+                } catch (erroConflito) {
                   console.error(erroConflito);
                   return;
                 }
+
+                const conflito = (lista || []).find(
+                  (item) =>
+                    item.data === pedido.data &&
+                    item.horario === pedido.horario &&
+                    item.status === "Agendado"
+                );
 
                 if (conflito && conflito.id !== pedido.id) {
                   setMensagemErroProfissional(
@@ -8358,12 +8443,12 @@ horariosTrabalho.filter(
                   return;
                 }
 
-                const { error } = await supabase
-                  .from("agendamentos")
-                  .update({ status: "Agendado", horario_liberado: false })
-                  .eq("id", pedido.id);
-
-                if (error) {
+                try {
+                  await ag.atualizar(pedido.id, {
+                    status: "Agendado",
+                    horario_liberado: false,
+                  });
+                } catch (error) {
                   console.error(error);
                   return;
                 }
@@ -8391,15 +8476,12 @@ horariosTrabalho.filter(
                 );
                 if (!confirmar) return;
 
-                const { error } = await supabase
-                  .from("agendamentos")
-                  .update({
+                try {
+                  await ag.atualizar(pedido.id, {
                     status: "Cancelado",
                     datacancelamento: new Date().toLocaleString(),
-                  })
-                  .eq("id", pedido.id);
-
-                if (error) {
+                  });
+                } catch (error) {
                   console.error(error);
                   return;
                 }
@@ -8568,12 +8650,9 @@ pedido.status === "Agendado"
   <button
 onClick={async () => {
 
-      const { error } = await supabase
-        .from("agendamentos")
-        .delete()
-        .eq("id", pedido.id);
-
-      if (error) {
+      try {
+        await ag.excluir([pedido.id]);
+      } catch (error) {
         console.error(error);
         return;
       }
@@ -8638,56 +8717,42 @@ try {
   console.warn("Não consegui guardar a data de conclusão local:", e);
 }
 
-const { error } = await supabase
-.from("agendamentos")
-.update({
-  status: "Concluído",
-  horario_liberado: true,
-  dataconcluido: dataConcluido
-})
-.eq("id", pedido.id);
-
-
-if(error){
+try {
+  await ag.atualizar(pedido.id, {
+    status: "Concluído",
+    horario_liberado: true,
+    dataconcluido: dataConcluido,
+  });
+} catch (error) {
   // Se a coluna dataconcluido ainda não existe na base, finaliza sem ela
-  // para o botão não quebrar até a migração ser feita.
-  // O saldo já tem a data guardada localmente acima, então continua correto.
+  // para o botão não quebrar. O saldo já tem a data guardada localmente.
   console.warn(
-    "Não consegui salvar `dataconcluido` no banco. " +
-    "A coluna ainda não existe? Rode no SQL do Supabase: " +
-    "ALTER TABLE agendamentos ADD COLUMN dataconcluido date;",
+    "Não consegui salvar `dataconcluido` no banco. Tentando sem ela.",
     error
   );
-  const { error: erroFallback } = await supabase
-    .from("agendamentos")
-    .update({
+  try {
+    await ag.atualizar(pedido.id, {
       status: "Concluído",
-      horario_liberado: true
-    })
-    .eq("id", pedido.id);
-
-  if (erroFallback) {
+      horario_liberado: true,
+    });
+  } catch (erroFallback) {
     console.error(erroFallback);
     return;
   }
 }
 
 
-const { data, error: erroBusca } = await supabase
-.from("agendamentos")
-.select("*")
-.eq("profissional_id", profissionalLogado.id)
-.order("id", { ascending:false });
-
-
-if(erroBusca){
+let dataRecarregada;
+try {
+  dataRecarregada = await ag.listar();
+} catch (erroBusca) {
   console.error(erroBusca);
   return;
 }
-console.log("PEDIDOS DETALHADOS:", pedidos);
-console.table(pedidos);
 
-setPedidos(data);
+console.table(dataRecarregada);
+
+setPedidos(dataRecarregada);
 
 setMensagemProfissional("Trabalho concluído!");
 await supabase
@@ -8710,36 +8775,28 @@ onClick={async () => {
 
   setMensagemProfissional("");
   setMensagemErroProfissional("");
-  
-  const { error } = await supabase
-    .from("agendamentos")
-    .update({
+
+  try {
+    await ag.atualizar(pedido.id, {
       status: "Cancelado",
       datacancelamento: new Date().toLocaleString(),
-    })
-    .eq("id", pedido.id);
-
-
-  if(error){
+    });
+  } catch (error) {
     console.error(error);
     return;
   }
 
 
-const { data, error: erroBusca } = await supabase
-.from("agendamentos")
-.select("*")
-.eq("profissional_id", profissionalLogado.id)
-.order("id", { ascending:false });
-
-
-if(erroBusca){
-console.error(erroBusca);
-return;
+let dataRecarregada;
+try {
+  dataRecarregada = await ag.listar();
+} catch (erroBusca) {
+  console.error(erroBusca);
+  return;
 }
 
 
-setPedidos(data);
+setPedidos(dataRecarregada);
 
 setMensagemErroProfissional("Agendamento cancelado!");
 
@@ -8800,15 +8857,10 @@ setMensagemErroProfissional("Agendamento cancelado!");
         setSalvandoValorAgendamento(true);
         setMensagemErroProfissional("");
         setMensagemProfissional("");
-        const { data, error } = await supabase
-          .from("agendamentos")
-          .update({ valor_servico: valor })
-          .eq("id", pedido.id)
-          .eq("profissional_id", profissionalLogado.id)
-          .select("*")
-          .maybeSingle();
-
-        if (error) {
+        let data;
+        try {
+          data = await ag.atualizar(pedido.id, { valor_servico: valor });
+        } catch (error) {
           console.error(error);
           setMensagemErroProfissional("Não foi possível salvar o novo valor. Tente novamente.");
           setSalvandoValorAgendamento(false);
@@ -8867,27 +8919,24 @@ setMensagemErroProfissional("Agendamento cancelado!");
           return;
         }
 
-        const { error } = await supabase
-          .from("agendamentos")
-          .update({
-            status: "Cancelado",
-            datacancelamento: new Date().toLocaleString(),
-          })
-          .in("id", grupoRecorrencia.map((item) => item.id));
-
-        if (error) {
+        try {
+          await ag.atualizarVarios(
+            grupoRecorrencia.map((item) => item.id),
+            {
+              status: "Cancelado",
+              datacancelamento: new Date().toLocaleString(),
+            }
+          );
+        } catch (error) {
           console.error(error);
           return;
         }
 
-        const { data, error: erroBusca } = await supabase
-          .from("agendamentos")
-          .select("*")
-          .eq("profissional_id", profissionalLogado.id)
-          .order("id", { ascending: false });
-
-        if (!erroBusca) {
-          setPedidos(data);
+        try {
+          const recarga = await ag.listar();
+          setPedidos(recarga);
+        } catch (erroBusca) {
+          console.error(erroBusca);
         }
 
         setMensagemProfissional("");
@@ -8992,6 +9041,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
 
 
 
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
 <button
   onClick={() => {
     setMensagemProfissional("");
@@ -9001,6 +9051,19 @@ setMensagemErroProfissional("Agendamento cancelado!");
 >
   Voltar
 </button>
+
+<button
+  onClick={async () => {
+    await ag.logout();
+    localStorage.removeItem("profissionalLogado");
+    setProfissionalLogado(null);
+    setProfissionalCliente(null);
+    setTela("inicio");
+  }}
+>
+  Sair
+</button>
+</div>
 
   </div>
 )}
