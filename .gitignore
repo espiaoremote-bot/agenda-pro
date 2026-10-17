@@ -25,3 +25,7 @@ dist-ssr
 
 .vercel
 .env*
+
+# CLI local da Supabase - nunca versionar
+supabase/.temp/
+
