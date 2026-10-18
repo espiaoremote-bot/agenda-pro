@@ -758,8 +758,11 @@ function lerSessaoSalvaInicial() {
 
 function App() {
   const [tela, setTela] = useState(() => {
+    const parametros = new URLSearchParams(window.location.search);
+    // Link público do cliente: entra direto na agenda, sem login.
+    if (Number(parametros.get("profissional"))) return "cliente";
     const sessao = lerSessaoSalvaInicial();
-    if (!sessao) return "inicio";
+    if (!sessao) return "login";
     return sessao.tipo === "super_admin" ? "admin" : "profissional";
   });
 
@@ -2481,40 +2484,10 @@ useEffect(() => {
   };
 }, []);
 
-// Depois que o cliente toca no link do profissional uma vez, o app lembra
-// quem é. Assim, a partir da segunda vez ele abre o app direto e já cai na
-// agenda do profissional, sem precisar tocar no link de novo.
+// Acesso do cliente é SOMENTE via link (?profissional=ID).
+// Sem auto-restore do último cliente: sem sessão o app abre no login.
 useEffect(() => {
-  // Se veio com link na URL, quem cuida é o fluxo normal do link.
-  const idLink = Number(
-    new URLSearchParams(window.location.search).get("profissional")
-  );
-  if (idLink) return;
-
-  async function restaurarProfissionalCliente() {
-    // Se o aparelho tem um profissional logado, não atrapalha a área dele.
-    let sessaoProfissional = null;
-    try {
-      sessaoProfissional = JSON.parse(
-        localStorage.getItem("profissionalLogado") || ""
-      );
-    } catch (e) {
-      console.error("Falha ao ler a sessão do profissional:", e);
-    }
-
-    if (sessaoProfissional?.id) return;
-
-    const profissionalSalvo = Number(
-      localStorage.getItem("profissionalClienteUltimo")
-    );
-    if (profissionalSalvo) {
-      setCarregandoPerfil(true);
-      setProfissionalCliente(profissionalSalvo);
-      setTela("cliente");
-    }
-  }
-
-  restaurarProfissionalCliente();
+  return;
 }, []);
 
 // Colunas liberadas para leitura pública em `profissionais` (pós-blindagem).
@@ -2721,13 +2694,13 @@ return;
 if (!data) {
   setCarregandoPerfil(false);
   alert("Este profissional está indisponível.");
-  setTela("inicio");
+  setTela("login");
   return;
 }
 if (!data.ativo) {
   setCarregandoPerfil(false);
   alert("Este profissional está indisponível.");
-  setTela("inicio");
+  setTela("login");
   return;
 }
 if (planoExpirado(data)) {
@@ -2735,7 +2708,7 @@ if (planoExpirado(data)) {
   supabase.from("profissionais").update({ ativo: false }).eq("id", data.id).then(() => {});
   setCarregandoPerfil(false);
   alert("Este profissional está com o plano expirado e não está aceitando agendamentos no momento.");
-  setTela("inicio");
+  setTela("login");
   return;
 }
 
@@ -4559,27 +4532,13 @@ const blocoDownloadApp = (
         de forma simples e rápida
       </h2>
 
-      <p>Escolha como deseja entrar:</p>
-
       <div className="inicio-botoes">
-
-        <button
-          className="btn entrar"
-          onClick={() => {
-            if (profissionalLogado?.id) {
-              setProfissionalCliente(profissionalLogado.id);
-            }
-            setTela("cliente");
-          }}
-        >
-          {iconeAtivo} Sou cliente
-        </button>
 
         <button
           className="btn cadastrar"
           onClick={() => setTela("login")}
         >
-          💼 Sou profissional
+          💼 Entrar na área profissional
         </button>
 
       </div>
@@ -4769,7 +4728,7 @@ Entrar
   onClick={async () => {
    setMensagemLogin("");
    setLoginNome("");
-    setTela("inicio");
+    setTela("login");
   }}
 >
   Voltar
@@ -5332,17 +5291,17 @@ Enviar pedido
   onClick={async () => {
     setMensagem("");
     setTipoMensagem("");
-    setTela("inicio");
+    setTela(profissionalLogado?.id ? "profissional" : "login");
   }}
 >
   Voltar
 </button>
-{profissionalLogado?.id && (
+{profissionalLogado?.id &&
+  Number(profissionalCliente) === Number(profissionalLogado.id) && (
   <button
     style={{ marginLeft: "8px" }}
     onClick={() => {
-      setProfissionalCliente(profissionalLogado.id);
-      setTela("profissional");
+      setTela(profissionalLogado.tipo === "super_admin" ? "admin" : "profissional");
     }}
   >
     💼 Voltar ao meu painel
@@ -5971,7 +5930,7 @@ Criar profissional
         localStorage.removeItem("profissionalLogado");
         ag.setToken(null);
         setProfissionalLogado(null);
-        setTela("inicio");
+        setTela("login");
       }}
     >
       Sair
@@ -5997,6 +5956,17 @@ Criar profissional
 </h2>
 <div style={{marginTop:"20px"}}>
 
+<button
+  style={{ marginTop: "12px" }}
+  onClick={() => {
+    if (!profissionalLogado?.id) return;
+    setProfissionalCliente(profissionalLogado.id);
+    setCarregandoPerfil(true);
+    setTela("cliente");
+  }}
+>
+  Ver meu perfil de cliente
+</button>
 
 </div>
 
@@ -9122,7 +9092,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
   onClick={() => {
     setMensagemProfissional("");
     setMensagemErroProfissional("");
-    setTela("inicio");
+    setTela("login");
   }}
 >
   Voltar
@@ -9134,7 +9104,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
     localStorage.removeItem("profissionalLogado");
     setProfissionalLogado(null);
     setProfissionalCliente(null);
-    setTela("inicio");
+    setTela("login");
   }}
 >
   Sair
