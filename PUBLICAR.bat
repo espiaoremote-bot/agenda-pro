@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 title Publicar Agenda Pro - Vercel
-cd /d C:\agenda-pro
+cd /d "%~dp0"
 
 echo ============================================
 echo   PUBLICAR AGENDA PRO NO VERCEL
