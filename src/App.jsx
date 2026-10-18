@@ -5287,20 +5287,12 @@ Enviar pedido
 </div>
 )}
 
-<button
-  onClick={async () => {
-    setMensagem("");
-    setTipoMensagem("");
-    setTela(profissionalLogado?.id ? "profissional" : "login");
-  }}
->
-  Voltar
-</button>
 {profissionalLogado?.id &&
   Number(profissionalCliente) === Number(profissionalLogado.id) && (
   <button
-    style={{ marginLeft: "8px" }}
     onClick={() => {
+      setMensagem("");
+      setTipoMensagem("");
       setTela(profissionalLogado.tipo === "super_admin" ? "admin" : "profissional");
     }}
   >
@@ -5955,18 +5947,6 @@ Criar profissional
   Olá, {profissionalLogado?.nome} 👋🏻
 </h2>
 <div style={{marginTop:"20px"}}>
-
-<button
-  style={{ marginTop: "12px" }}
-  onClick={() => {
-    if (!profissionalLogado?.id) return;
-    setProfissionalCliente(profissionalLogado.id);
-    setCarregandoPerfil(true);
-    setTela("cliente");
-  }}
->
-  Ver meu perfil de cliente
-</button>
 
 </div>
 
@@ -9090,12 +9070,15 @@ setMensagemErroProfissional("Agendamento cancelado!");
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
 <button
   onClick={() => {
+    if (!profissionalLogado?.id) return;
     setMensagemProfissional("");
     setMensagemErroProfissional("");
-    setTela("login");
+    setProfissionalCliente(profissionalLogado.id);
+    setCarregandoPerfil(true);
+    setTela("cliente");
   }}
 >
-  Voltar
+  Ver meu perfil de cliente
 </button>
 
 <button
