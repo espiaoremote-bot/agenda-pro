@@ -744,8 +744,24 @@ const COLUNAS_PERFIL =
   "mostrar_horario_funcionamento,dias_atendimento_perfil," +
   "seletor_promocoes_habilitado";
 
+function lerSessaoSalvaInicial() {
+  try {
+    const parametros = new URLSearchParams(window.location.search);
+    // Link público do cliente: nunca restaura sessão nesse caso.
+    if (Number(parametros.get("profissional"))) return null;
+    const salvo = JSON.parse(localStorage.getItem("profissionalLogado") || "null");
+    return salvo?.id ? salvo : null;
+  } catch {
+    return null;
+  }
+}
+
 function App() {
-  const [tela, setTela] = useState("inicio");
+  const [tela, setTela] = useState(() => {
+    const sessao = lerSessaoSalvaInicial();
+    if (!sessao) return "inicio";
+    return sessao.tipo === "super_admin" ? "admin" : "profissional";
+  });
 
 const [credenciaisLembradas, setCredenciaisLembradas] = useState(() => {
   try {
@@ -775,7 +791,7 @@ const [lembrarLogin, setLembrarLogin] = useState(
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
-const [profissionalLogado, setProfissionalLogado] = useState(null);
+const [profissionalLogado, setProfissionalLogado] = useState(() => lerSessaoSalvaInicial());
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
 const [carregandoPerfil, setCarregandoPerfil] = useState(() => {
@@ -865,8 +881,11 @@ const [corMensagemTipo, setCorMensagemTipo] = useState("");
 const [iconeMensagem, setIconeMensagem] = useState("");
 const [iconeMensagemTipo, setIconeMensagemTipo] = useState("");
  
-const [temaSelecionado, setTemaSelecionado] = useState("feminino");
-const [iconeSelecionado, setIconeSelecionado] = useState("💅");
+const [temaSelecionado, setTemaSelecionado] = useState(() => lerSessaoSalvaInicial()?.tema || "feminino");
+const [iconeSelecionado, setIconeSelecionado] = useState(() => {
+  const sessao = lerSessaoSalvaInicial();
+  return normalizarIcone(sessao?.icone) || (sessao?.tema === "masculino" ? "💈" : "💅");
+});
 const [mostrarSaldo, setMostrarSaldo] = useState(true);
  
 const [statusAtendimento, setStatusAtendimento] = useState("Aberto");
