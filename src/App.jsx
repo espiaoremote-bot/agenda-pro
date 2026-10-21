@@ -4510,7 +4510,7 @@ async function enviarPedidoAgendarCliente() {
 // O parametro ?v= forca o navegador/CDN a baixar a versao mais recente
 // do APK (evita servir copia antiga em cache).
 const urlDownloadApk =
-  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.5";
+  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.6";
 
 const blocoDownloadApp = (
   <div className="baixar-app-cliente">
@@ -4823,6 +4823,15 @@ Entrar
         {dadosProfissionalCliente.horario_funcionamento_fim}
       </p>
     )}
+
+{/* O link de download do app aparece no TOPO do perfil do cliente (antes
+    do formulário de agendamento), para o cliente encontrar facilmente.
+    Só aparece fora do app (navegador): dentro do app instalado não faz
+    sentido oferecer o download dele mesmo. Usamos isNativePlatform()
+    porque window.Capacitor existe também no navegador (o core do
+    Capacitor define essa variável global), o que faria o link sumir
+    de todo lugar. */}
+{!Capacitor.isNativePlatform() && blocoDownloadApp}
 </div>
 
 
@@ -5341,11 +5350,6 @@ Enviar pedido
     💼 Voltar ao meu painel
   </button>
 )}
-{/* O link de download só aparece fora do app (navegador). Dentro do app instalado
-    não faz sentido oferecer o download dele mesmo. Usamos isNativePlatform()
-    porque window.Capacitor existe também no navegador (o core do Capacitor
-    define essa variável global), o que faria o link sumir de todo lugar. */}
-{!Capacitor.isNativePlatform() && blocoDownloadApp}
 
 {/* Anúncio intersticial do CLIENTE: aparece logo depois que ele envia
     o pedido (agendamento salvo com sucesso). Só para profissionais
