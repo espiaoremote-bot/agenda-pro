@@ -2611,6 +2611,15 @@ useEffect(() => {
             .from("profissionais")
             .update({ ativo: true })
             .eq("id", atual.id);
+          // Busca dados atualizados apos reativacao
+          const { data: atualizado } = await supabase
+            .from("profissionais")
+            .select(COLUNAS_PERFIL)
+            .eq("id", atual.id)
+            .maybeSingle();
+          if (atualizado) {
+            atual = atualizado;
+          }
         } else {
           // Perfil foi desativado pelo administrador.
           localStorage.removeItem("profissionalLogado");
@@ -2694,21 +2703,23 @@ return;
 if (!data) {
   setCarregandoPerfil(false);
   alert("Este profissional está indisponível.");
-  setTela("login");
+  // Nao derruba o login do profissional que esta logado.
+  if (!profissionalLogado) setTela("login");
   return;
 }
 if (!data.ativo) {
   setCarregandoPerfil(false);
   alert("Este profissional está indisponível.");
-  setTela("login");
+  if (!profissionalLogado) setTela("login");
   return;
 }
 if (planoExpirado(data)) {
-  // Plano venceu => desativa a conta e tira o profissional do ar para clientes.
-  supabase.from("profissionais").update({ ativo: false }).eq("id", data.id).then(() => {});
+  // Plano venceu => nao desativa mais o profissional do ar para clientes.
+  // O profissional continua acessando na versao gratuita com anuncios.
+  // Apenas avisa para o cliente que esta vendo o perfil publico.
   setCarregandoPerfil(false);
   alert("Este profissional está com o plano expirado e não está aceitando agendamentos no momento.");
-  setTela("login");
+  if (!profissionalLogado) setTela("login");
   return;
 }
 
@@ -4676,6 +4687,15 @@ if (!resultadoLogado.ativo) {
       .from("profissionais")
       .update({ ativo: true })
       .eq("id", resultadoLogado.id);
+    // Busca os dados atualizados apos reativacao para nao ficar com ativo:false
+    const { data: atualizado } = await supabase
+      .from("profissionais")
+      .select(COLUNAS_PERFIL)
+      .eq("id", resultadoLogado.id)
+      .maybeSingle();
+    if (atualizado) {
+      resultadoLogado.ativo = atualizado.ativo;
+    }
   } else {
     setMensagemLogin("Este perfil está desativado.");
     return;
