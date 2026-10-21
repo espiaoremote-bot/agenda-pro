@@ -4515,7 +4515,7 @@ async function enviarPedidoAgendarCliente() {
 // O parametro ?v= forca o navegador/CDN a baixar a versao mais recente
 // do APK (evita servir copia antiga em cache).
 const urlDownloadApk =
-  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.5";
+  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.6";
 
 const blocoDownloadApp = (
   <div className="baixar-app-cliente">
