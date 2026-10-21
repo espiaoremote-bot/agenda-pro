@@ -2438,6 +2438,12 @@ button.btn.cadastrar {
   margin-bottom: 8px;
 }
 
+/* Banner de anúncio no meio da página pública do cliente
+   (entre o formulário e a lista de pedidos) */
+.ad-banner--cliente-meio {
+  margin: 16px 0;
+}
+
 /* Banner de anúncio no rodapé da tela do profissional */
 .ad-banner--profissional {
   width: 100%;

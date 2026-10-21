@@ -13,6 +13,11 @@ import { ehFree } from "./lib/planos";
 import { informacaoPlano } from "./lib/planos";
 import AdBanner from "./components/AdBanner";
 import AdInterstitial from "./components/AdInterstitial";
+import {
+  ADSENSE_SLOT_CLIENT,
+  ADSENSE_SLOT_CLIENT_MEIO,
+  ADSENSE_SLOT_PROFISSIONAL,
+} from "./lib/adsense";
 import "./App.css";
 
 const URL_PUBLICA = "https://agenda-pro-gilt.vercel.app";
@@ -5299,6 +5304,14 @@ Enviar pedido
   )}
 </div>
 )}
+
+  {/* Banner de anúncio no meio da página pública do cliente (entre o
+      formulário e a lista de pedidos). Fica oculto enquanto o intersticial
+      está aberto para não exibir dois anúncios do mesmo slot ao mesmo tempo. */}
+  {clienteVeAnuncios && !mostrarAnuncioCliente && (
+    <AdBanner className="ad-banner--cliente-meio" slot={ADSENSE_SLOT_CLIENT_MEIO} />
+  )}
+
   {pedido && (
 <div>
     <h3>
@@ -5358,7 +5371,7 @@ Enviar pedido
     Fica oculto enquanto o intersticial está aberto para não exibir
     dois anúncios do mesmo slot ao mesmo tempo. */}
 {clienteVeAnuncios && !mostrarAnuncioCliente && (
-  <AdBanner className="ad-banner--cliente" />
+  <AdBanner className="ad-banner--cliente" slot={ADSENSE_SLOT_CLIENT} />
 )}
 
 </div>
@@ -6043,6 +6056,20 @@ Criar profissional
             </div>
           </div>
         )}
+
+        {/* Banner de anúncio no topo da tela do profissional.
+            Antes ele ficava no fim absoluto do container (linha ~9200), ou seja,
+            depois de mais de 3.000 linhas de JSX — o profissional raramente
+            rolava até lá e o anúncio praticamente nunca era visto.
+            Agora aparece logo abaixo do cabeçalho, onde a tela é realmente
+            consumida. */}
+        {profissionalLogado &&
+          ehFree(profissionalLogado) &&
+          !mostrarAnuncioPosAgendamento && (
+            <div className="ad-banner--profissional">
+              <AdBanner slot={ADSENSE_SLOT_PROFISSIONAL} />
+            </div>
+          )}
 
         {/* Anúncio pós-agendamento - só aparece se o flag estiver ativo */}
         {mostrarAnuncioPosAgendamento && (
@@ -9191,16 +9218,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
 </button>
 </div>
 
-{/* Banner de anúncio: aparece apenas na tela do profissional (dentro do
-    container da tela "profissional") e somente no plano gratuito.
-    Antes ele ficava FORA desse bloco e aparecia também nas telas de
-    login, início e na página pública do cliente. */}
-    {profissionalLogado && ehFree(profissionalLogado) && (
-      <div className="ad-banner--profissional">
-        <AdBanner />
-      </div>
-    )}
-
+{/* (banner movido para o topo da tela do profissional) */}
   </div>
 )}
 
