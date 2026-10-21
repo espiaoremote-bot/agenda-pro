@@ -739,7 +739,7 @@ class ProtectorDeErrores extends Component {
 // por coluna (senha/senha_hash escondidas).
 const COLUNAS_PERFIL =
   "id,nome,tipo,ativo,tema,icone,status_atendimento,horarios_disponiveis," +
-  "validade_plano,plano_ilimitado,exigir_aprovacao_dezembro," +
+  "validade_plano,plano_ilimitado,premium,exigir_aprovacao_dezembro," +
   "chave_pix,banco_pix,nome_pix," +
   "endereco_rua,endereco_numero,endereco_cep,mostrar_endereco," +
   "horario_funcionamento_inicio,horario_funcionamento_fim," +
@@ -2498,7 +2498,7 @@ useEffect(() => {
 // Manter sincronizado com as colunas usadas pelo app.
 const COLUNAS_PERFIL =
   "id,nome,tipo,ativo,tema,icone,status_atendimento,horarios_disponiveis," +
-  "validade_plano,plano_ilimitado,exigir_aprovacao_dezembro," +
+  "validade_plano,plano_ilimitado,premium,exigir_aprovacao_dezembro," +
   "chave_pix,banco_pix,nome_pix," +
   "endereco_rua,endereco_numero,endereco_cep,mostrar_endereco," +
   "horario_funcionamento_inicio,horario_funcionamento_fim," +
