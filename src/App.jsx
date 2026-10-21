@@ -9147,7 +9147,7 @@ setMensagemErroProfissional("Agendamento cancelado!");
   </div>
 )}
     </div>
-    {ehFree(profissional) && <AdBanner />}
+    {profissionalLogado && ehFree(profissionalLogado) && <AdBanner />}
     <footer className="rodape">
       <p>
         © 2026 Agenda Pro - Todos os direitos reservados.
