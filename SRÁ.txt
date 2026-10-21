@@ -1,0 +1,61 @@
+## Resumo das alterações feitas
+
+### 1. Novo componente: `src/components/AdInterstitial.jsx`
+Componente de anúncio intersticial (tela cheia) que exibe o AdSense após o agendamento, com:
+- Botão de fechar (✕)
+- Banner do Google AdSense (quando configurado)
+- Botão "Continuar" para retornar ao app
+- Placeholder caso as variáveis de ambiente não estejam configuradas
+
+### 2. Alterações em `src/App.jsx`:
+
+#### a) Import do componente (linha 14)
+```javascript
+import AdInterstitial from "./components/AdInterstitial";
+```
+
+#### b) Novo estado (linha 912)
+```javascript
+const [mostrarAnuncioPosAgendamento, setMostrarAnuncioPosAgendamento] = useState(false);
+```
+
+#### c) useEffect que vigia o plano expirado (linhas 2677-2678)
+Adicionado dentro do useEffect existente para ativar o flag quando o profissional fizer login com plano vencido:
+```javascript
+// Ativar banner de anúncio pós-agendamento para profissional free
+setMostrarAnuncioPosAgendamento(true);
+```
+
+#### d) Sucesso do agendamento - mostrar banner (linhas 4493-4496)
+Após o agendamento ser criado com sucesso, verifica se o profissional está na versão gratuita:
+```javascript
+// Se o profissional estiver na versão gratuita (plano expirado), mostrar anúncio após agendar
+if (profissionalLogado && planoExpirado(profissionalLogado)) {
+  setMostrarAnuncioPosAgendamento(true);
+}
+```
+
+#### e) Renderização do AdInterstitial na tela profissional (linhas 6017-6022)
+```javascript
+/* Anúncio pós-agendamento - só aparece se o flag estiver ativo */
+{mostrarAnuncioPosAgendamento && (
+  <AdInterstitial
+    onFechar={() => setMostrarAnuncioPosAgendamento(false)}
+  />
+)}
+```
+
+### Fluxo completo:
+
+1. **Após agendamento**: Quando o profissional completa um agendamento e tem plano expirado, o banner "Obrigado pelo agendamento!" aparece com o AdSense em baixo.
+
+2. **Ao entrar no app**: Se o profissional já tem plano expirado e entra na tela inicial, o useEffect detecta isso e ativa o banner automaticamente.
+
+3. **Apenas para versão gratuita**: O banner só aparece quando `planoExpirado(profissionalLogado)` for verdadeiro. Profissionais com plano ativo não verão o anúncio.
+
+4. **Fechar o banner**: O profissional pode clicar em "Continuar" ou no overlay para fechar o anúncio e continuar usando o app.
+
+### Próximos passos:
+- Certifique-se de ter as variáveis de ambiente `VITE_ADSENSE_CLIENT` e `VITE_ADSENSE_SLOT` configuradas no `.env.local`
+- Rode `npm run dev` para testar
+- Faça um agendamento como profissional com plano expirado para verificar o banner

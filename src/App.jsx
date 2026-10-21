@@ -10,7 +10,9 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
 import { ehFree } from "./lib/planos";
+import { informacaoPlano } from "./lib/planos";
 import AdBanner from "./components/AdBanner";
+import AdInterstitial from "./components/AdInterstitial";
 import "./App.css";
 
 const URL_PUBLICA = "https://agenda-pro-gilt.vercel.app";
@@ -642,23 +644,8 @@ function planoExpirado(profissional) {
 }
 
 // Texto e estilo do plano para exibir no perfil do admin.
-function informacaoPlano(profissional) {
-  if (ehPlanoIlimitado(profissional)) {
-    return { texto: "Plano: ♾️ Permanente", tipo: "permanente" };
-  }
-  const validade = validadePlanoMs(profissional);
-  if (validade == null) {
-    return { texto: "Plano: ❌ Sem plano cadastrado", tipo: "sem-plano" };
-  }
-  const restantes = diasRestantesPlano(profissional);
-  if (restantes <= 0) {
-    return { texto: "Plano: ⚠️ Expirado — adicione dias para reativar", tipo: "expirado" };
-  }
-  return {
-    texto: `Plano: 📅 ${restantes} dia${restantes === 1 ? "" : "s"} restante${restantes === 1 ? "" : "s"}`,
-    tipo: "valido",
-  };
-}
+// A implementação fica em `src/lib/planos.js` (fonte única de verdade):
+// import { informacaoPlano } from "./lib/planos";
 
 // Formata a data da validade no padrão brasileiro (dd/mm/aaaa).
 function formatarDataPlano(profissional) {
@@ -908,6 +895,7 @@ const [notificacaoNovoAgendamento, setNotificacaoNovoAgendamento] = useState(nul
 const [mostrarAgendarCliente, setMostrarAgendarCliente] = useState(false);
 const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
 const [tipoMensagemAgendarCliente, setTipoMensagemAgendarCliente] = useState("");
+const [mostrarAnuncioPosAgendamento, setMostrarAnuncioPosAgendamento] = useState(false);
 // Múltiplos serviços num mesmo agendamento (botão "➕").
 const [itensCliente, setItensCliente] = useState(() => [novoItemCliente()]);
 const [horariosPorLinhaCliente, setHorariosPorLinhaCliente] = useState({});
@@ -2672,6 +2660,8 @@ useEffect(() => {
   const verificarPlano = async () => {
     // Plano expirado nao bloqueia mais: apenas permite continuar com anuncios.
     if (!planoExpirado(profissionalLogado)) return;
+    // Ativar banner de anúncio pós-agendamento para profissional free
+    setMostrarAnuncioPosAgendamento(true);
   };
 
   verificarPlano();
@@ -4486,6 +4476,11 @@ async function enviarPedidoAgendarCliente() {
   );
   setTipoMensagemAgendarCliente("sucesso");
 
+  // Se o profissional estiver na versão gratuita (plano expirado), mostrar anúncio após agendar
+  if (profissionalLogado && planoExpirado(profissionalLogado)) {
+    setMostrarAnuncioPosAgendamento(true);
+  }
+
   setNome("");
   setWhatsapp("");
   setItensAgendarCliente([novoItemAgendarCliente()]);
@@ -5593,11 +5588,13 @@ setTotalAgendamentos(count);
     <p className={`plano-status plano-status-${informacaoPlano(profissional).tipo}`}>
       {informacaoPlano(profissional).texto}
     </p>
-    {!profissional.plano_ilimitado && validadePlanoMs(profissional) != null && (
-      <p className="plano-vencimento">
-        📅 Vence em: {formatarDataPlano(profissional)}
-      </p>
-    )}
+    {!profissional.plano_ilimitado &&
+      validadePlanoMs(profissional) != null &&
+      validadePlanoMs(profissional) > Date.now() && (
+        <p className="plano-vencimento">
+          📅 Vence em: {formatarDataPlano(profissional)}
+        </p>
+      )}
   </>
 )}
 
@@ -5982,7 +5979,7 @@ Criar profissional
   </small>
         </div>
 
-        {planoExpirado(profissionalLogado) && (
+        {ehFree(profissionalLogado) && (
           <div style={{
             background: '#fff3cd',
             border: '1px solid #ffc107',
@@ -5994,15 +5991,30 @@ Criar profissional
             alignItems: 'center',
             gap: '10px'
           }}>
-            <span style={{ fontSize: '20px' }}>⚠️</span>
+            <span style={{ fontSize: '20px' }}>ℹ️</span>
             <div>
-              <strong>Seu plano expirou — fale com o administrador.</strong>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: 0.9 }}>
-                Você está na versão gratuita com anúncios. Para voltar sem anúncios,
-                peça ao administrador para adicionar dias ou tornar o plano permanente.
+              <strong>Plano: Gratuito com anúncios</strong>
+              {profissionalLogado.validade_plano ? (
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.9 }}>
+                  Plano válido até {formatarDataPlano(profissionalLogado)} — ao vencer, continua na versão gratuita com anúncios.
+                </p>
+              ) : (
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.9 }}>
+                  Plano gratuito — sem data de validade definida.
+                </p>
+              )}
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.9 }}>
+                Para remover anúncios, peça ao administrador para adicionar dias ou tornar o plano ilimitado.
               </p>
             </div>
           </div>
+        )}
+
+        {/* Anúncio pós-agendamento - só aparece se o flag estiver ativo */}
+        {mostrarAnuncioPosAgendamento && (
+          <AdInterstitial
+            onFechar={() => setMostrarAnuncioPosAgendamento(false)}
+          />
         )}
 
 <h3>
