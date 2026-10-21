@@ -3313,23 +3313,6 @@ async function removerPlanoIlimitado(profissional) {
   await carregarProfissionaisAdmin();
 }
 
-// Alterna entre plano pago (premium, sem anúncios) e gratuito (com anúncios).
-async function alternarPremium(profissional) {
-  if (profissional.tipo === "super_admin") return;
-  const novo = !profissional.premium;
-  const { error } = await supabase
-    .from("profissionais")
-    .update({ premium: novo })
-    .eq("id", profissional.id);
-  if (error) {
-    console.error(error);
-    alert("Erro ao alterar tipo de plano: " + error.message);
-    return;
-  }
-  alert(novo ? "✅ Profissional marcado como PAGO (sem anúncios)." : "✅ Profissional marcado como GRATUITO (com anúncios).");
-  await carregarProfissionaisAdmin();
-}
-
 async function alternarAtivoProfissional(profissional) {
 
   if (profissional.tipo === "super_admin") {
@@ -5711,12 +5694,6 @@ setTotalAgendamentos(count);
               ♾️ Tornar permanente
             </button>
           )}
-           <button
-             onClick={() => alternarPremium(profissional)}
-             style={{ marginLeft: 8 }}
-           >
-             {profissional.premium ? "💰 Pago (sem ads)" : "🆓 Gratuito (com ads)"}
-           </button>
         </div>
       </>
     )}
