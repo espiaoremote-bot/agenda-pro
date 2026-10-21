@@ -2823,7 +2823,7 @@ useEffect(() => {
       resultado = await ag.listar();
     } catch (error) {
       console.error(error);
-      if (ag.erroSessaoInvalida(error) && navigator.onLine !== false) {
+      if (profissionalLogado && ag.erroSessaoInvalida(error) && navigator.onLine !== false) {
         const msg = String(error?.message || "").toLowerCase();
         const ehRede =
           msg.includes("network") ||
