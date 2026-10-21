@@ -3169,17 +3169,20 @@ if (carregandoPerfil) {
   );
 }
 
-// Busca os profissionais no banco, desativa automaticamente quem tiver o
-// plano expirado e atualiza a listagem usada no painel do admin.
+// Busca os profissionais no banco e mantem todos ativos.
+// Quando o plano expira, o profissional nao eh desativado: ele continua
+// usando o app na versao gratuita (com anuncios) ate o admin adicionar dias
+// ou tornar o plano permanente.
 async function carregarProfissionaisAdmin() {
   const { data, error } = await supabase.from("profissionais").select(COLUNAS_PERFIL);
   if (error) console.error("Erro ao carregar profissionais:", error);
   if (!data) return;
 
+  // Reativa automaticamente profissionais com plano expirado (ja inativos ou prestes a vencer)
+  // para que fiquem na versao gratuita com anuncios em vez de ficarem bloqueados.
   const expirados = data.filter(
     (p) =>
-      p.tipo !== "super_admin" && // o administrador nunca é desativado por plano
-      p.ativo &&
+      p.tipo !== "super_admin" &&
       !ehPlanoIlimitado(p) &&
       validadePlanoMs(p) != null &&
       validadePlanoMs(p) <= Date.now()
@@ -3188,10 +3191,10 @@ async function carregarProfissionaisAdmin() {
   if (expirados.length > 0) {
     const { error } = await supabase
       .from("profissionais")
-      .update({ ativo: false })
+      .update({ ativo: true })
       .in("id", expirados.map((p) => p.id));
 
-    if (error) console.error("Erro ao desativar planos expirados:", error);
+    if (error) console.error("Erro ao reativar planos expirados:", error);
 
     const { data: atualizado } = await supabase.from("profissionais").select(COLUNAS_PERFIL);
     setProfissionais(atualizado || data);
