@@ -2611,15 +2611,8 @@ useEffect(() => {
         return;
       }
 
-      if (planoExpirado(atual)) {
-        // Plano venceu => desativa a conta e exige renovação pelo admin.
-        supabase.from("profissionais").update({ ativo: false }).eq("id", atual.id).then(() => {});
-        localStorage.removeItem("profissionalLogado");
-        setTela("login");
-        setMensagemLogin("Seu plano expirou. Fale com o administrador para renovar.");
-        return;
-      }
-
+      // Plano expirado nao bloqueia mais o login: o profissional entra
+      // na versao gratuita com anuncios. O admin pode adicionar dias depois.
       localStorage.setItem("profissionalLogado", JSON.stringify(atual));
       setProfissionalLogado(atual);
       abrirNotificacaoPendente(atual.id);
@@ -4668,12 +4661,8 @@ if (!sessao) {
 
 const resultadoLogado = sessao.profissional;
 
-if (planoExpirado(resultadoLogado)) {
-  // Plano venceu => desativa a conta e impede o login.
-  supabase.from("profissionais").update({ ativo: false }).eq("id", resultadoLogado.id).then(() => {});
-  setMensagemLogin("Seu plano expirou. Fale com o administrador para renovar.");
-  return;
-}
+// Plano expirado nao bloqueia mais o login: o profissional entra
+// na versao gratuita com anuncios. O admin pode adicionar dias depois.
 
 if (!resultadoLogado.ativo) {
   setMensagemLogin("Este perfil está desativado.");
