@@ -2655,18 +2655,14 @@ useEffect(() => {
 }, [tela]);
 
 // Vigia o plano enquanto o profissional está logado: se o prazo zerar com o
-// app aberto, desativa a conta e volta para o login automaticamente.
+// app aberto, o profissional continua na versao gratuita com anuncios.
+// Nao desativa mais a conta nem volta para o login.
 useEffect(() => {
   if (!profissionalLogado || profissionalLogado.tipo === "super_admin") return;
 
   const verificarPlano = async () => {
+    // Plano expirado nao bloqueia mais: apenas permite continuar com anuncios.
     if (!planoExpirado(profissionalLogado)) return;
-
-    await supabase.from("profissionais").update({ ativo: false }).eq("id", profissionalLogado.id).then(() => {});
-    localStorage.removeItem("profissionalLogado");
-    setProfissionalLogado(null);
-    setTela("login");
-    setMensagemLogin("Seu plano expirou. Fale com o administrador para renovar.");
   };
 
   verificarPlano();
