@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:android": "npm run build && node scripts/build-android.mjs && npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "build:android": "node scripts/build-android.mjs && npx cap sync android && cd android && gradlew.bat assembleDebug",
     "lint": "eslint .",
     "preview": "vite preview"
   },

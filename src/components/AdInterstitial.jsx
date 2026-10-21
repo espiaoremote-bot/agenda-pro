@@ -19,10 +19,10 @@ export default function AdInterstitial({ onFechar, slot = ADSENSE_SLOT_INTERSTIT
   // de rede), o cliente não pode ficar preso num overlay vazio. Depois de
   // 12s sem nenhum anúncio renderizado, o overlay se fecha sozinho.
   const refAnuncios = useRef(null);
-  const refFechar = useRef(onFechar);
+  const refFechar = useRef(null);
 
-  // Mantém a referência do callback atualizada sem escrever em refs
-  // durante a renderização.
+  // Mantém a referência do callback atualizada, mas sem escrever em refs
+  // durante a renderização (o ESLint regra `react-hooks/refs` proibe isso).
   useEffect(() => {
     refFechar.current = onFechar;
   }, [onFechar]);
