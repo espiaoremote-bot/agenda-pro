@@ -4489,8 +4489,10 @@ async function enviarPedidoAgendarCliente() {
 // O download do app agora aparece SEMPRE (no navegador e dentro do app no celular).
 // Usamos a URL absoluta do APK publicado no Vercel para o link
 // funcionar também quando o site roda dentro do app (Capacitor).
+// O parametro ?v= forca o navegador/CDN a baixar a versao mais recente
+// do APK (evita servir copia antiga em cache).
 const urlDownloadApk =
-  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk";
+  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.3";
 
 const blocoDownloadApp = (
   <div className="baixar-app-cliente">
