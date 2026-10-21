@@ -5981,6 +5981,30 @@ Criar profissional
     Gerencie seus agendamentos com facilidade
   </small>
         </div>
+
+        {planoExpirado(profissionalLogado) && (
+          <div style={{
+            background: '#fff3cd',
+            border: '1px solid #ffc107',
+            color: '#856404',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '20px' }}>⚠️</span>
+            <div>
+              <strong>Seu plano expirou — fale com o administrador.</strong>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: 0.9 }}>
+                Você está na versão gratuita com anúncios. Para voltar sem anúncios,
+                peça ao administrador para adicionar dias ou tornar o plano permanente.
+              </p>
+            </div>
+          </div>
+        )}
+
 <h3>
   {iconeAtivo} Meus serviços
 </h3>
