@@ -896,6 +896,9 @@ const [mostrarAgendarCliente, setMostrarAgendarCliente] = useState(false);
 const [mensagemAgendarCliente, setMensagemAgendarCliente] = useState("");
 const [tipoMensagemAgendarCliente, setTipoMensagemAgendarCliente] = useState("");
 const [mostrarAnuncioPosAgendamento, setMostrarAnuncioPosAgendamento] = useState(false);
+  // Anúncio mostrado ao CLIENTE na página pública: banner no rodapé da tela
+  // e intersticial logo depois que o pedido é enviado com sucesso.
+  const [mostrarAnuncioCliente, setMostrarAnuncioCliente] = useState(false);
 // Múltiplos serviços num mesmo agendamento (botão "➕").
 const [itensCliente, setItensCliente] = useState(() => [novoItemCliente()]);
 const [horariosPorLinhaCliente, setHorariosPorLinhaCliente] = useState({});
@@ -982,6 +985,11 @@ const iconeAtivo =
   normalizarIcone(profissionalLogado?.icone) ||
   normalizarIcone(dadosProfissionalCliente?.icone) ||
   (temaAtivo === "masculino" ? "💈" : "💅🏻");
+
+// Na página pública do cliente, os anúncios aparecem quando o profissional
+// do link está no plano GRATUITO (sem plano válido / plano ilimitado).
+// Profissional premium (pago) não mostra nenhum anúncio para o cliente.
+const clienteVeAnuncios = !!dadosProfissionalCliente && ehFree(dadosProfissionalCliente);
 
 const iconeCliente = ["cinza", "preto", "verde", "masculino"].includes(temaAtivo) ? "🧔" : "👩🏻";
 
@@ -4137,6 +4145,12 @@ async function enviarPedidoCliente() {
   setMensagemProfissional(algumPendente ? "Novo pedido de dezembro aguardando aprovação!" : "Novo pedido recebido!");
   setMensagemErroProfissional("");
 
+  // O cliente acabou de agendar: mostra o anúncio intersticial (apenas quando
+  // o profissional do link é do plano gratuito com anúncios).
+  if (clienteVeAnuncios && pedidosSalvos.length > 0) {
+    setMostrarAnuncioCliente(true);
+  }
+
   setNome("");
   setWhatsapp("");
   setItensCliente([novoItemCliente()]);
@@ -4476,8 +4490,12 @@ async function enviarPedidoAgendarCliente() {
   );
   setTipoMensagemAgendarCliente("sucesso");
 
-  // Se o profissional estiver na versão gratuita (plano expirado), mostrar anúncio após agendar
-  if (profissionalLogado && planoExpirado(profissionalLogado)) {
+  // O profissional está na versão gratuita (com anúncios) => mostrar o
+  // anúncio intersticial depois de agendar.
+  // Usa `ehFree` (fonte única de verdade do freemium) e não `planoExpirado`,
+  // porque um profissional SEM plano cadastrado também é free — antes ele
+  // via o banner no rodapé mas nunca recebia o intersticial.
+  if (profissionalLogado && ehFree(profissionalLogado)) {
     setMostrarAnuncioPosAgendamento(true);
   }
 
@@ -4492,7 +4510,7 @@ async function enviarPedidoAgendarCliente() {
 // O parametro ?v= forca o navegador/CDN a baixar a versao mais recente
 // do APK (evita servir copia antiga em cache).
 const urlDownloadApk =
-  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.3";
+  "https://agenda-pro-gilt.vercel.app/agenda-pro.apk?v=2.5";
 
 const blocoDownloadApp = (
   <div className="baixar-app-cliente">
@@ -5328,6 +5346,20 @@ Enviar pedido
     porque window.Capacitor existe também no navegador (o core do Capacitor
     define essa variável global), o que faria o link sumir de todo lugar. */}
 {!Capacitor.isNativePlatform() && blocoDownloadApp}
+
+{/* Anúncio intersticial do CLIENTE: aparece logo depois que ele envia
+    o pedido (agendamento salvo com sucesso). Só para profissionais
+    do plano gratuito. */}
+{mostrarAnuncioCliente && clienteVeAnuncios && (
+  <AdInterstitial onFechar={() => setMostrarAnuncioCliente(false)} />
+)}
+
+{/* Banner de anúncio no rodapé da página pública do cliente.
+    Fica oculto enquanto o intersticial está aberto para não exibir
+    dois anúncios do mesmo slot ao mesmo tempo. */}
+{clienteVeAnuncios && !mostrarAnuncioCliente && (
+  <AdBanner className="ad-banner--cliente" />
+)}
 
 </div>
 )}
@@ -9159,6 +9191,16 @@ setMensagemErroProfissional("Agendamento cancelado!");
 </button>
 </div>
 
+{/* Banner de anúncio: aparece apenas na tela do profissional (dentro do
+    container da tela "profissional") e somente no plano gratuito.
+    Antes ele ficava FORA desse bloco e aparecia também nas telas de
+    login, início e na página pública do cliente. */}
+    {profissionalLogado && ehFree(profissionalLogado) && (
+      <div className="ad-banner--profissional">
+        <AdBanner />
+      </div>
+    )}
+
   </div>
 )}
 
@@ -9187,7 +9229,6 @@ setMensagemErroProfissional("Agendamento cancelado!");
   </div>
 )}
     </div>
-    {profissionalLogado && ehFree(profissionalLogado) && <AdBanner />}
     <footer className="rodape">
       <p>
         © 2026 Agenda Pro - Todos os direitos reservados.

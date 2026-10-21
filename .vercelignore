@@ -7,3 +7,7 @@ android
 dist
 dist-ssr
 *.log
+# Nunca subir arquivos de ambiente (podem conter tokens/segredos)
+.env
+.env.*
+!.env.example

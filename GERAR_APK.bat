@@ -4,18 +4,8 @@ chcp 65001 >nul
 title Gerar APK - Agenda Pro
 set "PROJECT_DIR=%~dp0"
 set "APK_PUBLIC=%PROJECT_DIR%public\agenda-pro.apk"
-set "APK_BACKUP=%TEMP%\agenda-pro-%RANDOM%-%RANDOM%.apk"
 set "APK_SOURCE=%PROJECT_DIR%android\app\build\outputs\apk\debug\app-debug.apk"
 set "APK_DOWNLOAD=%USERPROFILE%\Desktop\Agenda-Pro.apk"
-
-rem Remove o APK antigo ANTES de buildar para que o Vite/cap sync
-rem nao empacote o APK dentro do proprio APK novo (evita duplicar o tamanho).
-if exist "%APK_PUBLIC%" (
-  move /y "%APK_PUBLIC%" "%APK_BACKUP%" >nul
-  if errorlevel 1 goto erro
-)
-if exist "%PROJECT_DIR%dist\agenda-pro.apk" del /f /q "%PROJECT_DIR%dist\agenda-pro.apk" >nul
-if exist "%PROJECT_DIR%android\app\src\main\assets\public\agenda-pro.apk" del /f /q "%PROJECT_DIR%android\app\src\main\assets\public\agenda-pro.apk" >nul
 
 pushd "%PROJECT_DIR%"
 
@@ -31,6 +21,14 @@ echo  Passo 2/3: sincronizando com o app Android...
 call npx cap sync android
 if errorlevel 1 goto erro
 
+rem O APK fica em public/ para ser baixado do site. Como o Vite copia
+rem public/ para dist/ e o Capacitor embute dist/ no app, o APK acabaria
+rem dentro de si mesmo (dobrando o tamanho). Por isso removemos a copia
+rem dos assets do Android ANTES de compilar o APK.
+if exist "%PROJECT_DIR%android\app\src\main\assets\public\agenda-pro.apk" (
+  del /f /q "%PROJECT_DIR%android\app\src\main\assets\public\agenda-pro.apk" >nul
+)
+
 echo  Passo 3/3: gerando o APK (pode demorar 1-2 min)...
 set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"
 set "ANDROID_HOME=C:\Android\sdk"
@@ -44,7 +42,6 @@ copy /y "%APK_SOURCE%" "%APK_DOWNLOAD%" >nul
 if errorlevel 1 goto erro
 copy /y "%APK_SOURCE%" "%APK_PUBLIC%" >nul
 if errorlevel 1 goto erro
-if exist "%APK_BACKUP%" del "%APK_BACKUP%"
 popd
 
 echo.
@@ -58,7 +55,6 @@ exit /b 0
 
 :erro
 cd /d "%PROJECT_DIR%"
-if exist "%APK_BACKUP%" move /y "%APK_BACKUP%" "%APK_PUBLIC%" >nul
 if exist "%PROJECT_DIR%android\app\build\outputs\apk\debug\app-debug.apk" echo O APK antigo foi preservado para download.
 echo.
 echo  ERRO durante a geracao. Verifique as mensagens acima.

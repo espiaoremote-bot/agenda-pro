@@ -2432,6 +2432,20 @@ button.btn.cadastrar {
   font-size: 12px;
 }
 
+/* Banner de anúncio na página pública do cliente */
+.ad-banner--cliente {
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+/* Banner de anúncio no rodapé da tela do profissional */
+.ad-banner--profissional {
+  width: 100%;
+  max-width: 760px;
+  margin: 16px auto 0;
+  padding: 0 12px;
+}
+
 /* Anúncio intersticial (tela cheia) — plano free */
 .ad-interstitial {
   position: fixed;
