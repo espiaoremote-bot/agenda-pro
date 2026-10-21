@@ -2604,11 +2604,20 @@ useEffect(() => {
     }
 
       if (!atual.ativo) {
-        // Perfil foi desativado pelo administrador.
-        localStorage.removeItem("profissionalLogado");
-        setTela("login");
-        setMensagemLogin("Este perfil foi desativado pelo administrador.");
-        return;
+        // Se o plano expirou, reativa automaticamente para versao gratuita com anuncios.
+        // Se o admin desativou manualmente, mantem bloqueado.
+        if (planoExpirado(atual)) {
+          await supabase
+            .from("profissionais")
+            .update({ ativo: true })
+            .eq("id", atual.id);
+        } else {
+          // Perfil foi desativado pelo administrador.
+          localStorage.removeItem("profissionalLogado");
+          setTela("login");
+          setMensagemLogin("Este perfil foi desativado pelo administrador.");
+          return;
+        }
       }
 
       // Plano expirado nao bloqueia mais o login: o profissional entra
@@ -4665,8 +4674,16 @@ const resultadoLogado = sessao.profissional;
 // na versao gratuita com anuncios. O admin pode adicionar dias depois.
 
 if (!resultadoLogado.ativo) {
-  setMensagemLogin("Este perfil está desativado.");
-  return;
+  // Se o plano expirou, reativa automaticamente para versao gratuita com anuncios.
+  if (planoExpirado(resultadoLogado)) {
+    await supabase
+      .from("profissionais")
+      .update({ ativo: true })
+      .eq("id", resultadoLogado.id);
+  } else {
+    setMensagemLogin("Este perfil está desativado.");
+    return;
+  }
 }
 
 if (lembrarLogin) {
