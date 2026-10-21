@@ -2659,9 +2659,9 @@ useEffect(() => {
 
   const verificarPlano = async () => {
     // Plano expirado nao bloqueia mais: apenas permite continuar com anuncios.
+    // O aviso visual fica a cargo do card de plano e do banner de anuncios;
+    // o intersticial aparece apenas depois de um agendamento.
     if (!planoExpirado(profissionalLogado)) return;
-    // Ativar banner de anúncio pós-agendamento para profissional free
-    setMostrarAnuncioPosAgendamento(true);
   };
 
   verificarPlano();
