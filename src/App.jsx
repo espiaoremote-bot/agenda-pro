@@ -6740,7 +6740,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   </div>
   {!profissionalLogado?.plano_ilimitado && validadePlanoMs(profissionalLogado) != null && (
     <small className="dica-dias-agendados">
-      📅 Vence em: {formatarDataPlano(profissionalLogado)} — quando o prazo chegar a zero, a conta é desativada automaticamente.
+      📅 Vence em: {formatarDataPlano(profissionalLogado)} — quando o prazo chegar a zero, a conta vai para versão gratuita com anúncios.
     </small>
   )}
 </div>
