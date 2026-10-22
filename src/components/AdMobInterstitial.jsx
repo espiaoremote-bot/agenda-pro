@@ -3,7 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { AdMob } from "@capacitor-community/admob";
 import { ADMOB_SLOT_INTERSTITIAL } from "../lib/admob";
 
-const DEFAULT_INTERSTITIAL_ID = ADMOB_SLOT_INTERSTITIAL || "ca-app-pub-3940256099942544/1033173712";
+const DEFAULT_INTERSTITIAL_ID = ADMOB_SLOT_INTERSTITIAL || "ca-app-pub-6965683162396153/7380773824";
 
 let inicializado = false;
 

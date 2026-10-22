@@ -3,7 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { AdMob, BannerAdSize, BannerAdPosition } from "@capacitor-community/admob";
 import { ADMOB_SLOT } from "../lib/admob";
 
-const DEFAULT_BANNER_ID = ADMOB_SLOT || "ca-app-pub-3940256099942544/6300978111";
+const DEFAULT_BANNER_ID = ADMOB_SLOT || "ca-app-pub-6965683162396153/1501761180";
 
 let inicializado = false;
 
