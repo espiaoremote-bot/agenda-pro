@@ -2718,15 +2718,6 @@ if (!data.ativo) {
   if (!profissionalLogado) setTela("login");
   return;
 }
-if (planoExpirado(data)) {
-  // Plano venceu => nao desativa mais o profissional do ar para clientes.
-  // O profissional continua acessando na versao gratuita com anuncios.
-  // Apenas avisa para o cliente que esta vendo o perfil publico.
-  setCarregandoPerfil(false);
-  alert("Este profissional está com o plano expirado e não está aceitando agendamentos no momento.");
-  if (!profissionalLogado) setTela("login");
-  return;
-}
 
 setDadosProfissionalCliente(data);
 setCarregandoPerfil(false);
