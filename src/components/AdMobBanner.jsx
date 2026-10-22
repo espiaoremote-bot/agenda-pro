@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { AdMob, BannerAdSize, BannerAdPosition } from "@capacitor-community/admob";
 import { ADMOB_SLOT } from "../lib/admob";
@@ -24,8 +25,11 @@ async function garantirInit() {
 export default function AdMobBanner({ className = "", slot }) {
   const adId = slot || DEFAULT_BANNER_ID;
 
-  if (Capacitor.isNativePlatform()) {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let cancelado = false;
     garantirInit().then(() => {
+      if (cancelado) return;
       AdMob.showBanner({
         adId,
         adSize: BannerAdSize.ADAPTIVE_BANNER,
@@ -33,10 +37,15 @@ export default function AdMobBanner({ className = "", slot }) {
         margin: 0,
       }).catch((e) => console.warn("AdMob showBanner falhou:", e));
     });
-    return null;
-  }
+    return () => {
+      cancelado = true;
+      if (Capacitor.isNativePlatform()) {
+        AdMob.hideBanner().catch(() => {});
+      }
+    };
+  }, [adId]);
 
-  return (
-    <div className={`ad-mob-banner ${className}`} data-ad-slot={adId} />
-  );
+  if (Capacitor.isNativePlatform()) return null;
+
+  return <div className={`ad-mob-banner ${className}`} data-ad-slot={adId} />;
 }

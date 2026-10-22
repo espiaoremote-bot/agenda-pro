@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { AdMob } from "@capacitor-community/admob";
 import { ADMOB_SLOT_INTERSTITIAL } from "../lib/admob";
@@ -24,19 +25,27 @@ async function garantirInit() {
 export default function AdMobInterstitial({ onFechar, slot }) {
   const adId = slot || DEFAULT_INTERSTITIAL_ID;
 
-  if (Capacitor.isNativePlatform()) {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      onFechar?.();
+      return;
+    }
+    let cancelado = false;
     garantirInit().then(async () => {
+      if (cancelado) return;
       try {
         await AdMob.prepareInterstitial({ adId });
         await AdMob.showInterstitial();
       } catch (e) {
         console.warn("AdMob interstitial falhou:", e);
       } finally {
-        onFechar?.();
+        if (!cancelado) onFechar?.();
       }
     });
-    return null;
-  }
+    return () => {
+      cancelado = true;
+    };
+  }, [adId, onFechar]);
 
   return null;
 }
