@@ -9,6 +9,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -22,9 +26,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link: ao tocar no link de agendamento de um profissional
-                 (https://agenda-pro-gilt.vercel.app/?profissional=ID), o app
-                 abre direto a agenda daquele profissional. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -45,13 +46,8 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Obrigatoria a partir do Android 13 (API 33) para exibir notificacoes. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Ajuda a entregar/exibir a notificacao mesmo com a tela desligada. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- Necessaria para o aparelho vibrar nas notificacoes de agendamento. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

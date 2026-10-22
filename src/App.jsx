@@ -13,6 +13,8 @@ import { ehFree } from "./lib/planos";
 import { informacaoPlano } from "./lib/planos";
 import AdBanner from "./components/AdBanner";
 import AdInterstitial from "./components/AdInterstitial";
+import AdMobBanner from "./components/AdMobBanner";
+import AdMobInterstitial from "./components/AdMobInterstitial";
 import {
   ADSENSE_SLOT_CLIENT,
   ADSENSE_SLOT_CLIENT_MEIO,
@@ -5309,7 +5311,10 @@ Enviar pedido
       formulário e a lista de pedidos). Fica oculto enquanto o intersticial
       está aberto para não exibir dois anúncios do mesmo slot ao mesmo tempo. */}
   {clienteVeAnuncios && !mostrarAnuncioCliente && (
-    <AdBanner className="ad-banner--cliente-meio" slot={ADSENSE_SLOT_CLIENT_MEIO} />
+    <AdMobBanner
+      className="ad-banner--cliente-meio"
+      slot={process.env.BUILD_TARGET === 'android' ? ADMOB_SLOT_CLIENT_MEIO : ADSENSE_SLOT_CLIENT_MEIO}
+    />
   )}
 
   {pedido && (
