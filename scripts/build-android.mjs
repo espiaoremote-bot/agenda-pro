@@ -37,7 +37,7 @@ const build = spawnSync(
   ["vite", "build"],
   {
     stdio: "inherit",
-    env: { ...process.env, BUILD_TARGET: "android" }
+    env: { ...process.env, BUILD_TARGET: "android" },
     shell: process.platform === "win32",
   }
 );
