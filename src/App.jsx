@@ -4846,6 +4846,22 @@ const resultadoLogado = sessao.profissional;
 if (!resultadoLogado.ativo) {
   // Se o plano expirou, reativa automaticamente para versao gratuita com anuncios.
   if (planoExpirado(resultadoLogado)) {
+    // Verifica se a versao gratuita esta habilitada no Supabase.
+    const { data: cfgData } = await supabase
+      .from("configuracoes_sistema")
+      .select("valor")
+      .eq("chave", "permitir_versao_gratuita_apos_expiracao")
+      .maybeSingle();
+    if (cfgData?.valor !== "true") {
+      await supabase
+        .from("profissionais")
+        .update({ ativo: false })
+        .eq("id", resultadoLogado.id);
+      setMensagemLogin(
+        "Seu plano expirou e a versão gratuita está desativada. Entre em contato com o administrador."
+      );
+      return;
+    }
     await supabase
       .from("profissionais")
       .update({ ativo: true })
