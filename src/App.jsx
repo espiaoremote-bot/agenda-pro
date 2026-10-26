@@ -2738,6 +2738,7 @@ useEffect(() => {
   if (!profissionalLogado || profissionalLogado.tipo === "super_admin") return;
 
   const verificarPlano = async () => {
+    await carregarConfiguracaoVersaoGratuita();
     if (!planoExpirado(profissionalLogado)) return;
 
     if (!versaoGratuitaHabilitada) {
