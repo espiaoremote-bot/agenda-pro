@@ -826,6 +826,11 @@ const [mensagemProfissional, setMensagemProfissional] = useState("");
 const [mensagemLogin, setMensagemLogin] = useState("");
 const [mensagemErroProfissional, setMensagemErroProfissional] = useState("");
 
+// Configuração global: permite versão gratuita após o plano expirar.
+// Quando false, profissionais com plano vencido são automaticamente desativados.
+const [versaoGratuitaHabilitada, setVersaoGratuitaHabilitada] = useState(true);
+const [carregandoConfigSistema, setCarregandoConfigSistema] = useState(false);
+
 const [pedido, setPedido] = useState(null);
 const [pedidos, setPedidos] = useState([]);
 const [pedidoEditandoValor, setPedidoEditandoValor] = useState(null);
@@ -2607,24 +2612,33 @@ useEffect(() => {
     }
 
       if (!atual.ativo) {
-        // Se o plano expirou, reativa automaticamente para versao gratuita com anuncios.
-        // Se o admin desativou manualmente, mantem bloqueado.
         if (planoExpirado(atual)) {
-          await supabase
-            .from("profissionais")
-            .update({ ativo: true })
-            .eq("id", atual.id);
-          // Busca dados atualizados apos reativacao
-          const { data: atualizado } = await supabase
-            .from("profissionais")
-            .select(COLUNAS_PERFIL)
-            .eq("id", atual.id)
-            .maybeSingle();
-          if (atualizado) {
-            atual = atualizado;
+          // Plano expirou: depende da configuracao global de versao gratuita.
+          if (versaoGratuitaHabilitada) {
+            // Reativa automaticamente para versao gratuita com anuncios.
+            await supabase
+              .from("profissionais")
+              .update({ ativo: true })
+              .eq("id", atual.id);
+            const { data: atualizado } = await supabase
+              .from("profissionais")
+              .select(COLUNAS_PERFIL)
+              .eq("id", atual.id)
+              .maybeSingle();
+            if (atualizado) {
+              atual = atualizado;
+            }
+          } else {
+            // Versao gratuita desabilitada: mantem bloqueado e avisa.
+            localStorage.removeItem("profissionalLogado");
+            setTela("login");
+            setMensagemLogin(
+              "Seu plano expirou e a versão gratuita está desativada. Entre em contato com o administrador."
+            );
+            return;
           }
         } else {
-          // Perfil foi desativado pelo administrador.
+          // Perfil foi desativado manualmente pelo administrador.
           localStorage.removeItem("profissionalLogado");
           setTela("login");
           setMensagemLogin("Este perfil foi desativado pelo administrador.");
@@ -2657,33 +2671,96 @@ useEffect(() => {
   restaurarSessao();
 }, []);
 
-// Ao entrar no painel do admin, carrega a lista de profissionais e já desativa
+// Carrega a configuração global de versão gratuita do sistema.
+async function carregarConfiguracaoVersaoGratuita() {
+  setCarregandoConfigSistema(true);
+  try {
+    const { data, error } = await supabase
+      .from("configuracoes_sistema")
+      .select("valor")
+      .eq("chave", "permitir_versao_gratuita_apos_expiracao")
+      .maybeSingle();
+    if (error) {
+      console.error("Erro ao carregar configuração de versão gratuita:", error);
+      return;
+    }
+    setVersaoGratuitaHabilitada(data?.valor === "true");
+  } catch (e) {
+    console.error("Falha ao carregar configuração de versão gratuita:", e);
+  } finally {
+    setCarregandoConfigSistema(false);
+  }
+}
+
+// Salva a configuração global de versão gratuita no sistema.
+async function salvarConfiguracaoVersaoGratuita(valor) {
+  try {
+    const { error } = await supabase
+      .from("configuracoes_sistema")
+      .upsert({
+        chave: "permitir_versao_gratuita_apos_expiracao",
+        valor: String(valor),
+        atualizado_em: new Date().toISOString(),
+      })
+      .select();
+    if (error) {
+      console.error("Erro ao salvar configuração de versão gratuita:", error);
+      alert("Erro ao salvar a configuração. Tente novamente.");
+      return;
+    }
+    setVersaoGratuitaHabilitada(valor);
+    alert(
+      valor
+        ? "✅ Versão gratuita HABILITADA: após o plano expirar, o profissional continua na versão grátis com anúncios."
+        : "✅ Versão gratuita DESABILITADA: após o plano expirar, o perfil do profissional será desativado automaticamente."
+    );
+  } catch (e) {
+    console.error("Falha ao salvar configuração de versão gratuita:", e);
+    alert("Erro ao salvar a configuração. Tente novamente.");
+  }
+}
+
+// Ao entrar no painel do admin, carrega a lista de profissionais e a configuração
+// global de versão gratuita. Se a versão gratuita estiver desabilitada, desativa
 // automaticamente quem estiver com o plano vencido.
 useEffect(() => {
   if (tela === "admin") {
     carregarProfissionaisAdmin();
+    carregarConfiguracaoVersaoGratuita();
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [tela]);
 
 // Vigia o plano enquanto o profissional está logado: se o prazo zerar com o
-// app aberto, o profissional continua na versao gratuita com anuncios.
-// Nao desativa mais a conta nem volta para o login.
+// app aberto e a versao gratuita estiver DESABILITADA, desativa a conta.
+// Se a versao gratuita estiver HABILITADA, apenas continua com anuncios.
 useEffect(() => {
   if (!profissionalLogado || profissionalLogado.tipo === "super_admin") return;
 
   const verificarPlano = async () => {
-    // Plano expirado nao bloqueia mais: apenas permite continuar com anuncios.
-    // O aviso visual fica a cargo do card de plano e do banner de anuncios;
-    // o intersticial aparece apenas depois de um agendamento.
     if (!planoExpirado(profissionalLogado)) return;
+
+    if (!versaoGratuitaHabilitada) {
+      // Desativa automaticamente porque a versao gratuita nao esta permitida.
+      await supabase
+        .from("profissionais")
+        .update({ ativo: false })
+        .eq("id", profissionalLogado.id);
+      localStorage.removeItem("profissionalLogado");
+      setTela("login");
+      setMensagemLogin(
+        "Seu plano expirou e a versão gratuita está desativada. Entre em contato com o administrador."
+      );
+      return;
+    }
+    // Versao gratuita habilitada: apenas continua com anuncios, nada a fazer.
   };
 
   verificarPlano();
   const intervalo = setInterval(verificarPlano, 60 * 1000);
   return () => clearInterval(intervalo);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [profissionalLogado, tela]);
+}, [profissionalLogado, tela, versaoGratuitaHabilitada]);
 
 useEffect(() => {
 
@@ -3174,17 +3251,15 @@ if (carregandoPerfil) {
   );
 }
 
-// Busca os profissionais no banco e mantem todos ativos.
-// Quando o plano expira, o profissional nao eh desativado: ele continua
-// usando o app na versao gratuita (com anuncios) ate o admin adicionar dias
-// ou tornar o plano permanente.
+// Busca os profissionais no banco.
+// Se a versao gratuita estiver DESABILITADA, profissionais com plano vencido
+// sao automaticamente DESATIVADOS (ativo = false).
+// Se estiver HABILITADA, eles continuam ativos na versao gratuita (com anuncios).
 async function carregarProfissionaisAdmin() {
   const { data, error } = await supabase.from("profissionais").select(COLUNAS_PERFIL);
   if (error) console.error("Erro ao carregar profissionais:", error);
   if (!data) return;
 
-  // Reativa automaticamente profissionais com plano expirado (ja inativos ou prestes a vencer)
-  // para que fiquem na versao gratuita com anuncios em vez de ficarem bloqueados.
   const expirados = data.filter(
     (p) =>
       p.tipo !== "super_admin" &&
@@ -3194,12 +3269,21 @@ async function carregarProfissionaisAdmin() {
   );
 
   if (expirados.length > 0) {
-    const { error } = await supabase
-      .from("profissionais")
-      .update({ ativo: true })
-      .in("id", expirados.map((p) => p.id));
-
-    if (error) console.error("Erro ao reativar planos expirados:", error);
+    if (versaoGratuitaHabilitada) {
+      // Reativa automaticamente para versao gratuita com anuncios.
+      const { error: erroReativar } = await supabase
+        .from("profissionais")
+        .update({ ativo: true })
+        .in("id", expirados.map((p) => p.id));
+      if (erroReativar) console.error("Erro ao reativar planos expirados:", erroReativar);
+    } else {
+      // Versao gratuita desabilitada: desativa profissionais com plano vencido.
+      const { error: erroDesativar } = await supabase
+        .from("profissionais")
+        .update({ ativo: false })
+        .in("id", expirados.map((p) => p.id));
+      if (erroDesativar) console.error("Erro ao desativar planos expirados:", erroDesativar);
+    }
 
     const { data: atualizado } = await supabase.from("profissionais").select(COLUNAS_PERFIL);
     setProfissionais(atualizado || data);
@@ -5475,6 +5559,32 @@ Enviar pedido
       </div>
     </div>
 
+    <div className="admin-secao-config-gratuita" style={{ marginBottom: "16px", padding: "16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid var(--cor-borda)" }}>
+      <h4 style={{ margin: "0 0 12px 0", fontSize: "18px" }}>{versaoGratuitaHabilitada ? "🆓" : "🚫"} Versão gratuita após expiração do plano</h4>
+      <button
+        type="button"
+        onClick={() => salvarConfiguracaoVersaoGratuita(!versaoGratuitaHabilitada)}
+        disabled={carregandoConfigSistema}
+        style={{
+          padding: "12px 20px",
+          background: versaoGratuitaHabilitada ? "#10b981" : "#ef4444",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "600",
+        }}
+      >
+        {carregandoConfigSistema ? "⏳ Salvando…" : versaoGratuitaHabilitada ? "✅ Versão gratuita ATIVADA" : "❌ Versão gratuita DESATIVADA"}
+      </button>
+      <p style={{ margin: "8px 0 0 0", fontSize: "13px", color: "#666" }}>
+        {versaoGratuitaHabilitada
+          ? "Quando o plano de um profissional expirar, ele continua na versão gratuita com anúncios."
+          : "Quando o plano de um profissional expirar, seu perfil será DESATIVADO automaticamente (não poderá usar a agenda)."}
+      </p>
+    </div>
+
     <h3>Profissionais cadastrados</h3>
     <div className="resumo-dashboard">
 
@@ -6782,6 +6892,19 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   </div>
 
 <div className="saldo-config" style={{ display: "flex", flexDirection: "column", gap: "8px", border: "1px solid var(--cor-borda)", borderRadius: "16px", padding: "12px", background: "var(--fundo)" }}>
+  {(!profissionalLogado?.ativo && planoExpirado(profissionalLogado)) && (
+    <div style={{ background: "#fee2e2", border: "1px solid #ef4444", borderRadius: "12px", padding: "12px", marginBottom: "12px" }}>
+      <p style={{ margin: "0 0 8px 0", color: "#991b1b", fontWeight: "bold" }}>
+        🚫 Seu perfil foi DESATIVADO
+      </p>
+      <p style={{ margin: "0 0 8px 0", color: "#991b1b", fontSize: "14px" }}>
+        O seu plano expirou e o administrador desativou a versão gratuita do sistema.
+      </p>
+      <p style={{ margin: "0", color: "#991b1b", fontSize: "14px" }}>
+        Entre em contato com o administrador para contratar um novo plano e reativar sua conta.
+      </p>
+    </div>
+  )}
   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
     {profissionalLogado?.plano_ilimitado ? (
       <p className="plano-status plano-status-permanente" style={{ margin: 0 }}>
@@ -6810,7 +6933,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   </div>
   {!profissionalLogado?.plano_ilimitado && validadePlanoMs(profissionalLogado) != null && (
     <small className="dica-dias-agendados">
-      📅 Vence em: {formatarDataPlano(profissionalLogado)} — quando o prazo chegar a zero, a conta vai para versão gratuita com anúncios.
+      📅 Vence em: {formatarDataPlano(profissionalLogado)} — {versaoGratuitaHabilitada ? "quando o prazo chegar a zero, a conta vai para versão gratuita com anúncios." : "se o prazo chegar a zero e a versão gratuita estiver desabilitada, sua conta será desativada."}
     </small>
   )}
 </div>
