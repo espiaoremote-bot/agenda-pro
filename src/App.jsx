@@ -2614,7 +2614,14 @@ useEffect(() => {
       if (!atual.ativo) {
         if (planoExpirado(atual)) {
           // Plano expirou: depende da configuracao global de versao gratuita.
-          if (versaoGratuitaHabilitada) {
+            const { data: cfgData } = await supabase
+              .from("configuracoes_sistema")
+              .select("valor")
+              .eq("chave", "permitir_versao_gratuita_apos_expiracao")
+              .maybeSingle();
+            const versaoGratuitaAtual = cfgData?.valor === "true";
+
+          if (versaoGratuitaAtual) {
             // Reativa automaticamente para versao gratuita com anuncios.
             await supabase
               .from("profissionais")
