@@ -2515,7 +2515,31 @@ const COLUNAS_PERFIL =
 
 // Entra direto na área com os dados salvos (modo offline / falha de rede),
 // sem apagar a sessão. Só apaga quando o perfil realmente não existe mais.
-function entrarComSessaoSalva(salvo) {
+async function entrarComSessaoSalva(salvo) {
+  // Verifica se o plano expirou e a versao gratuita esta desativada.
+  if (planoExpirado(salvo) && salvo.tipo !== "super_admin") {
+    try {
+      const { data: cfgData } = await supabase
+        .from("configuracoes_sistema")
+        .select("valor")
+        .eq("chave", "permitir_versao_gratuita_apos_expiracao")
+        .maybeSingle();
+      if (cfgData?.valor !== "true") {
+        await supabase
+          .from("profissionais")
+          .update({ ativo: false })
+          .eq("id", salvo.id);
+        localStorage.removeItem("profissionalLogado");
+        setTela("login");
+        setMensagemLogin(
+          "Seu plano expirou e a versão gratuita está desativada. Entre em contato com o administrador."
+        );
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
   setProfissionalLogado(salvo);
   try {
     abrirNotificacaoPendente(salvo.id);
