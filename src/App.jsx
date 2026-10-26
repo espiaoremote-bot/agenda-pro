@@ -2738,10 +2738,16 @@ useEffect(() => {
   if (!profissionalLogado || profissionalLogado.tipo === "super_admin") return;
 
   const verificarPlano = async () => {
-    await carregarConfiguracaoVersaoGratuita();
-    if (!planoExpirado(profissionalLogado)) return;
+    try {
+      const { data } = await supabase
+        .from("configuracoes_sistema")
+        .select("valor")
+        .eq("chave", "permitir_versao_gratuita_apos_expiracao")
+        .maybeSingle();
+      const versaoGratuitaAtual = data?.valor === "true";
+      if (!planoExpirado(profissionalLogado)) return;
 
-    if (!versaoGratuitaHabilitada) {
+      if (!versaoGratuitaAtual) {
       // Desativa automaticamente porque a versao gratuita nao esta permitida.
       await supabase
         .from("profissionais")
@@ -2755,6 +2761,9 @@ useEffect(() => {
       return;
     }
     // Versao gratuita habilitada: apenas continua com anuncios, nada a fazer.
+    } catch (e) {
+      console.error("Falha ao verificar plano:", e);
+    }
   };
 
   verificarPlano();
