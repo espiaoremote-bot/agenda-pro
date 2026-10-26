@@ -2611,6 +2611,30 @@ useEffect(() => {
       return;
     }
 
+      // Verifica se o plano expirou e a versao gratuita esta desativada.
+      // Nesse caso, bloqueia o login imediatamente, sem entrar na agenda.
+      if (planoExpirado(atual)) {
+        const { data: cfgData } = await supabase
+          .from("configuracoes_sistema")
+          .select("valor")
+          .eq("chave", "permitir_versao_gratuita_apos_expiracao")
+          .maybeSingle();
+        const versaoGratuitaAtual = cfgData?.valor === "true";
+        if (!versaoGratuitaAtual) {
+          await supabase
+            .from("profissionais")
+            .update({ ativo: false })
+            .eq("id", atual.id);
+          localStorage.removeItem("profissionalLogado");
+          setTela("login");
+          setMensagemLogin(
+            "Seu plano expirou e a versão gratuita está desativada. Entre em contato com o administrador."
+          );
+          return;
+        }
+      }
+
+
       if (!atual.ativo) {
         if (planoExpirado(atual)) {
           // Plano expirou: depende da configuracao global de versao gratuita.
