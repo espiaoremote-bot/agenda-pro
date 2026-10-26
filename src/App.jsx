@@ -5559,6 +5559,7 @@ Enviar pedido
       </div>
     </div>
 
+{desbloqueadoAdmin && (
     <div className="admin-secao-config-gratuita" style={{ marginBottom: "16px", padding: "16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid var(--cor-borda)" }}>
       <h4 style={{ margin: "0 0 12px 0", fontSize: "18px" }}>{versaoGratuitaHabilitada ? "🆓" : "🚫"} Versão gratuita após expiração do plano</h4>
       <button
@@ -5584,8 +5585,9 @@ Enviar pedido
           : "Quando o plano de um profissional expirar, seu perfil será DESATIVADO automaticamente (não poderá usar a agenda)."}
       </p>
     </div>
-
+  )}
     <h3>Profissionais cadastrados</h3>
+
     <div className="resumo-dashboard">
 
   <div className="resumo-card">

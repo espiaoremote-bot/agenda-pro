@@ -33,3 +33,19 @@ BEGIN
     USING (true);
   END IF;
 END $$;
+
+-- Permitir escrita (INSERT/UPDATE) para usuários autenticados (admins)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'configuracoes_sistema' 
+    AND policyname = 'Escrita de configurações por usuários autenticados'
+  ) THEN
+    CREATE POLICY "Escrita de configurações por usuários autenticados"
+    ON public.configuracoes_sistema
+    FOR ALL
+    USING (auth.role() = 'authenticated')
+    WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+END $$;
