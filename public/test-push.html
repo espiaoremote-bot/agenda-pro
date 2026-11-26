@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Diagnóstico Push - Agenda Pro</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:560px;margin:24px auto;padding:0 16px;line-height:1.6}
+h1{font-size:1.2rem;margin-bottom:12px}
+.card{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin:10px 0;background:#fff}
+.ok{color:#15803d;font-weight:700}.erro{color:#b91c1c;font-weight:700}.aviso{color:#d97706;font-weight:700}
+.btn{background:#2563eb;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:1rem;margin-top:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+pre{background:#f3f4f6;padding:10px;border-radius:8px;overflow:auto;font-size:.8rem}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75rem;margin-right:6px}
+.tag-ios{background:#dbeafe;color:#1e40af}
+</style>
+</head>
+<body>
+<h1>📢 Diagnóstico Push - Agenda Pro</h1>
+
+<div class="card">
+<h2>1. Suporte</h2>
+<p id="s"></p><p id="p"></p>
+</div>
+
+<div class="card">
+<h2>2. Service Worker</h2>
+<p id="sw"></p>
+<button class="btn" id="b1">Registrar SW</button>
+<pre id="swd"></pre>
+</div>
+
+<div class="card">
+<h2>3. Permissão</h2>
+<p id="perm"></p>
+<button class="btn" id="b2">Solicitar Permissão</button>
+</div>
+
+<div class="card">
+<h2>4. Inscrição Push</h2>
+<p id="sub"></p>
+<button class="btn" id="b3">Inscrever Push</button>
+<pre id="subd"></pre>
+</div>
+
+<div class="card">
+<h2>5. Teste Notificação</h2>
+<button class="btn" id="b4">Testar Notificação</button>
+<p id="teste-resultado"></p>
+</div>
+
+<div class="card">
+<h2>📱 iPhone</h2>
+<p>No iPhone (Safari/Chrome) é necessário:<br/>1. iOS 16.4+<br/>2. Adicionar à Tela Inicial (Compartilhar → "Adicionar à Tela Inicial")<br/>3. Abrir pelo ícone criado<br/>4. Conceder permissão</p>
+<p><strong>URL:</strong> https://agenda-pro-gilt.vercel.app</p>
+</div>
+
+<script>
+const VK = "BHmE7f6Kb0SnrWK8dyQif8_vJaXDNOFaA5d8hmVdVQ4gfH8OOjw1e08tkNBbepTHIzTytuADKCuRmYbCxU3MiUM";
+function b2u(k){const b=k.replace(/-/g,"+").replace(/_/g,"/");const d=atob(b);return Uint8Array.from(d,c=>c.charCodeAt(0));}
+const ehIOS=/iPad|iPhone|iPod/.test(navigator.platform)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const pwa=window.matchMedia("(display-mode:standalone)").matches||window.navigator.standalone===true;
+function l(e,h){document.getElementById(e).innerHTML=h;}
+if("PushManager"in window&&"Notification"in window) l("s",'<span class="ok">✅ Push API suportado</span>'); else l("s",'<span class="erro">❌ Não suportado</span>');
+if(ehIOS) l("p",'<span class="tag tag-ios">iOS</span> '+(pwa?'<span class="ok">PWA ativo</span>':'<span class="aviso">⚠️ Não está em modo PWA</span>')); else l("p",'<span class="tag tag-ios">Desktop/Android</span>');
+
+async function chkSW(){try{const r=await navigator.serviceWorker.getRegistration("/push-sw.js");if(r){l("sw",'<span class="ok">✅ SW registrado</span>');document.getElementById("swd").textContent=JSON.stringify({scope:r.scope,active:!!r.active},null,2);}else l("sw",'<span class="erro">❌ SW não registrado</span>');}catch(e){l("sw",'<span class="erro">❌ '+e.message+'</span>');}}
+chkSW();
+document.getElementById("b1").onclick=async()=>{try{const r=await navigator.serviceWorker.register("/push-sw.js");l("sw",'<span class="ok">✅ SW registrado</span>');}catch(e){l("sw",'<span class="erro">❌ '+e.message+'</span>');}};
+
+function chkP(){const x=Notification.permission;if(x==="granted")l("perm",'<span class="ok">✅ Permitido</span>');else if(x==="denied")l("perm",'<span class="erro">❌ Negado</span>');else l("perm",'<span class="aviso">⚠️ Não definido</span>');}
+chkP();
+document.getElementById("b2").onclick=async()=>{const x=await Notification.requestPermission();chkP();};
+
+document.getElementById("b3").onclick=async()=>{try{const r=await navigator.serviceWorker.getRegistration("/push-sw.js");if(!r){l("sub",'<span class="erro">❌ Registre SW primeiro</span>');return;}let s=await r.pushManager.getSubscription();if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b2u(VK)});l("sub",'<span class="ok">✅ Inscrito</span>');document.getElementById("subd").textContent=JSON.stringify(s.toJSON?s.toJSON():s,null,2);}catch(e){l("sub",'<span class="erro">❌ '+e.message+'</span>');}};
+
+document.getElementById("b4").onclick=()=>{
+  const res=document.getElementById("teste-resultado");
+  if(Notification.permission!=="granted"){
+    res.innerHTML='<span class="erro">❌ Permissão não concedida. Clique em "Solicitar Permissão" primeiro.</span>';
+    return;
+  }
+  try{
+    const n=new Notification("📢 Teste",{body:"Notificações funcionando!",icon:"/favicon.png",tag:"teste"});
+    res.innerHTML='<span class="ok">✅ Notificação disparada! Verifique a tela.</span>';
+    n.onclick=()=>{window.focus();n.close();};
+  }catch(e){
+    res.innerHTML='<span class="erro">❌ Erro: '+e.message+'</span>';
+  }
+};
+</script>
+</body>
+</html>

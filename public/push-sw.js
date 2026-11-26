@@ -1,15 +1,15 @@
-self.addEventListener("push", (event) => {
+﻿self.addEventListener("push", (event) => {
   let mensagem = {};
   try {
     mensagem = event.data ? event.data.json() : {};
   } catch (error) {
-    console.error("Push recebido com conteúdo inválido:", error);
+    console.error("Push recebido com conteÃºdo invÃ¡lido:", error);
   }
 
   const dados = mensagem.data || {};
   event.waitUntil(
     self.registration.showNotification(mensagem.title || "Novo agendamento", {
-      body: mensagem.body || "Um cliente agendou um horário.",
+      body: mensagem.body || "Um cliente agendou um horÃ¡rio.",
       icon: "/favicon.svg",
       data: {
         url:
@@ -47,3 +47,4 @@ self.addEventListener("notificationclick", (event) => {
     )
   );
 });
+
