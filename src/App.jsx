@@ -7016,7 +7016,7 @@ setMostrarConfiguracoes(!mostrarConfiguracoes)
   </div>
   {!profissionalLogado?.plano_ilimitado && validadePlanoMs(profissionalLogado) != null && (
     <small className="dica-dias-agendados">
-      📅 Vence em: {formatarDataPlano(profissionalLogado)} — {versaoGratuitaHabilitada ? "quando o prazo chegar a zero, a conta vai para versão gratuita com anúncios." : "se o prazo chegar a zero e a versão gratuita estiver desabilitada, sua conta será desativada."}
+      📅 Vence em: {formatarDataPlano(profissionalLogado)} — {versaoGratuitaHabilitada ? "quando o prazo chegar a zero, a conta vai para versão gratuita com anúncios." : "quando o prazo chegar a zero, a conta vai ser desativada"}
     </small>
   )}
 </div>
