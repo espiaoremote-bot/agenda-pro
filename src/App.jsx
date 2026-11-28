@@ -759,6 +759,10 @@ function App() {
     if (Number(parametros.get("profissional"))) return "cliente";
     const sessao = lerSessaoSalvaInicial();
     if (!sessao) return "login";
+    // Se o plano já expirou, começa direto no login (evita a piscada)
+    if (planoExpirado(sessao) && sessao.tipo !== "super_admin") {
+      return "login";
+    }
     return sessao.tipo === "super_admin" ? "admin" : "profissional";
   });
 
@@ -790,7 +794,13 @@ const [lembrarLogin, setLembrarLogin] = useState(
   console.log("APP ESTÁ RODANDO");
 console.log("EU EDITEI ESTE ARQUIVO AGORA 123456");
 
-const [profissionalLogado, setProfissionalLogado] = useState(() => lerSessaoSalvaInicial());
+const [profissionalLogado, setProfissionalLogado] = useState(() => {
+    const sessao = lerSessaoSalvaInicial();
+    if (sessao && planoExpirado(sessao) && sessao.tipo !== "super_admin") {
+      return null; // não carrega o profissional expirado
+    }
+    return sessao;
+  });
 const [profissionalCliente, setProfissionalCliente] = useState(null);
 const [dadosProfissionalCliente, setDadosProfissionalCliente] = useState(null);
 const [carregandoPerfil, setCarregandoPerfil] = useState(() => {
